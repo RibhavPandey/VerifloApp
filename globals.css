@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================
+   LIGHT THEME (HSL ONLY)
+   ========================= */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+
+  --primary: 0 100% 60%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 60 100% 50%;
+  --secondary-foreground: 0 0% 0%;
+
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 20%;
+
+  --accent: 217 100% 50%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 0% 0%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 0%;
+  --input: 0 0% 0%;
+  --ring: 0 100% 60%;
+
+  --chart-1: 0 100% 60%;
+  --chart-2: 60 100% 50%;
+  --chart-3: 217 100% 50%;
+  --chart-4: 120 60% 45%;
+  --chart-5: 300 60% 45%;
+
+  --radius: 0rem;
+
+  --sidebar: 0 0% 94%;
+  --sidebar-foreground: 0 0% 0%;
+  --sidebar-primary: 0 100% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 217 100% 50%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 0 0% 0%;
+  --sidebar-ring: 0 100% 60%;
+
+  --shadow-x: 4px;
+  --shadow-y: 4px;
+  --shadow-blur: 0px;
+  --shadow-spread: 0px;
+  --shadow-opacity: 1;
+  --shadow-color: 0 0% 0%;
+}
+
+/* =========================
+   DARK THEME (HSL ONLY)
+   ========================= */
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+
+  --card: 0 0% 20%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 0 0% 20%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 0 100% 70%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 60 100% 60%;
+  --secondary-foreground: 0 0% 0%;
+
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 80%;
+
+  --accent: 217 100% 65%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 0% 100%;
+  --destructive-foreground: 0 0% 0%;
+
+  --border: 0 0% 100%;
+  --input: 0 0% 100%;
+  --ring: 0 100% 70%;
+
+  --chart-1: 0 100% 70%;
+  --chart-2: 60 100% 60%;
+  --chart-3: 217 100% 65%;
+  --chart-4: 120 60% 55%;
+  --chart-5: 300 60% 55%;
+
+  --sidebar: 0 0% 0%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 100% 70%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 217 100% 65%;
+  --sidebar-accent-foreground: 0 0% 0%;
+  --sidebar-border: 0 0% 100%;
+  --sidebar-ring: 0 100% 70%;
+
+  --shadow-color: 0 0% 0%;
+}
+
+/* =========================
+   BASE STYLES
+   ========================= */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* =========================
+   UTILITIES & ANIMATIONS
+   ========================= */
+@layer utilities {
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.8s ease-out;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}
