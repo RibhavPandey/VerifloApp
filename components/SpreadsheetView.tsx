@@ -43,6 +43,10 @@ const SpreadsheetView: React.FC = () => {
   const [file, setFile] = useState<ExcelFile | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // #region agent log
+  useEffect(() => { fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:45',message:'isSidebarOpen initial state',data:{isSidebarOpen},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{}); }, []);
+  // #endregion
 
   // Load Data
   useEffect(() => {
@@ -632,12 +636,24 @@ const SpreadsheetView: React.FC = () => {
     };
   };
 
+  // #region agent log
+  useEffect(() => { fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:635',message:'Component render - sidebar state',data:{isSidebarOpen,buttonRight:isSidebarOpen?'400px':'0px',fileLoaded:!!file},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{}); }, [isSidebarOpen, file]);
+  // #endregion
+  
   return (
     <div className="flex h-full overflow-hidden relative">
         {/* SIDEBAR TOGGLE BUTTON */}
         <div className="absolute bottom-8 z-50" style={{ right: isSidebarOpen ? '400px' : '0px' }}>
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onClick={() => {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:640',message:'Button clicked - before state change',data:{currentState:isSidebarOpen},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+              // #endregion
+              setIsSidebarOpen(!isSidebarOpen);
+              // #region agent log
+              setTimeout(() => fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:643',message:'Button clicked - after state change',data:{newState:!isSidebarOpen},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{}), 0);
+              // #endregion
+            }}
             className="w-6 h-12 bg-white border border-gray-200 rounded-l-lg flex items-center justify-center shadow-md hover:bg-gray-50 text-gray-500 transition-all"
           >
             {isSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -848,7 +864,13 @@ const SpreadsheetView: React.FC = () => {
         className="flex-shrink-0 h-full border-l border-gray-200 bg-white overflow-hidden transition-all duration-300"
         style={{ width: isSidebarOpen ? '400px' : '0px', borderLeftWidth: isSidebarOpen ? '1px' : '0px' }}
       >
+        {/* #region agent log */}
+        {(() => { fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:847',message:'Sidebar container render',data:{isSidebarOpen,width:isSidebarOpen?'400px':'0px',fileExists:!!file,allFilesCount:allFiles?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{}); return null; })()}
+        {/* #endregion */}
         <div className="w-[400px] h-full">
+                {/* #region agent log */}
+                {(() => { fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:852',message:'Sidebar component props check',data:{activeFile:!!file,activeFileId:file?.id,allFilesCount:allFiles?.length||0,historyLength:chatHistory?.length||0,credits},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{}); return null; })()}
+                {/* #endregion */}
                 <Sidebar 
                     activeFile={file}
                     files={allFiles} 
