@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Job, ExcelFile } from '../types';
 import { db } from '../lib/db';
-import { useToast } from './ui/Toast';
+import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
 
 const Dashboard: React.FC = () => {

@@ -8,7 +8,7 @@ import { ChartRenderer, ChartModal } from './ChartRenderer';
 import { AnalysisContent } from './AnalysisCards';
 import html2canvas from 'html2canvas';
 import { worker } from '../lib/worker';
-import { useToast } from './ui/Toast';
+import { useToast } from './ui/toast';
 
 interface SidebarProps {
     activeFile: ExcelFile | undefined;

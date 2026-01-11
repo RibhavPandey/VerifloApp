@@ -5,7 +5,7 @@ import VerificationView from './VerificationView';
 import { db } from '../lib/db';
 import { VerificationDocument, Job, ExcelFile } from '../types';
 import { Loader2 } from 'lucide-react';
-import { useToast } from './ui/Toast';
+import { useToast } from './ui/toast';
 
 const VerificationPage: React.FC = () => {
     const { id } = useParams<{ id: string }>(); // Job ID

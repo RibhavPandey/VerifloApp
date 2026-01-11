@@ -9,7 +9,7 @@ import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
 import MergeModal from './MergeModal';
 import { db } from '../lib/db'; 
-import { useToast } from './ui/Toast';
+import { useToast } from './ui/toast';
 import { worker } from '../lib/worker';
 import ExcelJS from 'exceljs';
 

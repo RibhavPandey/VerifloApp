@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { ExcelFile, CellStyle, AutomationStep, Job, FileSnapshot, ChatMessage } from '../types';
 import { HyperFormula } from 'hyperformula';
-import { useToast } from './ui/Toast';
+import { useToast } from './ui/toast';
 import { db } from '../lib/db';
 import { api } from '../lib/api';
 import Sidebar from './Sidebar';

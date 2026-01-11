@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, ScanText, FileSpreadsheet, Play, Trash2 } from 'lucide-react';
 import { db } from '../lib/db';
 import { Workflow } from '../types';
-import { useToast } from './ui/Toast';
+import { useToast } from './ui/toast';
 
 const Workflows: React.FC = () => {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
