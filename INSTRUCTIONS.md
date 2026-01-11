@@ -6,7 +6,7 @@ Save the file
 Run in terminal:
 
 git add .
-git commit -m "Change button color"
+git commit -m "App Updates"
 git push origin main
 
 Wait 2–5 minutes

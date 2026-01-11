@@ -2,8 +2,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Sparkles, Send, ChartBar, Pin, TrendingUp, User, Calculator, PieChart, Download, FileText, ArrowRight, Split, ShieldCheck, Layers, Copy, FunctionSquare, Play, Save, Workflow as WorkflowIcon, Trash2, Plus, ChevronDown, MessageSquare, BarChart2, Check, Search, X, RotateCcw } from 'lucide-react';
 import { ExcelFile, ChatMessage, DashboardItem, AnalysisResult, Workflow, AutomationStep } from '../types';
-import { GoogleGenAI } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
+import { api } from '../lib/api';
 import { ChartRenderer, ChartModal } from './ChartRenderer';
 import { AnalysisContent } from './AnalysisCards';
 import html2canvas from 'html2canvas';
@@ -177,8 +177,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         setTimeout(async () => {
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
                 const fileContext = referencedFiles.map(f => {
                     const sample = f.data.slice(0, 5);
                     return `File: "${f.name}"
@@ -193,51 +191,17 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                 const primaryData = primaryFile ? primaryFile.data : [];
                 const isDataMode = referencedFiles.length > 0;
 
-                let systemInstruction = isDataMode ? `
-                You are an expert Data Analyst Python/JS Engine.
-                
-                AVAILABLE DATASETS (Context Provided): 
-                ${fileContext}
-                
-                YOUR TASK:
-                Write pure JavaScript code to answer the user's question accurately.
-                The code will be executed in a secure worker with full access to the actual dataset.
-                
-                HELPER FUNCTIONS (Use these for precision):
-                - findCol('name'): Returns column index (fuzzy match).
-                - getNumCol('name'): Returns array of CLEANED numbers from a column.
-                - getColData('name'): Returns array of raw values.
-                
-                RULES:
-                1. ALWAYS use 'getNumCol' for math.
-                2. Round all monetary/float results to 2 decimals.
-                3. Return the FINAL RESULT.
-                4. CHARTING:
-                   - Return { chartType: 'bar'|'line'|'pie', data: [{name: "Label", value: 123.45}, ...], title: "Title" } ONLY if visualized data is best.
-                5. FORMULAS:
-                   - Return { data: <calc_result>, suggestedFormula: "=SUM(A:A)" } if asked.
-                6. TEXT RESPONSE:
-                   - ALWAYS explain your answer in the text response (before the code block).
-            ` : "You are a helpful data assistant.";
-
-                const recentHistory = history.slice(-6).map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: msg.content }]
-                }));
-
-                const responseStream = await ai.models.generateContentStream({
-                    model: "gemini-3-flash-preview",
-                    contents: [...recentHistory, { role: 'user', parts: [{ text: currentPrompt }] }],
-                    config: { systemInstruction, temperature: 0.1 },
-                });
+                const recentHistory = history.slice(-6);
 
                 let accumulatedText = '';
                 let executionResult: any = null;
                 let hasExecuted = false;
 
-                for await (const chunk of responseStream) {
-                    const text = chunk.text || '';
-                    accumulatedText += text;
+                try {
+                    const responseStream = api.chat(currentPrompt, fileContext, recentHistory, isDataMode);
+
+                    for await (const text of responseStream) {
+                        accumulatedText += text;
 
                     if (isDataMode && !hasExecuted) {
                         const codeMatch = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/i);
@@ -252,59 +216,62 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                         visibleText = accumulatedText.replace(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/i, '').trim();
                     }
 
-                    onUpdateHistoryRef.current(prev => prev.map(m => {
-                        if (m.id === assistantId) {
-                            const updated = { ...m, content: visibleText };
-                            const resultTitle = executionResult?.title || 'Analysis Result';
-                            const isResultAdded = updated.parts?.some(p => p.title === resultTitle || p.title === 'Analysis Result');
+                        onUpdateHistoryRef.current(prev => prev.map(m => {
+                            if (m.id === assistantId) {
+                                const updated = { ...m, content: visibleText };
+                                const resultTitle = executionResult?.title || 'Analysis Result';
+                                const isResultAdded = updated.parts?.some(p => p.title === resultTitle || p.title === 'Analysis Result');
 
-                            if (executionResult !== null && !isResultAdded) {
-                                if (!updated.parts) updated.parts = [];
+                                if (executionResult !== null && !isResultAdded) {
+                                    if (!updated.parts) updated.parts = [];
 
-                                if (typeof executionResult === 'object' && executionResult?.suggestedFormula) {
-                                    if (!updated.parts.some(p => p.type === 'formula')) {
-                                        updated.parts.push({
-                                            type: 'formula',
-                                            title: 'Suggested Formula',
-                                            content: executionResult.suggestedFormula
-                                        });
+                                    if (typeof executionResult === 'object' && executionResult?.suggestedFormula) {
+                                        if (!updated.parts.some(p => p.type === 'formula')) {
+                                            updated.parts.push({
+                                                type: 'formula',
+                                                title: 'Suggested Formula',
+                                                content: executionResult.suggestedFormula
+                                            });
+                                        }
                                     }
-                                }
 
-                                if (typeof executionResult === 'object' && executionResult?.chartType && Array.isArray(executionResult.data)) {
-                                    if (executionResult.data.length > 0) {
-                                        updated.parts.push({
-                                            type: 'chart',
-                                            title: executionResult.title || 'Analysis Result',
-                                            data: executionResult.data,
-                                            chartType: executionResult.chartType
-                                        });
+                                    if (typeof executionResult === 'object' && executionResult?.chartType && Array.isArray(executionResult.data)) {
+                                        if (executionResult.data.length > 0) {
+                                            updated.parts.push({
+                                                type: 'chart',
+                                                title: executionResult.title || 'Analysis Result',
+                                                data: executionResult.data,
+                                                chartType: executionResult.chartType
+                                            });
+                                        }
                                     }
-                                }
-                                else if (typeof executionResult === 'object' && 'data' in executionResult && !executionResult.chartType) {
-                                    const d = executionResult.data;
-                                    if (Array.isArray(d) && d.length > 0) {
-                                        updated.parts.push({ type: 'table', title: executionResult.title || 'Analysis Result', data: d });
-                                    } else if (typeof d === 'object' && d !== null) {
-                                        updated.parts.push({ type: 'table', title: 'Analysis Result', data: [d] });
-                                    } else {
-                                        const resultStr = "\n\n**Result:** " + String(d);
+                                    else if (typeof executionResult === 'object' && 'data' in executionResult && !executionResult.chartType) {
+                                        const d = executionResult.data;
+                                        if (Array.isArray(d) && d.length > 0) {
+                                            updated.parts.push({ type: 'table', title: executionResult.title || 'Analysis Result', data: d });
+                                        } else if (typeof d === 'object' && d !== null) {
+                                            updated.parts.push({ type: 'table', title: 'Analysis Result', data: [d] });
+                                        } else {
+                                            const resultStr = "\n\n**Result:** " + String(d);
+                                            if (!updated.content.includes(resultStr.trim())) {
+                                                updated.content = (updated.content + resultStr).trim();
+                                            }
+                                        }
+                                    }
+                                    else if (typeof executionResult !== 'object' && executionResult !== undefined && executionResult !== null) {
+                                        const resultStr = "\n\n**Result:** " + String(executionResult);
                                         if (!updated.content.includes(resultStr.trim())) {
                                             updated.content = (updated.content + resultStr).trim();
                                         }
                                     }
                                 }
-                                else if (typeof executionResult !== 'object' && executionResult !== undefined && executionResult !== null) {
-                                    const resultStr = "\n\n**Result:** " + String(executionResult);
-                                    if (!updated.content.includes(resultStr.trim())) {
-                                        updated.content = (updated.content + resultStr).trim();
-                                    }
-                                }
+                                return updated;
                             }
-                            return updated;
-                        }
-                        return m;
-                    }));
+                            return m;
+                        }));
+                    }
+                } catch (streamErr: any) {
+                    throw streamErr;
                 }
             } catch (err: any) {
                 console.error(err);

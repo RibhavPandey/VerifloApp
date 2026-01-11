@@ -257,8 +257,45 @@ const SpreadsheetView: React.FC = () => {
 
   // --- Handlers (Simplified for brevity as logic is same as before) ---
   const handleSelectAll = () => {
-      setSelection({ start: { r: 0, c: 0 }, end: { r: file.data.length-1, c: file.columns.length-1 } });
-      setActiveCell({ r: 0, c: 0 });
+      let maxR = 0;
+      let maxC = 0;
+      let hasData = false;
+
+      file.data.forEach((row, r) => {
+        if (row && Array.isArray(row)) {
+          row.forEach((cell, c) => {
+             if (cell !== undefined && cell !== null && cell !== '') {
+                 maxR = Math.max(maxR, r);
+                 maxC = Math.max(maxC, c);
+                 hasData = true;
+             }
+          });
+        }
+      });
+
+      if (hasData) {
+         setSelection({ start: { r: 0, c: 0 }, end: { r: maxR, c: maxC } });
+         if (!activeCell) setActiveCell({ r: 0, c: 0 });
+      } else {
+         setSelection({ start: { r: 0, c: 0 }, end: { r: 0, c: 0 } });
+         setActiveCell({ r: 0, c: 0 });
+      }
+  };
+
+  const handleColumnHeaderClick = (c: number) => {
+      setActiveCell({ r: 0, c });
+      setSelection({ 
+          start: { r: 0, c }, 
+          end: { r: rowCount - 1, c } 
+      });
+  };
+
+  const handleRowHeaderClick = (r: number) => {
+      setActiveCell({ r, c: 0 });
+      setSelection({ 
+          start: { r, c: 0 }, 
+          end: { r, c: colCount - 1 } 
+      });
   };
   
   const handleEnrichment = async () => {
@@ -292,19 +329,46 @@ const SpreadsheetView: React.FC = () => {
   const handleMouseDown = (r: number, c: number, e: React.MouseEvent) => {
     if (isEditing && activeCell?.r === r && activeCell?.c === c) return;
     e.preventDefault();
+    containerRef.current?.focus();
     if (isEditing) commitEdit();
-    if (e.shiftKey && activeCell) setSelection({ start: activeCell, end: { r, c } });
-    else { setActiveCell({ r, c }); setSelection({ start: { r, c }, end: { r, c } }); }
+
+    if (e.shiftKey && activeCell) {
+      setSelection({ start: activeCell, end: { r, c } });
+    } else {
+      setActiveCell({ r, c });
+      setSelection({ start: { r, c }, end: { r, c } });
+      const val = file.data[r]?.[c];
+      setEditValue(val !== undefined ? String(val) : '');
+    }
     setIsDragging(true);
+  };
+
+  const handleMouseEnter = (r: number, c: number) => {
+    if (isDragging && selection) {
+      setSelection({ ...selection, end: { r, c } });
+    }
+  };
+
+  const handleDoubleClick = (r: number, c: number) => {
+    setActiveCell({ r, c });
+    setIsEditing(true);
   };
 
   const commitEdit = () => {
     if (activeCell && isEditing) {
       const newData = [...file.data];
       if (!newData[activeCell.r]) newData[activeCell.r] = [];
+      
       let valToSave: any = editValue;
-      if (!isNaN(parseFloat(editValue)) && isFinite(Number(editValue)) && !editValue.startsWith('0')) valToSave = Number(editValue);
+      if (!isNaN(parseFloat(editValue)) && isFinite(Number(editValue))) {
+          if (editValue.startsWith('0') && editValue.length > 1 && editValue[1] !== '.') {
+             valToSave = editValue;
+          } else {
+             valToSave = Number(editValue);
+          }
+      }
       if (editValue.startsWith('=')) valToSave = editValue;
+      
       newData[activeCell.r][activeCell.c] = valToSave;
       handleFileChange({ data: newData });
       setIsEditing(false);
@@ -313,15 +377,199 @@ const SpreadsheetView: React.FC = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isEditing) {
-          if (e.key === 'Enter') { e.preventDefault(); commitEdit(); setActiveCell(p => p ? { ...p, r: p.r + 1 } : null); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitEdit();
+        const nextR = e.shiftKey ? activeCell!.r - 1 : activeCell!.r + 1;
+        setActiveCell({ r: nextR, c: activeCell!.c });
+        setSelection({ start: { r: nextR, c: activeCell!.c }, end: { r: nextR, c: activeCell!.c } });
+        const val = file.data[nextR]?.[activeCell!.c];
+        setEditValue(val !== undefined ? String(val) : '');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        commitEdit();
+        const nextC = e.shiftKey ? activeCell!.c - 1 : activeCell!.c + 1;
+        setActiveCell({ r: activeCell!.r, c: nextC });
+        setSelection({ start: { r: activeCell!.r, c: nextC }, end: { r: activeCell!.r, c: nextC } });
+        const val = file.data[activeCell!.r]?.[nextC];
+        setEditValue(val !== undefined ? String(val) : '');
+      }
       return;
-      }
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      handleSelectAll();
+      return;
+    }
+
+    if (!activeCell) return;
+
+    let nextR = activeCell.r;
+    let nextC = activeCell.c;
+    let hasMoved = false;
+
+    if (e.key === 'ArrowUp') { nextR--; hasMoved = true; }
+    else if (e.key === 'ArrowDown') { nextR++; hasMoved = true; }
+    else if (e.key === 'ArrowLeft') { nextC--; hasMoved = true; }
+    else if (e.key === 'ArrowRight') { nextC++; hasMoved = true; }
+    else if (e.key === 'Enter') {
+        hasMoved = true;
+        if (e.shiftKey) nextR--; else nextR++;
+    }
+    else if (e.key === 'Tab') {
+        hasMoved = true;
+        if (e.shiftKey) nextC--; else nextC++;
+    }
+
+    if (hasMoved) {
+        e.preventDefault();
+        nextR = Math.max(0, nextR);
+        nextC = Math.max(0, nextC);
+        setActiveCell({ r: nextR, c: nextC });
+        setSelection({ start: { r: nextR, c: nextC }, end: { r: nextR, c: nextC } });
+        const val = file.data[nextR]?.[nextC];
+        setEditValue(val !== undefined ? String(val) : '');
+        return;
+    }
+
     if (e.key === 'Backspace' || e.key === 'Delete') {
-          const newData = file.data.map(r => [...(r || [])]);
-          if (activeCell && newData[activeCell.r]) newData[activeCell.r][activeCell.c] = '';
-          handleFileChange({ data: newData });
+      // Check for Full Selection to trigger Row/Column Deletion
+      if (selection) {
+          const r1 = Math.min(selection.start.r, selection.end.r);
+          const r2 = Math.max(selection.start.r, selection.end.r);
+          const c1 = Math.min(selection.start.c, selection.end.c);
+          const c2 = Math.max(selection.start.c, selection.end.c);
+
+          // Detect Column Deletion (Headers selected implies full row span)
+          if (r1 === 0 && r2 === rowCount - 1 && c1 === c2) {
+              const colIdx = c1;
+              const newData = file.data.map(row => row.filter((_, i) => i !== colIdx));
+              const newColumns = file.columns.filter((_, i) => i !== colIdx);
+              
+              handleFileChange({ data: newData, columns: newColumns });
+              handleRecordAction('delete_col', `Deleted column ${getColumnLabel(colIdx)}`, { colIndex: colIdx });
+              addToast('info', 'Column Deleted', `Removed ${getColumnLabel(colIdx)}`);
+              setSelection(null);
+              setActiveCell(null);
+              return;
+          }
+
+          // Detect Row Deletion (Row Headers selected implies full col span)
+          if (c1 === 0 && c2 === colCount - 1 && r1 === r2) {
+              const rowIdx = r1;
+              const newData = file.data.filter((_, i) => i !== rowIdx);
+              
+              handleFileChange({ data: newData });
+              handleRecordAction('delete_row' as any, `Deleted row ${rowIdx + 1}`, { rowIndex: rowIdx });
+              addToast('info', 'Row Deleted', `Removed row ${rowIdx + 1}`);
+              setSelection(null);
+              setActiveCell(null);
+              return;
+          }
       }
-      if (e.key.length === 1 && !e.ctrlKey) { setIsEditing(true); setEditValue(e.key); }
+
+      // Default: Clear Content (Range or Single Cell)
+      const newData = file.data.map(row => [...(row || [])]);
+      
+      if (selection) {
+          const r1 = Math.min(selection.start.r, selection.end.r);
+          const r2 = Math.max(selection.start.r, selection.end.r);
+          const c1 = Math.min(selection.start.c, selection.end.c);
+          const c2 = Math.max(selection.start.c, selection.end.c);
+
+          for (let r = r1; r <= r2; r++) {
+              if (newData[r]) {
+                  for (let c = c1; c <= c2; c++) {
+                      newData[r][c] = '';
+                  }
+              }
+          }
+      } else if (activeCell && newData[activeCell.r]) {
+          newData[activeCell.r][activeCell.c] = '';
+      }
+      
+      handleFileChange({ data: newData });
+      setEditValue('');
+      return;
+    }
+
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      setIsEditing(true);
+      setEditValue(e.key);
+      return;
+    }
+  };
+
+  const toggleStyle = (styleKey: keyof CellStyle, value: any) => {
+    if (!selection) return;
+    
+    const newStyles = { ...file.styles };
+    const r1 = Math.min(selection.start.r, selection.end.r);
+    const r2 = Math.max(selection.start.r, selection.end.r);
+    const c1 = Math.min(selection.start.c, selection.end.c);
+    const c2 = Math.max(selection.start.c, selection.end.c);
+
+    for (let r = r1; r <= r2; r++) {
+      for (let c = c1; c <= c2; c++) {
+        const key = `${r},${c}`;
+        const current = newStyles[key] || {};
+        if (styleKey === 'align') {
+             newStyles[key] = { ...current, [styleKey]: value };
+        } else {
+             const val = current[styleKey as keyof Pick<CellStyle, 'bold'|'italic'|'underline'>];
+             newStyles[key] = { ...current, [styleKey]: !val };
+        }
+      }
+    }
+    handleFileChange({ styles: newStyles });
+  };
+
+  const handleDataAction = (action: 'trim' | 'upper' | 'lower' | 'title' | 'dedup') => {
+    if (!selection) return;
+    
+    const newData = file.data.map(row => [...(row || [])]);
+    for (let r = 0; r < newData.length; r++) {
+        if (!newData[r]) newData[r] = [];
+    }
+
+    const r1 = Math.min(selection.start.r, selection.end.r);
+    const r2 = Math.max(selection.start.r, selection.end.r);
+    const c1 = Math.min(selection.start.c, selection.end.c);
+    const c2 = Math.max(selection.start.c, selection.end.c);
+    
+    const seen = new Set();
+
+    for (let r = r1; r <= r2; r++) {
+      if (!newData[r]) continue; 
+      for (let c = c1; c <= c2; c++) {
+        let val = newData[r][c];
+        
+        if (action === 'dedup') {
+             if (val !== undefined && val !== '' && val !== null) {
+                 const key = String(val).toLowerCase();
+                 if (seen.has(key)) {
+                     newData[r][c] = ''; 
+                 } else {
+                     seen.add(key);
+                 }
+             }
+             continue;
+        }
+
+        if (typeof val === 'string' && val) {
+            if (action === 'trim') val = val.trim();
+            if (action === 'upper') val = val.toUpperCase();
+            if (action === 'lower') val = val.toLowerCase();
+            if (action === 'title') {
+                val = val.toLowerCase().split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+            newData[r][c] = val;
+        }
+      }
+    }
+    handleFileChange({ data: newData });
+    handleRecordAction('sort', `Transformed range to ${action}`, { action, r1, c1, r2, c2 });
   };
 
   const startRow = Math.max(0, Math.floor(scrollPos.top / ROW_HEIGHT) - BUFFER_ROWS);
@@ -331,27 +579,81 @@ const SpreadsheetView: React.FC = () => {
   let endCol = startCol; while(endCol < colCount && getColLeft(endCol) < scrollPos.left + viewportSize.width) endCol++;
   endCol = Math.min(colCount, endCol + BUFFER_COLS);
 
+  const getSelectionStyle = () => {
+    if (!selection) return { display: 'none' };
+    const r1 = Math.min(selection.start.r, selection.end.r);
+    const r2 = Math.max(selection.start.r, selection.end.r);
+    const c1 = Math.min(selection.start.c, selection.end.c);
+    const c2 = Math.max(selection.start.c, selection.end.c);
+
+    return {
+      top: r1 * ROW_HEIGHT,
+      left: HEADER_COL_WIDTH + getColLeft(c1),
+      width: getColLeft(c2 + 1) - getColLeft(c1),
+      height: (r2 - r1 + 1) * ROW_HEIGHT,
+      pointerEvents: 'none' as const,
+    };
+  };
+
+  const getActiveCellStyle = () => {
+    if (!activeCell) return { display: 'none' };
+    return {
+      top: activeCell.r * ROW_HEIGHT,
+      left: HEADER_COL_WIDTH + getColLeft(activeCell.c),
+      width: getColWidth(activeCell.c),
+      height: ROW_HEIGHT,
+      pointerEvents: 'none' as const,
+    };
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
         {/* MAIN EDITOR AREA */}
         <div className="flex-1 flex flex-col h-full bg-white text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
       <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-[#f8f9fa]">
         <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
-                    <button onClick={onUndo} disabled={file.currentHistoryIndex <= 0} className="p-1.5 hover:bg-gray-100 disabled:opacity-40"><Undo size={16} /></button>
-                    <button onClick={onRedo} disabled={file.currentHistoryIndex >= file.history.length - 1} className="p-1.5 hover:bg-gray-100 disabled:opacity-40"><Redo size={16} /></button>
-          </div>
-          <div className="w-px h-6 bg-gray-300 mx-1" />
+             <button onClick={onUndo} disabled={file.currentHistoryIndex <= 0} className="p-1.5 hover:bg-gray-100 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Undo size={16} /></button>
+             <button onClick={onRedo} disabled={file.currentHistoryIndex >= file.history.length - 1} className="p-1.5 hover:bg-gray-100 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Redo size={16} /></button>
+        </div>
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
+                <button onClick={() => toggleStyle('bold', true)} className="p-1.5 hover:bg-gray-100 text-gray-700"><Bold size={16} /></button>
+                <button onClick={() => toggleStyle('italic', true)} className="p-1.5 hover:bg-gray-100 text-gray-700"><Italic size={16} /></button>
+                <button onClick={() => toggleStyle('underline', true)} className="p-1.5 hover:bg-gray-100 text-gray-700"><Underline size={16} /></button>
+            </div>
+            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
+                <button 
+                  onClick={() => { if(activeCell) { setEnrichmentTargetCol(activeCell.c); setEnrichmentPrompt(""); } else { addToast('warning', "Select a column first"); } }} 
+                  className="p-1.5 hover:bg-blue-50 text-blue-600 font-bold flex items-center gap-1" 
+                  title="Enrich (25 Credits)"
+                >
+                  <Globe size={16} /> <span className="text-xs hidden md:inline">Enrich</span>
+                </button>
+            </div>
+            <div className="w-px h-6 bg-gray-300 mx-1" />
+            <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
+                <button onClick={() => handleDataAction('trim')} className="p-1.5 hover:bg-gray-100 text-gray-700"><Scissors size={16} /></button>
+                <button onClick={() => handleDataAction('upper')} className="p-1.5 hover:bg-gray-100 text-gray-700"><CaseUpper size={16} /></button>
+                <button onClick={() => handleDataAction('lower')} className="p-1.5 hover:bg-gray-100 text-gray-700"><CaseLower size={16} /></button>
+                <button onClick={() => handleDataAction('title')} className="p-1.5 hover:bg-gray-100 text-gray-700"><CaseSensitive size={16} /></button>
+                <button onClick={() => handleDataAction('dedup')} className="p-1.5 hover:bg-gray-100 text-red-600"><CopyMinus size={16} /></button>
+            </div>
+        </div>
         <div className="flex-1 flex items-center gap-2">
-          <div className="text-gray-400 italic font-serif select-none px-1">fx</div>
-          <input
-            type="text"
-            className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
-            value={editValue}
-                    onChange={(e) => { setEditValue(e.target.value); if(activeCell) setIsEditing(true); }}
-                    onBlur={commitEdit}
-                    onKeyDown={(e) => { if(e.key==='Enter') commitEdit(); }}
-                    />
-                </div>
+            <div className="text-gray-400 italic font-serif select-none px-1">fx</div>
+            <input 
+              type="text" 
+              className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+              value={editValue}
+              onChange={(e) => {
+                setEditValue(e.target.value);
+                if (activeCell) setIsEditing(true);
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
+            />
+        </div>
       </div>
 
       <div className="flex-1 relative overflow-hidden">
@@ -369,29 +671,39 @@ const SpreadsheetView: React.FC = () => {
                             {activeCell ? `${getColumnLabel(activeCell.c)}${activeCell.r + 1}` : ''}
                         </div>
               <div className="relative flex-1">
-                {Array.from({ length: endCol - startCol + 1 }).map((_, i) => {
-                  const c = startCol + i;
-                                if (c >= colCount) return null;
-                  return (
-                                    <div key={c} className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa]" style={{ left: getColLeft(c), width: getColWidth(c), height: HEADER_ROW_HEIGHT }}>
-                      {getColumnLabel(c)}
-                    </div>
-                  );
-                })}
+                 {Array.from({ length: endCol - startCol + 1 }).map((_, i) => {
+                    const c = startCol + i;
+                    if (c >= colCount) return null;
+                    return (
+                        <div 
+                           key={c} 
+                           className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa] cursor-pointer hover:bg-gray-200"
+                           style={{ left: getColLeft(c), width: getColWidth(c), height: HEADER_ROW_HEIGHT }}
+                           onClick={() => handleColumnHeaderClick(c)}
+                        >
+                            {getColumnLabel(c)}
+                        </div>
+                    );
+                 })}
               </div>
             </div>
 
                     {/* Row Numbers */}
                     <div className="sticky left-0 z-40 w-[40px] bg-[#f8f9fa] border-r border-gray-300 relative" style={{ height: rowCount * ROW_HEIGHT }}>
-                {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
-                  const r = startRow + i;
-                            if (r >= rowCount) return null;
-                  return (
-                                <div key={r} className="absolute left-0 border-b border-gray-300 flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa]" style={{ top: r * ROW_HEIGHT, width: HEADER_COL_WIDTH, height: ROW_HEIGHT }}>
-                      {r + 1}
-                    </div>
-                  );
-                })}
+                    {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
+                        const r = startRow + i;
+                        if (r >= rowCount) return null;
+                        return (
+                            <div 
+                                key={r}
+                                className="absolute left-0 border-b border-gray-300 flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa] cursor-pointer hover:bg-gray-200"
+                                style={{ top: r * ROW_HEIGHT, width: HEADER_COL_WIDTH, height: ROW_HEIGHT }}
+                                onClick={() => handleRowHeaderClick(r)}
+                            >
+                                {r + 1}
+                            </div>
+                        );
+                    })}
               </div>
 
                     {/* Cells */}
@@ -406,42 +718,41 @@ const SpreadsheetView: React.FC = () => {
                                 const displayVal = getDisplayValue(r, c, cellValue);
                     const styles = file.styles[`${r},${c}`] || {};
                     return (
-                      <div
-                        key={`${r}-${c}`}
-                        className="absolute border-r border-b border-gray-200 bg-white overflow-hidden px-1 whitespace-nowrap flex items-center cursor-cell select-none"
-                        style={{
-                          top: r * ROW_HEIGHT,
-                          left: getColLeft(c),
-                          width: getColWidth(c),
-                          height: ROW_HEIGHT,
-                          fontWeight: styles.bold ? 'bold' : 'normal',
-                          fontStyle: styles.italic ? 'italic' : 'normal',
-                          textDecoration: styles.underline ? 'underline' : 'none',
-                          justifyContent: styles.align === 'center' ? 'center' : styles.align === 'right' ? 'flex-end' : 'flex-start',
-                          color: styles.color,
-                          backgroundColor: styles.bg,
-                        }}
-                        onMouseDown={(e) => handleMouseDown(r, c, e)}
-                      >
-                        {isEditing && activeCell?.r === r && activeCell?.c === c ? '' : displayVal}
-                      </div>
+                                <div
+                                    key={`${r}-${c}`}
+                                    className="absolute border-r border-b border-gray-200 bg-white overflow-hidden px-1 whitespace-nowrap flex items-center cursor-cell select-none"
+                                    style={{
+                                        top: r * ROW_HEIGHT,
+                                        left: getColLeft(c),
+                                        width: getColWidth(c),
+                                        height: ROW_HEIGHT,
+                                        fontWeight: styles.bold ? 'bold' : 'normal',
+                                        fontStyle: styles.italic ? 'italic' : 'normal',
+                                        textDecoration: styles.underline ? 'underline' : 'none',
+                                        justifyContent: styles.align === 'center' ? 'center' : styles.align === 'right' ? 'flex-end' : 'flex-start',
+                                        color: styles.color,
+                                        backgroundColor: styles.bg,
+                                    }}
+                                    onMouseDown={(e) => handleMouseDown(r, c, e)}
+                                    onMouseEnter={() => handleMouseEnter(r, c)}
+                                    onDoubleClick={() => handleDoubleClick(r, c)}
+                                >
+                                    {isEditing && activeCell?.r === r && activeCell?.c === c ? '' : displayVal}
+                                </div>
                     );
                   });
                 })}
               </div>
 
-                    {/* Selection Overlay */}
-                    {activeCell && (
-              <div
-                className="absolute border-2 border-blue-600 z-30 pointer-events-none"
-                            style={{
-                                top: activeCell.r * ROW_HEIGHT,
-                                left: HEADER_COL_WIDTH + getColLeft(activeCell.c),
-                                width: getColWidth(activeCell.c),
-                                height: ROW_HEIGHT,
-                            }}
-                        />
-                    )}
+                    {/* Selection Overlays */}
+                 <div 
+                    className="absolute border-2 border-blue-500 bg-blue-500/10 z-30 pointer-events-none transition-all duration-75"
+                    style={getSelectionStyle()}
+                 />
+                 <div 
+                    className="absolute border-2 border-blue-600 z-30 pointer-events-none"
+                    style={getActiveCellStyle()}
+                 />
               {isEditing && activeCell && (
                 <input
                   className="absolute z-50 px-1 text-sm border-2 border-blue-600 outline-none shadow-lg"
