@@ -1,0 +1,15 @@
+Example: Changing UI
+Let’s say you want to change a button color:
+Open the file (e.g., components/LandingPage.tsx)
+Change the button color
+Save the file
+Run in terminal:
+
+git add .
+git commit -m "Change button color"
+git push origin main
+
+Wait 2–5 minutes
+Refresh your website → changes are live
+
+

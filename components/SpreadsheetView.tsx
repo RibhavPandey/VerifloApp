@@ -51,12 +51,22 @@ const SpreadsheetView: React.FC = () => {
     const fetchSheet = async () => {
         try {
             const jobData = await db.getJob(id);
-            if (jobData && jobData.fileIds.length > 0) {
-                setJob(jobData);
-                setChatHistory(jobData.chatHistory || []);
-                const fileData = await db.getFile(jobData.fileIds[0]);
-                setFile(fileData);
+            if (!jobData) {
+                addToast('error', 'Error', 'Sheet not found.');
+                return;
             }
+            if (jobData.fileIds.length === 0) {
+                addToast('error', 'Error', 'Sheet has no file data.');
+                return;
+            }
+            setJob(jobData);
+            setChatHistory(jobData.chatHistory || []);
+            const fileData = await db.getFile(jobData.fileIds[0]);
+            if (!fileData) {
+                addToast('error', 'Error', 'File data not found.');
+                return;
+            }
+            setFile(fileData);
         } catch (e) {
             console.error("Error loading sheet:", e);
             addToast('error', 'Error', 'Failed to load sheet.');
@@ -202,13 +212,16 @@ const SpreadsheetView: React.FC = () => {
     };
     window.addEventListener('resize', handleResize);
     containerRef.current?.addEventListener('scroll', handleScroll);
-    handleResize();
-    handleScroll();
+    // Initial calculation - use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      handleResize();
+      handleScroll();
+    }, 0);
     return () => {
       window.removeEventListener('resize', handleResize);
       containerRef.current?.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [file]); // Re-run when file loads
 
   useEffect(() => {
     if (activeCell && file) {
@@ -369,7 +382,7 @@ const SpreadsheetView: React.FC = () => {
             </div>
 
                     {/* Row Numbers */}
-                    <div className="sticky left-0 z-40 w-[40px] bg-[#f8f9fa] border-r border-gray-300" style={{ height: rowCount * ROW_HEIGHT }}>
+                    <div className="sticky left-0 z-40 w-[40px] bg-[#f8f9fa] border-r border-gray-300 relative" style={{ height: rowCount * ROW_HEIGHT }}>
                 {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                   const r = startRow + i;
                             if (r >= rowCount) return null;
