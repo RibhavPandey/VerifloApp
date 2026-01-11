@@ -633,7 +633,17 @@ const SpreadsheetView: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
+        {/* SIDEBAR TOGGLE BUTTON */}
+        <div className="absolute bottom-8 z-50" style={{ right: isSidebarOpen ? '400px' : '0px' }}>
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="w-6 h-12 bg-white border border-gray-200 rounded-l-lg flex items-center justify-center shadow-md hover:bg-gray-50 text-gray-500 transition-all"
+          >
+            {isSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+        </div>
+
         {/* MAIN EDITOR AREA */}
         <div className="flex-1 flex flex-col h-full bg-white text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
       <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-[#f8f9fa]">
@@ -738,38 +748,38 @@ const SpreadsheetView: React.FC = () => {
                  </div>
 
                  {/* Grid Cells */}
-                 <div className="absolute top-0 left-[40px]">
+              <div className="absolute top-0 left-[40px]">
                 {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                   const r = startRow + i;
-                            if (r >= rowCount) return null;
+                  if (r >= rowCount) return null;
                   return Array.from({ length: endCol - startCol + 1 }).map((__, j) => {
                     const c = startCol + j;
-                                if (c >= colCount) return null;
+                    if (c >= colCount) return null;
                     const cellValue = file.data[r]?.[c];
-                                const displayVal = getDisplayValue(r, c, cellValue);
+                    const displayVal = getDisplayValue(r, c, cellValue);
                     const styles = file.styles[`${r},${c}`] || {};
                     return (
-                                <div
-                                    key={`${r}-${c}`}
-                                    className="absolute border-r border-b border-gray-200 bg-white overflow-hidden px-1 whitespace-nowrap flex items-center cursor-cell select-none"
-                                    style={{
-                                        top: r * ROW_HEIGHT,
-                                        left: getColLeft(c),
-                                        width: getColWidth(c),
-                                        height: ROW_HEIGHT,
-                                        fontWeight: styles.bold ? 'bold' : 'normal',
-                                        fontStyle: styles.italic ? 'italic' : 'normal',
-                                        textDecoration: styles.underline ? 'underline' : 'none',
-                                        justifyContent: styles.align === 'center' ? 'center' : styles.align === 'right' ? 'flex-end' : 'flex-start',
-                                        color: styles.color,
-                                        backgroundColor: styles.bg,
-                                    }}
-                                    onMouseDown={(e) => handleMouseDown(r, c, e)}
-                                    onMouseEnter={() => handleMouseEnter(r, c)}
-                                    onDoubleClick={() => handleDoubleClick(r, c)}
-                                >
-                                    {isEditing && activeCell?.r === r && activeCell?.c === c ? '' : displayVal}
-                                </div>
+                      <div
+                          key={`${r}-${c}`}
+                          className="absolute border-r border-b border-gray-200 bg-white overflow-hidden px-1 whitespace-nowrap flex items-center cursor-cell select-none"
+                          style={{
+                              top: r * ROW_HEIGHT,
+                              left: getColLeft(c),
+                              width: getColWidth(c),
+                              height: ROW_HEIGHT,
+                              fontWeight: styles.bold ? 'bold' : 'normal',
+                              fontStyle: styles.italic ? 'italic' : 'normal',
+                              textDecoration: styles.underline ? 'underline' : 'none',
+                              justifyContent: styles.align === 'center' ? 'center' : styles.align === 'right' ? 'flex-end' : 'flex-start',
+                              color: styles.color,
+                              backgroundColor: styles.bg,
+                          }}
+                          onMouseDown={(e) => handleMouseDown(r, c, e)}
+                          onMouseEnter={() => handleMouseEnter(r, c)}
+                          onDoubleClick={() => handleDoubleClick(r, c)}
+                      >
+                          {isEditing && activeCell?.r === r && activeCell?.c === c ? '' : displayVal}
+                      </div>
                     );
                   });
                 })}
@@ -804,46 +814,41 @@ const SpreadsheetView: React.FC = () => {
         </div>
       </div>
 
-      {isProcessingAI && (
-        <div className="absolute inset-0 z-[60] bg-white/50 backdrop-blur-sm flex items-center justify-center">
-                    <Loader2 className="animate-spin text-blue-600" size={32} />
-        </div>
-      )}
+        {isProcessingAI && (
+          <div className="absolute inset-0 z-[60] bg-white/50 backdrop-blur-sm flex items-center justify-center">
+            <Loader2 className="animate-spin text-blue-600" size={32} />
+          </div>
+        )}
 
-      {enrichmentTargetCol !== null && enrichmentPrompt !== null && !isProcessingAI && (
-        <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <Globe className="text-blue-500" /> Enrich Data
-            </h3>
-            <textarea
-                            className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4"
-              rows={3}
-                            placeholder="e.g. Find the CEO"
-              autoFocus
-              value={enrichmentPrompt || ''}
-              onChange={(e) => setEnrichmentPrompt(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-                            <button onClick={() => { setEnrichmentTargetCol(null); setEnrichmentPrompt(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                            <button onClick={handleEnrichment} disabled={!enrichmentPrompt} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Run</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+        {enrichmentTargetCol !== null && enrichmentPrompt !== null && !isProcessingAI && (
+          <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center backdrop-blur-sm">
+            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
+              <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <Globe className="text-blue-500" /> Enrich Data
+              </h3>
+              <textarea
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4"
+                rows={3}
+                placeholder="e.g. Find the CEO"
+                autoFocus
+                value={enrichmentPrompt || ''}
+                onChange={(e) => setEnrichmentPrompt(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => { setEnrichmentTargetCol(null); setEnrichmentPrompt(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onClick={handleEnrichment} disabled={!enrichmentPrompt} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Run</button>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* SIDEBAR */}
-        <div className={`relative flex-shrink-0 h-full border-l border-gray-200 bg-white z-10 transition-all duration-300 ease-in-out`} style={{ width: isSidebarOpen ? '400px' : '0px' }}>
-            <div className="absolute -left-3 bottom-8 z-50">
-              <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="w-6 h-12 bg-white border border-gray-200 rounded-l-lg flex items-center justify-center shadow-md hover:bg-gray-50 text-gray-500"
-                >
-                    {isSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-              </button>
-            </div>
-            <div className="w-[400px] h-full overflow-hidden">
+      <div 
+        className="flex-shrink-0 h-full border-l border-gray-200 bg-white overflow-hidden transition-all duration-300"
+        style={{ width: isSidebarOpen ? '400px' : '0px', borderLeftWidth: isSidebarOpen ? '1px' : '0px' }}
+      >
+        <div className="w-[400px] h-full">
                 <Sidebar 
                     activeFile={file}
                     files={allFiles} 
@@ -853,8 +858,8 @@ const SpreadsheetView: React.FC = () => {
                     credits={credits}
                     onUseCredit={handleUseCredit} 
                 />
-          </div>
         </div>
+      </div>
     </div>
   );
 };
