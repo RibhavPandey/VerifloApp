@@ -111,6 +111,34 @@ export const db = {
     if (error) console.error('Error saving job:', error);
   },
 
+  async getJob(jobId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', jobId)
+        .eq('user_id', user.id)
+        .single();
+
+    if (error) {
+        console.error("Error fetching job:", error);
+        return null;
+    }
+
+    if (!data) return null;
+
+    return {
+      ...data,
+      fileIds: data.file_ids,
+      createdAt: new Date(data.created_at).getTime(),
+      updatedAt: new Date(data.updated_at).getTime(),
+      chatHistory: data.chat_history || [],
+      riskyCount: data.risky_count
+    } as Job;
+  },
+
   async deleteJob(jobId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -142,6 +170,26 @@ export const db = {
         ...f,
         lastModified: f.last_modified
     })) as ExcelFile[];
+  },
+
+  async getFile(fileId: string) {
+    const { data, error } = await supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId)
+        .single();
+
+    if (error) {
+        console.error("Error fetching file:", error);
+        return null;
+    }
+
+    if (!data) return null;
+
+    return {
+        ...data,
+        lastModified: data.last_modified
+    } as ExcelFile;
   },
 
   async upsertFile(file: ExcelFile, jobId?: string) {

@@ -49,17 +49,23 @@ const SpreadsheetView: React.FC = () => {
     if (!id) return;
     setLoading(true);
     const fetchSheet = async () => {
-        const jobData = await db.getJob(id);
-        if (jobData && jobData.fileIds.length > 0) {
-            setJob(jobData);
-            setChatHistory(jobData.chatHistory || []);
-            const fileData = await db.getFile(jobData.fileIds[0]);
-            setFile(fileData);
+        try {
+            const jobData = await db.getJob(id);
+            if (jobData && jobData.fileIds.length > 0) {
+                setJob(jobData);
+                setChatHistory(jobData.chatHistory || []);
+                const fileData = await db.getFile(jobData.fileIds[0]);
+                setFile(fileData);
+            }
+        } catch (e) {
+            console.error("Error loading sheet:", e);
+            addToast('error', 'Error', 'Failed to load sheet.');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
     fetchSheet();
-  }, [id]);
+  }, [id, addToast]);
 
   // Persist Chat
   const handleUpdateChatHistory = (update: React.SetStateAction<ChatMessage[]>) => {
