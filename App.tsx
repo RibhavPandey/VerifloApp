@@ -11,7 +11,7 @@ import Auth from './components/Auth';
 import Workflows from './components/Workflows';
 import ExtractionSetup from './components/ExtractionSetup';
 import { supabase } from './lib/supabase';
-import { ToastProvider } from './components/ui/Toast';
+import { ToastProvider } from './components/ui/toast';
 import "./globals.css";
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
