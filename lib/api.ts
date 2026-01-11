@@ -28,8 +28,21 @@ export const api = {
       body: JSON.stringify({ file, fields, fileType })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Extraction failed');
+      let errorMessage = 'Extraction failed';
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          try {
+            const error = JSON.parse(errorText);
+            errorMessage = error.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+        }
+      } catch {
+        errorMessage = `Extraction failed with status ${response.status}`;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -47,8 +60,21 @@ export const api = {
       body: JSON.stringify({ entities, prompt })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Enrichment failed');
+      let errorMessage = 'Enrichment failed';
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          try {
+            const error = JSON.parse(errorText);
+            errorMessage = error.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+        }
+      } catch {
+        errorMessage = `Enrichment failed with status ${response.status}`;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -66,8 +92,21 @@ export const api = {
       body: JSON.stringify({ query, fileContext })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Analysis failed');
+      let errorMessage = 'Analysis failed';
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          try {
+            const error = JSON.parse(errorText);
+            errorMessage = error.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+        }
+      } catch {
+        errorMessage = `Analysis failed with status ${response.status}`;
+      }
+      throw new Error(errorMessage);
     }
     return response.json();
   },
@@ -86,8 +125,21 @@ export const api = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Chat failed');
+      let errorMessage = 'Chat failed';
+      try {
+        const errorText = await response.text();
+        if (errorText) {
+          try {
+            const error = JSON.parse(errorText);
+            errorMessage = error.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+        }
+      } catch {
+        errorMessage = `Chat failed with status ${response.status}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const reader = response.body?.getReader();
