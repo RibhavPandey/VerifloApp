@@ -297,6 +297,32 @@ const SpreadsheetView: React.FC = () => {
           end: { r, c: colCount - 1 } 
       });
   };
+
+  const handleMouseDownResize = (e: React.MouseEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = {
+        index,
+        startX: e.clientX,
+        startWidth: colWidths[index] || DEFAULT_COL_WIDTH
+    };
+    document.addEventListener('mousemove', handleMouseMoveResize);
+    document.addEventListener('mouseup', handleMouseUpResize);
+  };
+
+  const handleMouseMoveResize = (e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const { index, startX, startWidth } = resizingRef.current;
+    const diff = e.clientX - startX;
+    const newWidth = Math.max(40, startWidth + diff); 
+    setColWidths(prev => ({ ...prev, [index]: newWidth }));
+  };
+
+  const handleMouseUpResize = () => {
+    resizingRef.current = null;
+    document.removeEventListener('mousemove', handleMouseMoveResize);
+    document.removeEventListener('mouseup', handleMouseUpResize);
+  };
   
   const handleEnrichment = async () => {
     if (enrichmentTargetCol === null || !enrichmentPrompt) return;
@@ -677,19 +703,24 @@ const SpreadsheetView: React.FC = () => {
                     return (
                         <div 
                            key={c} 
-                           className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa] cursor-pointer hover:bg-gray-200"
+                           className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa] group cursor-pointer hover:bg-gray-200"
                            style={{ left: getColLeft(c), width: getColWidth(c), height: HEADER_ROW_HEIGHT }}
                            onClick={() => handleColumnHeaderClick(c)}
                         >
                             {getColumnLabel(c)}
+                            <div 
+                                className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-blue-400 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onMouseDown={(e) => handleMouseDownResize(e, c)}
+                            ></div>
                         </div>
                     );
                  })}
               </div>
             </div>
 
-                    {/* Row Numbers */}
-                    <div className="sticky left-0 z-40 w-[40px] bg-[#f8f9fa] border-r border-gray-300 relative" style={{ height: rowCount * ROW_HEIGHT }}>
+            <div className="relative">
+                 {/* Sticky Row Numbers */}
+                 <div className="sticky left-0 z-40 w-[40px] bg-[#f8f9fa] border-r border-gray-300" style={{ height: rowCount * ROW_HEIGHT }}>
                     {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                         const r = startRow + i;
                         if (r >= rowCount) return null;
@@ -704,10 +735,10 @@ const SpreadsheetView: React.FC = () => {
                             </div>
                         );
                     })}
-              </div>
+                 </div>
 
-                    {/* Cells */}
-              <div className="absolute top-0 left-[40px]">
+                 {/* Grid Cells */}
+                 <div className="absolute top-0 left-[40px]">
                 {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                   const r = startRow + i;
                             if (r >= rowCount) return null;
