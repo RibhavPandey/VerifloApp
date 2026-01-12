@@ -66,6 +66,8 @@ const ExtractionSetup: React.FC = () => {
 
         const newDocs: VerificationDocument[] = [];
 
+        let extractionErrors: string[] = [];
+        
         for (const file of pendingUploads) {
             try {
                const base64 = await new Promise<string>((resolve) => {
@@ -75,6 +77,17 @@ const ExtractionSetup: React.FC = () => {
                });
                
                const response = await api.extract(base64, selectedFields, file.type || 'image/jpeg');
+               
+               if (!response || !response.fields) {
+                   extractionErrors.push(`${file.name}: Invalid response from server`);
+                   continue;
+               }
+               
+               if (response.fields.length === 0) {
+                   extractionErrors.push(`${file.name}: No fields extracted`);
+                   continue;
+               }
+               
                const fields: ExtractedField[] = response.fields.map((f: any) => ({
                    ...f,
                    confidence: f.confidence || 0.9, 
@@ -92,11 +105,38 @@ const ExtractionSetup: React.FC = () => {
                
                await db.upsertVerificationDoc(doc);
                newDocs.push(doc);
-            } catch (err) { console.error(err); }
+            } catch (err: any) { 
+                console.error(`Extraction error for ${file.name}:`, err);
+                const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+                extractionErrors.push(`${file.name}: ${errorMsg}`);
+            }
+        }
+        
+        // Check if any documents were successfully extracted
+        if (newDocs.length === 0) {
+            setIsProcessing(false);
+            // Update job status to indicate failure
+            const failedJob: Job = { 
+                ...newJob, 
+                status: 'processing', 
+                fileIds: []
+            };
+            await db.upsertJob(failedJob);
+            
+            // Show error to user
+            const errorSummary = extractionErrors.length > 0 
+                ? extractionErrors.join('\n')
+                : 'No documents could be extracted. Please check your API key and try again.';
+            alert(`Extraction Failed:\n\n${errorSummary}`);
+            return;
         }
         
         let riskyCount = 0;
-        newDocs.forEach(d => { d.fields.forEach(f => { if(f.confidence < 0.8) riskyCount++; }); });
+        newDocs.forEach(d => { 
+            d.fields.forEach(f => { 
+                if(f.confidence < 0.8) riskyCount++; 
+            }); 
+        });
 
         const updatedJob: Job = { 
             ...newJob, 
@@ -106,6 +146,7 @@ const ExtractionSetup: React.FC = () => {
         };
 
         await db.upsertJob(updatedJob);
+        
         // We do NOT use onJobCreated here because we want to redirect to Review view, not Sheet view
         // But onJobCreated redirects to sheet.
         // We will just navigate manually.

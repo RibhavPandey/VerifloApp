@@ -68,6 +68,7 @@ router.post('/', async (req, res) => {
     const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
     const response = await result.response;
     const text = response.text() || "[]";
+    
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const jsonStr = jsonMatch ? jsonMatch[0] : "[]";
     
@@ -86,9 +87,28 @@ router.post('/', async (req, res) => {
     res.json({ fields: extractedFields });
   } catch (error: any) {
     console.error('Extraction error:', error);
-    res.status(500).json({ 
-      error: error.message || 'Extraction failed',
-      timeout: error.message?.includes('timeout') || false
+    
+    // Provide user-friendly error messages
+    let errorMessage = 'Extraction failed';
+    let statusCode = 500;
+    
+    if (error.status === 429 || error.message?.includes('quota') || error.message?.includes('Quota exceeded') || error.message?.includes('Too Many Requests')) {
+      statusCode = 429;
+      errorMessage = `API quota exceeded. You've reached your daily limit. Please wait or upgrade your plan.`;
+    } else if (error.message?.includes('API key not valid') || error.message?.includes('API_KEY_INVALID')) {
+      errorMessage = 'Invalid API key. Please check your GEMINI_API_KEY in the .env file.';
+    } else if (error.message?.includes('API key')) {
+      errorMessage = 'API key error. Please verify your GEMINI_API_KEY is set correctly.';
+    } else if (error.message?.includes('timeout')) {
+      errorMessage = 'Request timed out. Please try again.';
+    } else {
+      errorMessage = error.message || 'Extraction failed';
+    }
+    
+    res.status(statusCode).json({ 
+      error: errorMessage,
+      timeout: error.message?.includes('timeout') || false,
+      quotaExceeded: statusCode === 429
     });
   }
 });

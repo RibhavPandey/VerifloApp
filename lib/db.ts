@@ -96,6 +96,8 @@ export const db = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
+    // Note: risky_count column may not exist in database schema
+    // Only include fields that exist in the schema
     const { error } = await supabase.from('jobs').upsert({
       id: job.id,
       user_id: user.id,
@@ -105,8 +107,8 @@ export const db = {
       file_ids: job.fileIds,
       config: job.config,
       chat_history: job.chatHistory || [],
-      risky_count: job.riskyCount,
       updated_at: new Date().toISOString()
+      // risky_count: job.riskyCount, // Removed - column doesn't exist in schema
     });
     if (error) console.error('Error saving job:', error);
   },
@@ -135,7 +137,7 @@ export const db = {
       createdAt: new Date(data.created_at).getTime(),
       updatedAt: new Date(data.updated_at).getTime(),
       chatHistory: data.chat_history || [],
-      riskyCount: data.risky_count
+      riskyCount: data.risky_count || undefined // Column may not exist in schema
     } as Job;
   },
 

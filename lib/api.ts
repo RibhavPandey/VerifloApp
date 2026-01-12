@@ -27,6 +27,7 @@ export const api = {
       },
       body: JSON.stringify({ file, fields, fileType })
     });
+    
     if (!response.ok) {
       let errorMessage = 'Extraction failed';
       try {
@@ -44,6 +45,7 @@ export const api = {
       }
       throw new Error(errorMessage);
     }
+    // return jsonData;
     return response.json();
   },
 
