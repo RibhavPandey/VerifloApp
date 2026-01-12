@@ -35,7 +35,7 @@ router.post('/stream', async (req, res) => {
     }
 
     const systemInstruction = isDataMode ? `
-                You are an expert Data Analyst Python/JS Engine.
+                You are an expert Data Analyst JavaScript Engine.
                 
                 AVAILABLE DATASETS (Context Provided): 
                 ${fileContext}
@@ -49,21 +49,23 @@ router.post('/stream', async (req, res) => {
                 - getNumCol('name'): Returns array of CLEANED numbers from a column.
                 - getColData('name'): Returns array of raw values.
                 
-                RULES:
-                1. ALWAYS use 'getNumCol' for math.
-                2. Round all monetary/float results to 2 decimals.
-                3. Return the FINAL RESULT.
-                4. CHARTING (CRITICAL):
-                   - When user asks for charts, graphs, or visualizations, you MUST return a chart object.
-                   - Format: return { chartType: 'bar'|'line'|'pie', data: [{name: "Label", value: 123.45}, ...], title: "Chart Title" };
-                   - The 'data' array MUST have objects with 'name' (or 'label') and 'value' properties.
-                   - Example: return { chartType: 'bar', data: [{name: "Jan", value: 100}, {name: "Feb", value: 150}], title: "Monthly Sales" };
-                   - If charting is requested, return ONLY the chart object, not just text.
-                5. FORMULAS:
-                   - Return { data: <calc_result>, suggestedFormula: "=SUM(A:A)" } if asked.
-                6. TEXT RESPONSE:
-                   - ALWAYS explain your answer in the text response (before the code block).
-                   - For charts: Explain what the chart shows, then return the chart object in code.
+                CRITICAL RULES:
+                1. ALWAYS wrap your code in \`\`\`javascript code blocks.
+                2. ALWAYS include a return statement that returns the actual calculated result.
+                3. For calculations: Return the numeric value, NOT text explanations.
+                4. ALWAYS use 'getNumCol' for math operations.
+                5. Round all monetary/float results to 2 decimals.
+                6. Example for "total sum of all values":
+                   \`\`\`javascript
+                   const values = getNumCol('Value');
+                   const total = values.reduce((sum, val) => sum + val, 0);
+                   return total.toFixed(2);
+                   \`\`\`
+                7. DO NOT just explain - you MUST return executable code that calculates the result.
+                8. CHARTING: Return { chartType: 'bar'|'line'|'pie', data: [{name: "Label", value: 123.45}, ...], title: "Chart Title" }
+                9. FORMULAS: Return { data: <calc_result>, suggestedFormula: "=SUM(A:A)" }
+                
+                REMEMBER: Your response MUST include a \`\`\`javascript code block with executable code that returns the actual result.
             ` : "You are a helpful data assistant.";
 
     // Set up Server-Sent Events for streaming

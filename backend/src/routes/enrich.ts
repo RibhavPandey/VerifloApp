@@ -12,13 +12,14 @@ router.post('/', async (req, res) => {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: 'API key not configured' });
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('ERROR: GEMINI_API_KEY is not set or is empty');
+      return res.status(500).json({ error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: {
         responseMimeType: "application/json"
       }
@@ -50,7 +51,16 @@ router.post('/', async (req, res) => {
     
   } catch (error: any) {
     console.error('Enrichment error:', error);
-    res.status(500).json({ error: error.message || 'Enrichment failed' });
+    
+    // Provide user-friendly error messages
+    let errorMessage = error.message || 'Enrichment failed';
+    if (error.message?.includes('API key not valid') || error.message?.includes('API_KEY_INVALID')) {
+      errorMessage = 'Invalid API key. Please check your GEMINI_API_KEY in the .env file.';
+    } else if (error.message?.includes('API key')) {
+      errorMessage = 'API key error. Please verify your GEMINI_API_KEY is set correctly.';
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 

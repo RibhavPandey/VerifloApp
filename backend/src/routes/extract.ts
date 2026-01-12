@@ -2,11 +2,23 @@ import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Note: genAI instance will be created per request to ensure fresh API key
 
 router.post('/', async (req, res) => {
   try {
     const { file, fields, fileType } = req.body;
+    
+    // Check if API key is set
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('ERROR: GEMINI_API_KEY is not set or is empty');
+      return res.status(500).json({ 
+        error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' 
+      });
+    }
+    
+    // Create genAI instance per request to ensure it's using the right one
+    const genAI = new GoogleGenerativeAI(apiKey);
     
     // Input validation
     if (!file || !fields || !Array.isArray(fields)) {
@@ -41,7 +53,7 @@ router.post('/', async (req, res) => {
 
     const prompt = `Extract only these fields: ${fields.join(', ')}. Return JSON array of objects { key, value, confidence, box2d: [ymin, xmin, ymax, xmax] }.`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const extractionPromise = model.generateContent([
       {

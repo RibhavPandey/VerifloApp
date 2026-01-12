@@ -700,7 +700,7 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
             </div>
 
             {/* Unified Bottom Input Section */}
-            <div className="p-4 border-t border-gray-200 bg-white relative z-20">
+            <div className="p-3 border-t border-gray-200 bg-white relative z-20">
                 {isModeMenuOpen && (
                     <div className="absolute bottom-full left-4 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 animate-in fade-in slide-in-from-bottom-2 overflow-hidden z-50">
                         <button
