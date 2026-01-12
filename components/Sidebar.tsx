@@ -777,7 +777,7 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                     }}
                                     placeholder={files.length > 0 ? "Ask anything": "Upload files to start chat"}
                                     disabled={isLoading}
-                                    className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 resize-none max-h-32 placeholder-gray-400 leading-relaxed"
+                                    className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none max-h-32 placeholder-gray-400 leading-relaxed"
                                     style={{ minHeight: '40px' }}
                                 />
                             </form>

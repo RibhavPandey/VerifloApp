@@ -94,7 +94,7 @@ const VerificationPage: React.FC = () => {
                 columns: ['Source File', ...headers],
                 styles: {},
                 lastModified: Date.now(),
-                history: [{ data: flattenedData, styles: {} }],
+                history: [{ data: flattenedData, styles: {}, columns: ['Source File', ...headers] }],
                 currentHistoryIndex: 0
             };
             await db.upsertFile(newFile);

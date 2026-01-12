@@ -31,7 +31,7 @@ const Dashboard: React.FC = () => {
         
         const newFile: ExcelFile = {
             id: fileId, name: "Untitled Spreadsheet", data, columns: headers, styles: {},
-            lastModified: Date.now(), history: [{ data, styles: {} }], currentHistoryIndex: 0
+            lastModified: Date.now(), history: [{ data, styles: {}, columns: headers }], currentHistoryIndex: 0
         };
         const newJob: Job = {
             id: crypto.randomUUID(), title: "Untitled Spreadsheet", type: 'spreadsheet', status: 'completed',
@@ -43,6 +43,53 @@ const Dashboard: React.FC = () => {
         onJobCreated(newJob, newFile);
         addToast('success', 'Created', 'New blank spreadsheet ready.');
     } catch (e) { addToast('error', 'Error', 'Failed to create.'); }
+  };
+
+  const handleLoadDemo = async () => {
+    try {
+        const demoData = [
+            ["Date", "Product", "Region", "Sales", "Units", "Customer"],
+            ["2024-01-01", "Laptop Pro", "North", 1200, 1, "TechCorp"],
+            ["2024-01-02", "Mouse", "South", 25, 5, "Indie"],
+            ["2024-01-03", "Monitor 4K", "East", 450, 2, "DesignStudio"],
+            ["2024-01-04", "Laptop Pro", "West", 2400, 2, "StartUp Inc"],
+            ["2024-01-05", "Keyboard", "North", 80, 4, "TechCorp"],
+            ["2024-01-06", "Mouse", "East", 30, 6, "DesignStudio"],
+            ["2024-01-07", "Laptop Air", "South", 900, 1, "Indie"]
+        ];
+        
+        const fileId = crypto.randomUUID();
+        const newFile: ExcelFile = {
+            id: fileId,
+            name: "Demo Sales Data.csv",
+            data: demoData,
+            columns: demoData[0].map(String),
+            styles: {},
+            lastModified: Date.now(),
+            history: [{ data: demoData, styles: {}, columns: demoData[0].map(String) }],
+            currentHistoryIndex: 0
+        };
+
+        const newJob: Job = {
+            id: crypto.randomUUID(),
+            title: "Demo Sales Analysis",
+            type: 'spreadsheet',
+            status: 'completed',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            fileIds: [fileId],
+            chatHistory: [{ id: '1', role: 'assistant', content: "I've loaded the demo sales data. Try asking: 'Analyze sales by region' or 'What is the top selling product?'" }]
+        };
+
+        await db.upsertJob(newJob);
+        await db.upsertFile(newFile);
+        onJobCreated(newJob, newFile);
+        addToast('success', 'Demo Loaded', 'Demo project created successfully.');
+        
+    } catch (err) {
+        console.error(err);
+        addToast('error', 'Error', 'Failed to load demo data.');
+    }
   };
 
   const handleDeleteJob = async (id: string) => {
@@ -78,7 +125,10 @@ const Dashboard: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Work Dashboard</h1>
                 <p className="text-gray-500">Manage your data projects and extraction tasks.</p>
             </div>
-            <button className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 flex items-center gap-2">
+            <button 
+                onClick={handleLoadDemo}
+                className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
+            >
                 <PlayCircle size={16} /> Load Demo Data
             </button>
         </div>

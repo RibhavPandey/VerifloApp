@@ -167,7 +167,7 @@ const Workspace: React.FC = () => {
                 const columns = data[0]?.map(String) || [];
                 const newFile: ExcelFile = {
                     id: fileId, name: file.name, data, columns, styles: {}, 
-                    lastModified: Date.now(), history: [{data, styles: {}}], currentHistoryIndex: 0
+                    lastModified: Date.now(), history: [{data, styles: {}, columns}], currentHistoryIndex: 0
                 };
                 const newJob: Job = {
                     id: crypto.randomUUID(),
