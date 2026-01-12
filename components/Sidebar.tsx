@@ -204,10 +204,46 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                         accumulatedText += text;
 
                     if (isDataMode && !hasExecuted) {
-                        const codeMatch = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/i);
+                        // Try to find complete code block - look for closing ```
+                        const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)```/i;
+                        let codeMatch = accumulatedText.match(codeBlockRegex);
+                        
+                        // If no complete block found yet, check if we have an opening ```
+                        if (!codeMatch) {
+                            const openBlock = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*)$/i);
+                            if (openBlock) {
+                                // Wait for more text - don't execute yet
+                                continue;
+                            }
+                        }
+                        
                         if (codeMatch) {
-                            executionResult = await worker.executeCode(codeMatch[1], datasets, primaryData);
-                            hasExecuted = true;
+                            const codeToExecute = codeMatch[1].trim();
+                            console.log('Executing code block (length:', codeToExecute.length, '):', codeToExecute.substring(0, 300));
+                            
+                            // Check if code has a return statement
+                            if (!codeToExecute.includes('return')) {
+                                console.warn('Code block does not contain return statement');
+                            }
+                            
+                            try {
+                                executionResult = await worker.executeCode(codeToExecute, datasets, primaryData);
+                                console.log('Code execution result:', executionResult);
+                                console.log('Result type:', typeof executionResult);
+                                console.log('Has chartType?', executionResult?.chartType);
+                                console.log('Has data?', Array.isArray(executionResult?.data));
+                                if (executionResult !== undefined && executionResult !== null) {
+                                    const resultStr = JSON.stringify(executionResult);
+                                    console.log('Full result:', resultStr.length > 500 ? resultStr.substring(0, 500) : resultStr);
+                                } else {
+                                    console.log('Full result: undefined or null');
+                                }
+                                hasExecuted = true;
+                            } catch (execError: any) {
+                                console.error('Code execution error:', execError);
+                                executionResult = { error: execError.message };
+                                hasExecuted = true;
+                            }
                         }
                     }
 
@@ -225,23 +261,37 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                 if (executionResult !== null && !isResultAdded) {
                                     if (!updated.parts) updated.parts = [];
 
-                                    if (typeof executionResult === 'object' && executionResult?.suggestedFormula) {
+                                    // Check for errors first
+                                    if (executionResult?.error) {
+                                        console.error('Execution error:', executionResult.error);
+                                        if (!updated.content.includes('Error:')) {
+                                            updated.content += `\n\n⚠️ Code execution error: ${executionResult.error}`;
+                                        }
+                                    }
+                                    // Check for chart data (highest priority)
+                                    else if (typeof executionResult === 'object' && executionResult?.chartType && Array.isArray(executionResult.data)) {
+                                        // Always add chart part if chartType is present, even if data is empty
+                                        // This allows the ChartRenderer to show a "No data" message or we can debug why data is empty
+                                        console.log('Adding chart to parts:', {
+                                            chartType: executionResult.chartType,
+                                            dataLength: executionResult.data.length,
+                                            title: executionResult.title
+                                        });
+                                        
+                                        updated.parts.push({
+                                            type: 'chart',
+                                            title: executionResult.title || 'Chart',
+                                            data: executionResult.data,
+                                            chartType: executionResult.chartType
+                                        });
+                                    }
+                                    // Check for formula
+                                    else if (typeof executionResult === 'object' && executionResult?.suggestedFormula) {
                                         if (!updated.parts.some(p => p.type === 'formula')) {
                                             updated.parts.push({
                                                 type: 'formula',
                                                 title: 'Suggested Formula',
                                                 content: executionResult.suggestedFormula
-                                            });
-                                        }
-                                    }
-
-                                    if (typeof executionResult === 'object' && executionResult?.chartType && Array.isArray(executionResult.data)) {
-                                        if (executionResult.data.length > 0) {
-                                            updated.parts.push({
-                                                type: 'chart',
-                                                title: executionResult.title || 'Analysis Result',
-                                                data: executionResult.data,
-                                                chartType: executionResult.chartType
                                             });
                                         }
                                     }
@@ -269,6 +319,67 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                             }
                             return m;
                         }));
+                    }
+                    
+                    // Final check after stream completes - re-execute code if result was undefined or incomplete
+                    if (isDataMode) {
+                        const finalCodeMatch = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
+                        if (finalCodeMatch) {
+                            const finalCode = finalCodeMatch[1].trim();
+                            
+                            // Re-execute if we didn't execute before, or if result was undefined
+                            if (!hasExecuted || !executionResult || executionResult === undefined) {
+                                console.log('Re-executing code block after stream completion');
+                                try {
+                                    executionResult = await worker.executeCode(finalCode, datasets, primaryData);
+                                    console.log('Final execution result:', executionResult);
+                                    console.log('Final result type:', typeof executionResult);
+                                    
+                                    // Update with final result
+                                    if (executionResult && typeof executionResult === 'object') {
+                                        onUpdateHistoryRef.current(prev => prev.map(m => {
+                                            if (m.id === assistantId) {
+                                                const updated = { ...m };
+                                                if (!updated.parts) updated.parts = [];
+                                                
+                                // Check for chart
+                                if (executionResult.chartType && Array.isArray(executionResult.data)) {
+                                    const hasChart = updated.parts.some(p => p.type === 'chart');
+                                    if (!hasChart) {
+                                        console.log('Adding final chart:', executionResult);
+                                        updated.parts.push({
+                                            type: 'chart',
+                                            title: executionResult.title || 'Chart',
+                                            data: executionResult.data,
+                                            chartType: executionResult.chartType
+                                        });
+                                    }
+                                }
+                                                // Check for table
+                                                else if (executionResult.data && !executionResult.chartType) {
+                                                    const d = executionResult.data;
+                                                    if (Array.isArray(d) && d.length > 0) {
+                                                        const hasTable = updated.parts.some(p => p.type === 'table');
+                                                        if (!hasTable) {
+                                                            updated.parts.push({ 
+                                                                type: 'table', 
+                                                                title: executionResult.title || 'Analysis Result', 
+                                                                data: d 
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                return updated;
+                                            }
+                                            return m;
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error('Final code execution failed:', e);
+                                }
+                            }
+                        }
                     }
                 } catch (streamErr: any) {
                     throw streamErr;

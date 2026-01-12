@@ -17,6 +17,7 @@ self.onmessage = async (e) => {
     else if (type === 'EXECUTE_CODE') {
         const { code, datasets, primaryData } = payload;
         const result = executeUserCode(code, datasets, primaryData);
+        console.log('Worker: executeUserCode returned:', typeof result, result);
         self.postMessage({ type: 'EXECUTE_CODE_SUCCESS', id, result });
     }
   } catch (err) {
@@ -114,24 +115,28 @@ function executeUserCode(code, datasets, primaryData) {
     const getColData = (colName, fileData = primaryData) => {
         const idx = findCol(colName, fileData);
         if (idx === -1) return [];
-        return fileData.slice(1).map(r => r[idx]);
+        return fileData.slice(1).map(r => {
+            const val = r && r[idx] !== undefined ? r[idx] : '';
+            return val === null || val === undefined ? '' : val;
+        });
     };
 
     // Safe execution context wrapper
-    // We wrap in an IIFE to prevent variable leakage and ensure return
-    const wrappedCode = \`
-        (function() {
-            try {
-                \${code}
-            } catch(e) {
-                return { error: e.toString() };
-            }
-        })()
+    // CRITICAL: The user's code must end with a return statement
+    // We execute the code in a function and capture its return value
+    // The function body is the user's code wrapped in error handling
+    const funcBody = \`
+        try {
+            \${code}
+        } catch(e) {
+            return { error: e.toString() };
+        }
     \`;
 
     // Construct the function with restricted scope
     // Note: In a Worker, 'window' and 'document' are not available, improving security.
     // We pass helpers as arguments.
+    // The function will execute the code and return whatever the code returns
     const func = new Function(
           'datasets', 
           'rows', 
@@ -140,10 +145,21 @@ function executeUserCode(code, datasets, primaryData) {
           'cleanNum', 
           'getNumCol', 
           'getColData', 
-          wrappedCode
+          funcBody
     );
       
-    return func(datasets, rows, headers, findCol, cleanNum, getNumCol, getColData);
+    try {
+        const result = func(datasets, rows, headers, findCol, cleanNum, getNumCol, getColData);
+        
+        // If result is undefined, the code might not have returned anything
+        if (result === undefined) {
+            return { error: 'Code execution returned undefined. Make sure your code ends with a return statement (e.g., return { chartType: "bar", data: [...], title: "..." }).' };
+        }
+        
+        return result;
+    } catch (execError) {
+        return { error: execError.toString() };
+    }
 }
 `;
 
@@ -158,15 +174,19 @@ class WorkerManager {
             
             this.worker.onmessage = (e) => {
                 const { type, id, result, error } = e.data;
+                console.log('[WorkerManager] Message received:', { type, id, hasResult: !!result, hasError: !!error, resultType: typeof result });
                 const callback = this.callbacks.get(id);
                 if (callback) {
                     if (type === 'ERROR') {
-                        // We handle error in the callback logic usually
+                        console.log('[WorkerManager] Calling callback with error');
                         callback({ error });
                     } else {
+                        console.log('[WorkerManager] Calling callback with result:', result);
                         callback(result);
                     }
                     this.callbacks.delete(id);
+                } else {
+                    console.warn('[WorkerManager] No callback found for id:', id);
                 }
             };
         }
@@ -187,8 +207,14 @@ class WorkerManager {
         return new Promise((resolve, reject) => {
             const id = crypto.randomUUID();
             this.callbacks.set(id, (res) => {
-                if (res && res.error) reject(res.error);
-                else resolve(res);
+                console.log('[WorkerManager] Callback received:', typeof res, res);
+                if (res && res.error) {
+                    console.error('[WorkerManager] Error in result:', res.error);
+                    reject(res.error);
+                } else {
+                    console.log('[WorkerManager] Resolving with:', res);
+                    resolve(res);
+                }
             });
             this.worker?.postMessage({ type: 'EXECUTE_CODE', id, payload: { code, datasets, primaryData } });
         });

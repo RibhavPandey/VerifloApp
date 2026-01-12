@@ -11,6 +11,7 @@ export interface CellStyle {
 export interface FileSnapshot {
   data: any[][];
   styles: Record<string, CellStyle>;
+  columns: string[];
 }
 
 export interface ExcelFile {

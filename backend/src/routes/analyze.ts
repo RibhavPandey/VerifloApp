@@ -1,8 +1,8 @@
 import express from 'express';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 router.post('/', async (req, res) => {
   try {
@@ -60,15 +60,16 @@ router.post('/', async (req, res) => {
             ${fileContext}
         `;
 
-    const analysisPromise = ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: { parts: [{ text: `User Query: ${query}` }] },
-      config: { systemInstruction, responseMimeType: "application/json" }
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction,
+      generationConfig: { responseMimeType: "application/json" }
     });
 
-    const response = await Promise.race([analysisPromise, timeoutPromise]) as any;
-    
-    const text = response.text || "{}";
+    const analysisPromise = model.generateContent(`User Query: ${query}`);
+    const result = await Promise.race([analysisPromise, timeoutPromise]) as any;
+    const response = await result.response;
+    const text = response.text() || "{}";
     let json;
     try {
       json = JSON.parse(text);

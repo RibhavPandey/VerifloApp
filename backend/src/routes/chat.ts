@@ -1,21 +1,38 @@
 import express from 'express';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+// Note: genAI instance will be created per request to ensure fresh API key
 
 router.post('/stream', async (req, res) => {
   try {
     const { prompt, fileContext, history, isDataMode } = req.body;
     
+    console.log('Chat request received:', { prompt: prompt?.substring(0, 50), hasHistory: !!history, isDataMode });
+    
+    // Check if API key is set
+    const apiKey = process.env.GEMINI_API_KEY;
+    console.log('API Key check:', {
+      exists: !!apiKey,
+      length: apiKey?.length || 0,
+      startsWith: apiKey?.substring(0, 10) || 'N/A',
+      endsWith: apiKey?.substring(apiKey?.length - 4) || 'N/A'
+    });
+    
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('ERROR: GEMINI_API_KEY is not set or is empty');
+      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('API')));
+      return res.status(500).json({ 
+        error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' 
+      });
+    }
+    
+    // Recreate genAI instance with current API key to ensure it's using the right one
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
     if (!prompt) {
       return res.status(400).json({ error: 'Missing prompt' });
     }
-
-    // Add timeout wrapper
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout')), 120000) // 2 minutes for chat
-    );
 
     const systemInstruction = isDataMode ? `
                 You are an expert Data Analyst Python/JS Engine.
@@ -36,48 +53,201 @@ router.post('/stream', async (req, res) => {
                 1. ALWAYS use 'getNumCol' for math.
                 2. Round all monetary/float results to 2 decimals.
                 3. Return the FINAL RESULT.
-                4. CHARTING:
-                   - Return { chartType: 'bar'|'line'|'pie', data: [{name: "Label", value: 123.45}, ...], title: "Title" } ONLY if visualized data is best.
+                4. CHARTING (CRITICAL):
+                   - When user asks for charts, graphs, or visualizations, you MUST return a chart object.
+                   - Format: return { chartType: 'bar'|'line'|'pie', data: [{name: "Label", value: 123.45}, ...], title: "Chart Title" };
+                   - The 'data' array MUST have objects with 'name' (or 'label') and 'value' properties.
+                   - Example: return { chartType: 'bar', data: [{name: "Jan", value: 100}, {name: "Feb", value: 150}], title: "Monthly Sales" };
+                   - If charting is requested, return ONLY the chart object, not just text.
                 5. FORMULAS:
                    - Return { data: <calc_result>, suggestedFormula: "=SUM(A:A)" } if asked.
                 6. TEXT RESPONSE:
                    - ALWAYS explain your answer in the text response (before the code block).
+                   - For charts: Explain what the chart shows, then return the chart object in code.
             ` : "You are a helpful data assistant.";
-
-    const recentHistory = (history || []).slice(-6).map((msg: any) => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }]
-    }));
 
     // Set up Server-Sent Events for streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
+    // Add timeout wrapper
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 120000) // 2 minutes for chat
+    );
+
     try {
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3-flash-preview",
-        contents: [...recentHistory, { role: 'user', parts: [{ text: prompt }] }],
-        config: { systemInstruction, temperature: 0.1 },
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        systemInstruction,
+        generationConfig: { temperature: 0.1 }
       });
 
-      for await (const chunk of responseStream) {
-        const text = chunk.text || '';
-        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      // Map history to the format expected by GoogleGenerativeAI
+      // Filter and map history, ensuring it starts with a 'user' message
+      let mappedHistory = (history || [])
+        .filter((msg: any) => msg.content && msg.content.trim()) // Remove empty messages
+        .slice(-6) // Take last 6 messages
+        .map((msg: any) => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.content || '' }]
+        }));
+
+      // Ensure history starts with 'user' role (Google API requirement)
+      // Remove any leading 'model' messages
+      while (mappedHistory.length > 0 && mappedHistory[0].role === 'model') {
+        mappedHistory = mappedHistory.slice(1);
       }
 
-      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-      res.end();
+      // If no valid history (all were model messages or empty), use empty array
+      if (mappedHistory.length === 0 || mappedHistory[0].role !== 'user') {
+        mappedHistory = [];
+      }
+
+      const chat = model.startChat({
+        history: mappedHistory
+      });
+
+      console.log('Starting stream...');
+      
+      // Wrap the streaming operation with timeout
+      const streamPromise = (async () => {
+        try {
+          const result = await chat.sendMessageStream(prompt);
+          console.log('Stream result received, starting to process chunks...');
+          
+          let chunkCount = 0;
+          let hasContent = false;
+          
+          for await (const chunk of result.stream) {
+            try {
+              // Try to get text from chunk - handle different possible structures
+              let chunkText = '';
+              
+              // Log chunk structure for debugging (first chunk only)
+              if (chunkCount === 0) {
+                console.log('First chunk structure:', JSON.stringify(Object.keys(chunk || {})));
+                console.log('Chunk type:', typeof chunk);
+              }
+              
+              // Method 1: Direct text() method (most common)
+              try {
+                if (typeof chunk.text === 'function') {
+                  chunkText = chunk.text();
+                } else if (chunk.text && typeof chunk.text === 'string') {
+                  chunkText = chunk.text;
+                }
+              } catch (textError: any) {
+                console.error('Error accessing chunk.text:', textError.message);
+              }
+              
+              // Method 2: Access via candidates if text() didn't work
+              if (!chunkText && chunk.candidates && chunk.candidates[0]?.content?.parts) {
+                chunkText = chunk.candidates[0].content.parts
+                  .map((part: any) => part.text || '')
+                  .join('');
+              }
+              
+              // Method 3: Try accessing response property if it exists
+              if (!chunkText && (chunk as any).response) {
+                const response = (chunk as any).response;
+                if (response && typeof response.text === 'function') {
+                  chunkText = response.text();
+                } else if (response?.text) {
+                  chunkText = response.text;
+                }
+              }
+              
+              if (chunkText && chunkText.trim()) {
+                hasContent = true;
+                chunkCount++;
+                if (!res.writableEnded) {
+                  res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+                }
+              } else if (chunkCount === 0) {
+                console.log('Empty chunk received, chunk keys:', Object.keys(chunk || {}));
+                console.log('Chunk value:', JSON.stringify(chunk).substring(0, 200));
+              }
+            } catch (chunkError: any) {
+              console.error('Chunk processing error:', chunkError.message || chunkError, chunkError.stack);
+              // Continue processing other chunks
+            }
+          }
+          
+          console.log(`Stream completed. Sent ${chunkCount} chunks. Has content: ${hasContent}`);
+          
+          if (!hasContent && chunkCount === 0) {
+            console.warn('WARNING: No content received from AI model');
+            if (!res.writableEnded) {
+              res.write(`data: ${JSON.stringify({ error: 'No response received from AI model' })}\n\n`);
+            }
+          }
+          
+          if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+            res.end();
+          }
+        } catch (streamInnerError: any) {
+          console.error('Inner stream error:', streamInnerError.message || streamInnerError, streamInnerError.stack);
+          
+          // Provide user-friendly error messages
+          let errorMessage = 'Stream processing failed';
+          if (streamInnerError.message?.includes('API key not valid') || streamInnerError.message?.includes('API_KEY_INVALID')) {
+            errorMessage = 'Invalid API key. Please check your GEMINI_API_KEY in the .env file.';
+          } else if (streamInnerError.message?.includes('API key')) {
+            errorMessage = 'API key error. Please verify your GEMINI_API_KEY is set correctly.';
+          } else {
+            errorMessage = streamInnerError.message || 'Stream processing failed';
+          }
+          
+          if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
+            res.end();
+          }
+          throw streamInnerError;
+        }
+      })();
+
+      await Promise.race([streamPromise, timeoutPromise]);
     } catch (streamError: any) {
-      res.write(`data: ${JSON.stringify({ error: streamError.message })}\n\n`);
-      res.end();
+      console.error('Stream error:', streamError);
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Stream failed';
+      if (streamError.message?.includes('API key not valid') || streamError.message?.includes('API_KEY_INVALID')) {
+        errorMessage = 'Invalid API key. Please check your GEMINI_API_KEY in the .env file.';
+      } else if (streamError.message?.includes('API key')) {
+        errorMessage = 'API key error. Please verify your GEMINI_API_KEY is set correctly.';
+      } else {
+        errorMessage = streamError.message || 'Stream failed';
+      }
+      
+      // Headers already set for SSE, send error via stream
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+      }
+      
+      // Make sure response is still writable before sending error
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
+        res.end();
+      }
     }
   } catch (error: any) {
     console.error('Chat error:', error);
-    res.status(500).json({ 
-      error: error.message || 'Chat failed',
-      timeout: error.message?.includes('timeout') || false
-    });
+    // If headers not set yet, send JSON error
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: error.message || 'Chat failed',
+        timeout: error.message?.includes('timeout') || false
+      });
+    } else {
+      // Headers already set, send via SSE
+      res.write(`data: ${JSON.stringify({ error: error.message || 'Chat failed' })}\n\n`);
+      res.end();
+    }
   }
 });
 

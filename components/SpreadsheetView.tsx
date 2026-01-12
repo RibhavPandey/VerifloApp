@@ -98,7 +98,8 @@ const SpreadsheetView: React.FC = () => {
       // Manage History Stack
       const newSnapshot: FileSnapshot = { 
           data: updatedFile.data, 
-          styles: updatedFile.styles 
+          styles: updatedFile.styles,
+          columns: updatedFile.columns || []
       };
       
       const historyPast = file.history.slice(0, file.currentHistoryIndex + 1);
@@ -121,6 +122,7 @@ const SpreadsheetView: React.FC = () => {
           ...file,
           data: snapshot.data,
           styles: snapshot.styles,
+          columns: snapshot.columns || file.columns || [],
           currentHistoryIndex: newIndex,
           lastModified: Date.now()
       };
@@ -136,6 +138,7 @@ const SpreadsheetView: React.FC = () => {
           ...file,
           data: snapshot.data,
           styles: snapshot.styles,
+          columns: snapshot.columns || file.columns || [],
           currentHistoryIndex: newIndex,
           lastModified: Date.now()
       };
@@ -326,7 +329,11 @@ const SpreadsheetView: React.FC = () => {
   
   const handleEnrichment = async () => {
     if (enrichmentTargetCol === null || !enrichmentPrompt) return;
-    if (credits < 25) { addToast('error', 'Insufficient Credits', 'Requires 25 credits.'); return; }
+
+    if (credits < 25) {
+        addToast('error', 'Insufficient Credits', 'Data enrichment requires 25 credits.');
+        return;
+    }
 
     setIsProcessingAI(true);
     try {
@@ -336,20 +343,32 @@ const SpreadsheetView: React.FC = () => {
 
         const response = await api.enrich(uniqueItems, enrichmentPrompt);
         const result = response.result;
-      const newData = [...file.data];
-      const emptyColIdx = file.data[0].length;
-      newData[0][emptyColIdx] = "Enriched Info";
+        
+        const newData = [...file.data];
+        const emptyColIdx = file.data[0].length;
+        newData[0][emptyColIdx] = "Enriched Info";
 
         for(let r=1; r < newData.length; r++) {
-        const key = newData[r][colIdx];
-            if (key && result[key]) newData[r][emptyColIdx] = typeof result[key] === 'object' ? JSON.stringify(result[key]) : result[key];
+            const key = newData[r][colIdx];
+            if (key && result[key]) {
+                const val = result[key];
+                newData[r][emptyColIdx] = typeof val === 'object' ? JSON.stringify(val) : val;
+            }
         }
 
         handleFileChange({ data: newData });
-        handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)}`, { prompt: enrichmentPrompt });
+        handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)} with "${enrichmentPrompt}"`, { prompt: enrichmentPrompt });
         handleUseCredit(25);
-    } catch (e) { addToast('error', 'Enrichment Failed', ''); } 
-    finally { setIsProcessingAI(false); setEnrichmentPrompt(null); }
+        addToast('success', 'Enrichment Complete', 'Data successfully added to your sheet.');
+        setEnrichmentPrompt(null);
+        setEnrichmentTargetCol(null);
+    } catch (e: any) {
+        console.error('Enrichment error:', e);
+        const errorMessage = e?.message || 'Could not fetch data. Please try again.';
+        addToast('error', 'Enrichment Failed', errorMessage);
+    } finally { 
+        setIsProcessingAI(false);
+    }
   };
 
   const handleMouseDown = (r: number, c: number, e: React.MouseEvent) => {
@@ -817,7 +836,11 @@ const SpreadsheetView: React.FC = () => {
 
       {isProcessingAI && (
         <div className="absolute inset-0 z-[60] bg-white/50 backdrop-blur-sm flex items-center justify-center">
-          <Loader2 className="animate-spin text-blue-600" size={32} />
+          <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center animate-in fade-in zoom-in duration-200">
+            <Loader2 className="animate-spin text-blue-600 mb-3" size={32} />
+            <h3 className="font-bold text-gray-800">Thinking...</h3>
+            <p className="text-sm text-gray-500">The AI is analyzing patterns & data.</p>
+          </div>
         </div>
       )}
 
@@ -827,17 +850,32 @@ const SpreadsheetView: React.FC = () => {
             <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
               <Globe className="text-blue-500" /> Enrich Data
             </h3>
-            <textarea
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4"
+            <p className="text-sm text-gray-500 mb-4">
+              Cost: <span className="font-bold text-blue-600">25 Credits</span>. 
+              What info do you want for <strong>{getColumnLabel(enrichmentTargetCol)}</strong>?
+            </p>
+            <textarea 
+              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
               rows={3}
-              placeholder="e.g. Find the CEO"
+              placeholder="e.g. Find the CEO, Headquarters, and Website"
               autoFocus
               value={enrichmentPrompt || ''}
               onChange={(e) => setEnrichmentPrompt(e.target.value)}
             />
             <div className="flex justify-end gap-2">
-              <button onClick={() => { setEnrichmentTargetCol(null); setEnrichmentPrompt(null); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-              <button onClick={handleEnrichment} disabled={!enrichmentPrompt} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Run</button>
+              <button 
+                onClick={() => { setEnrichmentTargetCol(null); setEnrichmentPrompt(null); }}
+                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleEnrichment}
+                disabled={!enrichmentPrompt}
+                className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Run Enrichment
+              </button>
             </div>
           </div>
         </div>

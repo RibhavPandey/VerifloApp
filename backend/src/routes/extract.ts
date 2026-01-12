@@ -1,8 +1,8 @@
 import express from 'express';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 router.post('/', async (req, res) => {
   try {
@@ -41,19 +41,21 @@ router.post('/', async (req, res) => {
 
     const prompt = `Extract only these fields: ${fields.join(', ')}. Return JSON array of objects { key, value, confidence, box2d: [ymin, xmin, ymax, xmax] }.`;
 
-    const extractionPromise = ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: fileType || 'image/jpeg', data: file } },
-          { text: prompt }
-        ]
-      }
-    });
-
-    const response = await Promise.race([extractionPromise, timeoutPromise]) as any;
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
-    const text = response.text || "[]";
+    const extractionPromise = model.generateContent([
+      {
+        inlineData: {
+          mimeType: fileType || 'image/jpeg',
+          data: file
+        }
+      },
+      prompt
+    ]);
+
+    const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
+    const response = await result.response;
+    const text = response.text() || "[]";
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const jsonStr = jsonMatch ? jsonMatch[0] : "[]";
     

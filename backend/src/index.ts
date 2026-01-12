@@ -7,7 +7,43 @@ import enrichRoutes from './routes/enrich.js';
 import chatRoutes from './routes/chat.js';
 import { authenticate } from './middleware/auth.js';
 
-dotenv.config();
+// Load .env file - try multiple locations
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync } from 'node:fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Try backend/.env first, then root .env
+const envPaths = [
+  path.join(__dirname, '../.env'),
+  path.join(__dirname, '../../.env'),
+  '.env'
+];
+
+let envLoaded = false;
+for (const envPath of envPaths) {
+  if (existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    console.log(`✅ Loaded .env from: ${envPath}`);
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  console.warn('⚠️  No .env file found, using system environment variables');
+  dotenv.config(); // Try default location
+}
+
+// Log API key status (without exposing the full key)
+const apiKey = process.env.GEMINI_API_KEY;
+console.log('API Key Status:', {
+  exists: !!apiKey,
+  length: apiKey?.length || 0,
+  preview: apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT SET'
+});
 
 // Validate required environment variables
 if (!process.env.GEMINI_API_KEY) {
@@ -21,7 +57,7 @@ const PORT = process.env.PORT || 3001;
 // CORS - Never allow * in production
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -29,9 +65,19 @@ app.use(cors({
     if (!origin && process.env.NODE_ENV === 'development') {
       return callback(null, true);
     }
+    
+    // In development, allow localhost on any port
+    if (process.env.NODE_ENV === 'development' && origin && (
+      origin.startsWith('http://localhost:') || 
+      origin.startsWith('http://127.0.0.1:')
+    )) {
+      return callback(null, true);
+    }
+    
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.error(`CORS Error: Origin "${origin}" not allowed. Allowed origins:`, allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },
