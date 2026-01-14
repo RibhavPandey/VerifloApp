@@ -122,7 +122,7 @@ const Navigation: React.FC<NavigationProps> = ({
             <div className="px-3">
                 <div className="flex items-center justify-between mb-2 px-2 h-6">
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap delay-75">
-                        Files
+                        Active Files
                     </span>
                     <label className="cursor-pointer text-gray-400 hover:text-gray-900 transition-colors p-1 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100">
                         <Plus size={14} />
@@ -161,8 +161,30 @@ const Navigation: React.FC<NavigationProps> = ({
                      </span>
                 </div>
                 <div className="space-y-1">
-                   <NavItem icon={<History size={18} />} label="Q4 Revenue Analysis" onClick={() => {}} />
-                   <NavItem icon={<Sparkles size={18} />} label="Customer Churn" onClick={() => {}} />
+                    {(() => {
+                        const recentJobs = jobs
+                            .filter(j => j.status !== 'needs_review')
+                            .sort((a, b) => b.updatedAt - a.updatedAt)
+                            .slice(0, 5);
+                        
+                        if (recentJobs.length === 0) {
+                            return (
+                                <div className="px-2 py-2 text-xs text-gray-400 italic opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity text-center group-hover:text-left">
+                                    No recent projects
+                                </div>
+                            );
+                        }
+                        
+                        return recentJobs.map(job => (
+                            <NavItem
+                                key={job.id}
+                                icon={job.type === 'extraction' ? <ScanText size={18} /> : <FileText size={18} />}
+                                label={job.title}
+                                isActive={location.pathname === `/sheet/${job.id}`}
+                                onClick={() => navigate(`/sheet/${job.id}`)}
+                            />
+                        ));
+                    })()}
                 </div>
             </div>
         </div>

@@ -252,6 +252,19 @@ export const db = {
     if (error) console.error('Error saving workflow:', error);
   },
 
+  async deleteWorkflow(workflowId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+        .from('workflows')
+        .delete()
+        .eq('id', workflowId)
+        .eq('user_id', user.id);
+
+    if (error) console.error("Error deleting workflow:", error);
+  },
+
   // --- VERIFICATION DOCS ---
   async fetchVerificationDocs(ids: string[]) {
       if(ids.length === 0) return [];

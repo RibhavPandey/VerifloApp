@@ -105,7 +105,7 @@ export interface AnalysisResult {
 
 // --- NEW TYPES FOR AUTOMATION ---
 
-export type ActionType = 'enrich' | 'filter' | 'sort' | 'delete_col' | 'formula' | 'extraction';
+export type ActionType = 'enrich' | 'filter' | 'sort' | 'delete_col' | 'delete_row' | 'formula' | 'extraction';
 
 export interface AutomationStep {
   id: string;

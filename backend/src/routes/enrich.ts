@@ -25,7 +25,7 @@ router.post('/', async (req, res) => {
       }
     });
 
-    const uniqueItems = Array.from(new Set(entities)).slice(0, 20);
+    const uniqueItems = Array.from(new Set(entities)).slice(0, 100); // Increased limit to 100 per batch
     
     const systemPrompt = `
       You are a Data Enrichment Engine.

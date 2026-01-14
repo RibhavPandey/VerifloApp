@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Bell, Cloud, Coins, Download, Loader2, Plus, 
-  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2
+  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, ScanText
 } from 'lucide-react';
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
@@ -22,6 +22,7 @@ export interface WorkspaceContextType {
     handleRecordAction: (type: AutomationStep['type'], description: string, params: any) => void;
     onJobCreated: (job: Job, file?: ExcelFile) => void;
     handleCSVUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    onCreateWorkflow: () => void;
 }
 
 const Workspace: React.FC = () => {
@@ -45,6 +46,7 @@ const Workspace: React.FC = () => {
   const [showWorkflowEditor, setShowWorkflowEditor] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [sessionSteps, setSessionSteps] = useState<AutomationStep[]>([]);
+  const [createWorkflowTypeModal, setCreateWorkflowTypeModal] = useState(false);
 
   const loadData = async () => {
       setIsSyncing(true);
@@ -105,6 +107,28 @@ const Workspace: React.FC = () => {
       setShowAutomateMenu(false);
   };
 
+  const handleAutomateClick = () => {
+      // Always show dropdown menu, regardless of page
+      setShowAutomateMenu(!showAutomateMenu);
+  };
+
+  const handleCreateWorkflow = () => {
+      const path = location.pathname;
+      
+      if (path.includes('/sheet/')) {
+          // Already on spreadsheet - start recording directly
+          setIsRecording(true);
+          setSessionSteps([]);
+      } else if (path.includes('/extract/')) {
+          // Already on extraction - start recording directly
+          setIsRecording(true);
+          setSessionSteps([]);
+      } else {
+          // Show modal to choose type
+          setCreateWorkflowTypeModal(true);
+      }
+  };
+
   const handleStopRecording = () => {
       setIsRecording(false);
       if (sessionSteps.length === 0) {
@@ -130,6 +154,339 @@ const Workspace: React.FC = () => {
       setNewWorkflowName('');
       setSessionSteps([]);
       addToast('success', 'Workflow Saved', `"${newWorkflowName}" is ready to use.`);
+  };
+
+  const handleDeleteStep = (id: string) => {
+      setSessionSteps(prev => prev.filter(s => s.id !== id));
+  };
+
+  // Get current active file from URL
+  const getActiveFile = (): ExcelFile | null => {
+      const jobId = location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
+      if (!jobId) return null;
+      const job = jobs.find(j => j.id === jobId);
+      if (!job || job.fileIds.length === 0) return null;
+      return files.find(f => f.id === job.fileIds[0]) || null;
+  };
+
+  // Workflow execution engine
+  const runWorkflow = async (workflow: Workflow, targetFile: ExcelFile): Promise<ExcelFile> => {
+      // Validation
+      if (!workflow.steps || workflow.steps.length === 0) {
+          addToast('error', 'Invalid Workflow', 'Workflow has no steps to execute.');
+          return targetFile; // Return original file if validation fails
+      }
+
+      addToast('info', 'Running Workflow', `Executing ${workflow.name}...`);
+      let data = targetFile.data.map(row => [...row]);
+      let columns = [...targetFile.columns];
+      
+      // Note: Enrich steps calculate and deduct their own cost based on unique items
+      // We don't deduct upfront to avoid double-deduction
+
+      // Separate steps by type for proper execution order
+      const deleteColSteps = workflow.steps.filter(s => s.type === 'delete_col').sort((a, b) => b.params.colIndex - a.params.colIndex);
+      const deleteRowSteps = workflow.steps.filter(s => s.type === 'delete_row').sort((a, b) => b.params.rowIndex - a.params.rowIndex);
+      const otherSteps = workflow.steps.filter(s => s.type !== 'delete_col' && s.type !== 'delete_row');
+
+      try {
+          // Execute other steps first (sort, enrich, etc.)
+          for (const step of otherSteps) {
+              try {
+                  if (step.type === 'sort') {
+                       const { action, r1, c1, r2, c2 } = step.params;
+                       // Bounds checking
+                       if (r1 < 0 || r2 >= data.length || c1 < 0 || c2 >= (data[0]?.length || 0)) {
+                           console.warn(`Step "${step.description}": Range out of bounds, skipping`);
+                           continue;
+                       }
+                       for(let r = r1; r <= r2; r++) {
+                           for(let c = c1; c <= c2; c++) {
+                               if (data[r] && data[r][c] !== undefined) {
+                                   let val = data[r][c];
+                                   if (typeof val === 'string') {
+                                       if (action === 'trim') val = val.trim();
+                                       if (action === 'upper') val = val.toUpperCase();
+                                       if (action === 'lower') val = val.toLowerCase();
+                                       if (action === 'title') {
+                                           val = val.toLowerCase().split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                                       }
+                                   }
+                                   data[r][c] = val;
+                               }
+                           }
+                       }
+                  }
+                  if (step.type === 'enrich') {
+                       const { prompt, colIndex } = step.params;
+                       // If colIndex not recorded, try to extract from description or use first column
+                       const targetCol = colIndex !== undefined ? colIndex : 0;
+                       if (targetCol >= 0 && targetCol < (data[0]?.length || 0) && prompt) {
+                           try {
+                               const sourceData = data.slice(1).map(r => r[targetCol]).filter(v => v !== undefined && v !== null && v !== '');
+                               const allUniqueItems = Array.from(new Set(sourceData.map(v => String(v).trim())));
+                               
+                               if (allUniqueItems.length > 0) {
+                                   const { api } = await import('../lib/api');
+                                   const BATCH_SIZE = 50; // Process 50 items per API call
+                                   const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
+                                   const batchCost = numBatches * 25; // 25 credits per batch
+                                   
+                                   // Check if user has enough credits for all batches
+                                   if (credits < batchCost) {
+                                       addToast('error', 'Insufficient Credits', `Enrichment requires ${batchCost} credits (${allUniqueItems.length} unique items in ${numBatches} batches). You have ${credits}.`);
+                                       continue; // Skip this enrich step
+                                   }
+                                   
+                                   // Deduct credits for all batches upfront
+                                   if (batchCost > 0) handleUseCredit(batchCost);
+                                   
+                                   const mergedResult: Record<string, any> = {};
+                                   
+                                   // Process in batches
+                                   for (let i = 0; i < allUniqueItems.length; i += BATCH_SIZE) {
+                                       const batch = allUniqueItems.slice(i, i + BATCH_SIZE);
+                                       try {
+                                           const response = await api.enrich(batch, prompt);
+                                           Object.assign(mergedResult, response.result);
+                                       } catch (batchError: any) {
+                                           console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
+                                           // Continue with other batches even if one fails
+                                       }
+                                   }
+                                   
+                                   // Create normalized lookup map for flexible matching
+                                   const lookupMap = new Map<string, any>();
+                                   for (const [key, value] of Object.entries(mergedResult)) {
+                                       const normalizedKey = String(key).trim().toLowerCase();
+                                       lookupMap.set(normalizedKey, value);
+                                   }
+                                   
+                                   // Add enriched data to new column
+                                   const newColIdx = data[0].length;
+                                   data[0][newColIdx] = "Enriched Info";
+                                   columns.push("Enriched Info");
+                                   
+                                   // Match and populate enriched data for ALL rows
+                                   for(let r = 1; r < data.length; r++) {
+                                       if (!data[r]) data[r] = [];
+                                       const cellValue = data[r][targetCol];
+                                       
+                                       if (cellValue !== undefined && cellValue !== null && cellValue !== '') {
+                                           // Try exact match first (preserves original behavior)
+                                           let enrichedValue = mergedResult[cellValue] || mergedResult[String(cellValue)];
+                                           
+                                           // If no exact match, try normalized lookup (handles case/whitespace differences)
+                                           if (enrichedValue === undefined) {
+                                               const normalizedCellValue = String(cellValue).trim().toLowerCase();
+                                               enrichedValue = lookupMap.get(normalizedCellValue);
+                                           }
+                                           
+                                           if (enrichedValue !== undefined) {
+                                               data[r][newColIdx] = typeof enrichedValue === 'object' ? JSON.stringify(enrichedValue) : enrichedValue;
+                                           }
+                                       }
+                                   }
+                               }
+                           } catch (enrichError: any) {
+                               console.error('Enrichment step failed:', enrichError);
+                               addToast('warning', 'Enrichment Failed', `Step "${step.description}" failed: ${enrichError.message || 'Unknown error'}`);
+                           }
+                       }
+                  }
+                  if (step.type === 'formula') {
+                       const { formula, rowIndex, colIndex } = step.params;
+                       if (formula && rowIndex >= 0 && rowIndex < data.length && colIndex >= 0 && colIndex < (data[0]?.length || 0)) {
+                           if (!data[rowIndex]) data[rowIndex] = [];
+                           data[rowIndex][colIndex] = formula;
+                       }
+                  }
+                  if (step.type === 'filter') {
+                       const { colIndex, operator, value } = step.params;
+                       // Filter rows based on column criteria
+                       if (colIndex >= 0 && colIndex < (data[0]?.length || 0) && operator && value !== undefined) {
+                           const headerRow = data[0];
+                           const filteredData = [headerRow]; // Keep header
+                           
+                           for (let r = 1; r < data.length; r++) {
+                               if (!data[r]) continue;
+                               const cellValue = data[r][colIndex];
+                               let shouldInclude = false;
+                               
+                               if (operator === 'equals') {
+                                   shouldInclude = String(cellValue) === String(value);
+                               } else if (operator === 'contains') {
+                                   shouldInclude = String(cellValue).toLowerCase().includes(String(value).toLowerCase());
+                               } else if (operator === 'greater') {
+                                   shouldInclude = Number(cellValue) > Number(value);
+                               } else if (operator === 'less') {
+                                   shouldInclude = Number(cellValue) < Number(value);
+                               } else if (operator === 'not_empty') {
+                                   shouldInclude = cellValue !== undefined && cellValue !== null && cellValue !== '';
+                               } else if (operator === 'empty') {
+                                   shouldInclude = cellValue === undefined || cellValue === null || cellValue === '';
+                               }
+                               
+                               if (shouldInclude) {
+                                   filteredData.push(data[r]);
+                               }
+                           }
+                           
+                           data = filteredData;
+                       }
+                  }
+                  if (step.type === 'extraction') {
+                       // Extraction steps are for PDF workflows, not spreadsheet workflows
+                       // This is a placeholder - actual extraction happens during PDF processing
+                       console.warn('Extraction step in spreadsheet workflow - skipping (extraction is for PDF workflows)');
+                  }
+              } catch (stepError: any) {
+                  console.error(`Step "${step.description}" failed:`, stepError);
+                  addToast('warning', 'Step Failed', `Step "${step.description}" failed: ${stepError.message || 'Unknown error'}`);
+              }
+          }
+
+          // Execute delete_col steps in reverse order (highest index first) to avoid index shifting
+          for (const step of deleteColSteps) {
+              try {
+                  const { colIndex } = step.params;
+                  if (colIndex >= 0 && colIndex < (data[0]?.length || 0)) {
+                      data = data.map(row => row.filter((_, i) => i !== colIndex));
+                      if (columns && columns.length > colIndex) {
+                          columns = columns.filter((_, i) => i !== colIndex);
+                      }
+                  }
+              } catch (stepError: any) {
+                  console.error(`Delete column step failed:`, stepError);
+                  addToast('warning', 'Step Failed', `Delete column step failed`);
+              }
+          }
+
+          // Execute delete_row steps in reverse order (highest index first) to avoid index shifting
+          for (const step of deleteRowSteps) {
+              try {
+                  const { rowIndex } = step.params;
+                  if (rowIndex >= 0 && rowIndex < data.length) {
+                      data = data.filter((_, i) => i !== rowIndex);
+                  }
+              } catch (stepError: any) {
+                  console.error(`Delete row step failed:`, stepError);
+                  addToast('warning', 'Step Failed', `Delete row step failed`);
+              }
+          }
+
+          // Update the file
+          const updatedFile = { ...targetFile, data, columns, lastModified: Date.now() };
+          setFiles(prev => prev.map(f => f.id === targetFile.id ? updatedFile : f));
+          await db.upsertFile(updatedFile);
+
+          // Update workflow last run status
+          const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'success' as const };
+          await db.upsertWorkflow(updatedWorkflow);
+          setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
+
+          addToast('success', 'Workflow Completed', 'Changes applied successfully.');
+          
+          return updatedFile;
+      } catch (error: any) {
+          console.error('Workflow execution failed:', error);
+          const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'failed' as const };
+          await db.upsertWorkflow(updatedWorkflow);
+          setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
+          addToast('error', 'Workflow Failed', `Workflow execution failed: ${error.message || 'Unknown error'}`);
+          throw error; // Re-throw so caller knows it failed
+      }
+  };
+
+  const handleExecuteWorkflow = async (wf: Workflow) => {
+      if (wf.sourceType === 'spreadsheet') {
+          const activeFile = getActiveFile();
+          if (activeFile) {
+              await runWorkflow(wf, activeFile);
+              // Navigate to show results if not already there
+              const currentJobId = location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
+              if (!currentJobId) {
+                  const job = jobs.find(j => j.fileIds.includes(activeFile.id));
+                  if (job) {
+                      navigate(`/sheet/${job.id}`);
+                  }
+              }
+          } else {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.xlsx,.csv';
+              input.onchange = async (e: any) => {
+                  const fileList = e.target.files;
+                  if (!fileList) return;
+                  const file = fileList[0];
+                  const reader = new FileReader();
+                  reader.onload = async (ev) => {
+                      const ab = ev.target?.result as ArrayBuffer;
+                      if (!ab) return;
+                      try {
+                          let data: any[][] = [];
+                          const lowerName = file.name.toLowerCase();
+                          
+                          if (lowerName.endsWith('.csv')) {
+                              const text = new TextDecoder("utf-8").decode(ab);
+                              data = await worker.parseCSV(text);
+                          } else {
+                              const workbook = new ExcelJS.Workbook();
+                              await workbook.xlsx.load(ab);
+                              const worksheet = workbook.worksheets[0];
+                              if (worksheet) {
+                                  worksheet.eachRow((row) => {
+                                      const rowValues: any[] = [];
+                                      row.eachCell((cell) => {
+                                          rowValues.push(cell.value);
+                                      });
+                                      data.push(rowValues);
+                                  });
+                              }
+                          }
+                          
+                          const fileId = crypto.randomUUID();
+                          const columns = data[0]?.map(String) || [];
+                          const newFile: ExcelFile = {
+                              id: fileId, name: file.name, data, columns, styles: {}, 
+                              lastModified: Date.now(), history: [{data, styles: {}, columns}], currentHistoryIndex: 0
+                          };
+                          
+                          // Execute workflow and get updated file
+                          const updatedFile = await runWorkflow(wf, newFile);
+                          
+                          // Create Job to link the processed file
+                          const newJob: Job = {
+                              id: crypto.randomUUID(),
+                              title: `${file.name} (${wf.name})`,
+                              type: 'spreadsheet',
+                              status: 'completed',
+                              createdAt: Date.now(),
+                              updatedAt: Date.now(),
+                              fileIds: [fileId],
+                              chatHistory: []
+                          };
+                          
+                          await db.upsertJob(newJob);
+                          setJobs(prev => [newJob, ...prev]);
+                          setFiles(prev => [...prev, updatedFile]); // Use updatedFile instead of newFile
+                          
+                          // Navigate to sheet view to show results
+                          navigate(`/sheet/${newJob.id}`);
+                          
+                          addToast('success', 'Workflow Completed', 'File processed and ready to view.');
+                      } catch (err) {
+                          console.error(err);
+                          addToast('error', 'File Error', 'Failed to process file.');
+                      }
+                  };
+                  reader.readAsArrayBuffer(file);
+              };
+              input.click();
+          }
+      } else {
+          navigate('/extract/new');
+      }
   };
 
   const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,7 +600,7 @@ const Workspace: React.FC = () => {
                        </button>
                    ) : (
                        <button 
-                            onClick={() => setShowAutomateMenu(!showAutomateMenu)}
+                            onClick={handleAutomateClick}
                             className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
                        >
                            <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
@@ -255,7 +612,18 @@ const Workspace: React.FC = () => {
                        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                            <div className="p-2 border-b border-gray-100">
                                <button 
-                                   onClick={handleStartRecording}
+                                   onClick={() => {
+                                       setShowAutomateMenu(false);
+                                       const path = location.pathname;
+                                       // If on sheet/extract page, start recording directly
+                                       if (path.includes('/sheet/') || path.includes('/extract/')) {
+                                           setIsRecording(true);
+                                           setSessionSteps([]);
+                                       } else {
+                                           // Otherwise show type selection modal
+                                           setCreateWorkflowTypeModal(true);
+                                       }
+                                   }}
                                    className="w-full text-left px-3 py-2 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg flex items-center gap-3 transition-colors group"
                                >
                                    <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center group-hover:bg-red-200 transition-colors">
@@ -266,6 +634,27 @@ const Workspace: React.FC = () => {
                                        <div className="text-[10px] text-gray-400 group-hover:text-red-400">Start capturing steps</div>
                                    </div>
                                </button>
+                           </div>
+                           
+                           <div className="p-2">
+                               <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Saved Workflows</div>
+                               {workflows.length === 0 ? (
+                                   <div className="px-3 py-2 text-xs text-gray-400 italic">No workflows yet.</div>
+                               ) : (
+                                   workflows.filter(w => w.sourceType === 'spreadsheet').map(w => (
+                                       <button 
+                                           key={w.id}
+                                           className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center justify-between group transition-colors"
+                                           onClick={() => { setShowAutomateMenu(false); handleExecuteWorkflow(w); }}
+                                       >
+                                           <div className="flex items-center gap-2 overflow-hidden">
+                                               <WorkflowIcon size={14} className="text-gray-400 group-hover:text-purple-600 shrink-0" />
+                                               <span className="text-sm text-gray-700 truncate">{w.name}</span>
+                                           </div>
+                                           <Play size={12} className="text-gray-300 group-hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all" />
+                                       </button>
+                                   ))
+                               )}
                            </div>
                        </div>
                    )}
@@ -281,7 +670,7 @@ const Workspace: React.FC = () => {
          <div className="flex-1 flex overflow-hidden relative">
             <main className="flex-1 relative overflow-hidden bg-[#F9FAFB] flex flex-col">
                 <Outlet context={{ 
-                    jobs, files, credits, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload
+                    jobs, files, credits, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow
                 } satisfies WorkspaceContextType} />
             </main>
          </div>
@@ -323,9 +712,10 @@ const Workspace: React.FC = () => {
                                      </div>
                                      <div className="flex-1 min-w-0">
                                          <div className="text-sm font-medium text-gray-800">{step.description}</div>
+                                         <div className="text-[10px] text-gray-400 font-mono truncate">{JSON.stringify(step.params)}</div>
                                      </div>
                                      <button 
-                                         onClick={() => setSessionSteps(prev => prev.filter(s => s.id !== step.id))}
+                                         onClick={() => handleDeleteStep(step.id)}
                                          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                                      >
                                          <Trash2 size={16} />
@@ -336,9 +726,15 @@ const Workspace: React.FC = () => {
                      </div>
                      <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
                          <button 
+                             onClick={() => { setShowWorkflowEditor(false); setIsRecording(false); setSessionSteps([]); }}
+                             className="px-6 py-2.5 font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors text-sm"
+                         >
+                             Discard
+                         </button>
+                         <button 
                              onClick={handleSaveWorkflowFromEditor}
                              disabled={!newWorkflowName.trim() || sessionSteps.length === 0}
-                             className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2"
+                             className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                          >
                              Save Workflow <CheckCircle2 size={16} />
                          </button>
@@ -347,6 +743,105 @@ const Workspace: React.FC = () => {
              </div>
          )}
       </div>
+
+      {/* Recording Panel */}
+      {isRecording && (
+          <div className="absolute bottom-6 right-6 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-bottom-4 overflow-hidden">
+              <div className="bg-red-50 px-4 py-2 border-b border-red-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-red-700 font-bold text-xs uppercase tracking-wider">
+                      <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                      Recording Actions
+                  </div>
+                  <span className="text-[10px] text-red-500">{sessionSteps.length} steps</span>
+              </div>
+              <div className="max-h-48 overflow-y-auto p-2 space-y-2">
+                  {sessionSteps.length === 0 ? (
+                      <div className="text-xs text-gray-400 text-center py-4 italic">
+                          Perform actions on the sheet to record...
+                      </div>
+                  ) : (
+                      sessionSteps.map((step, idx) => (
+                          <div key={step.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs">
+                              <div className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-500 shrink-0">
+                                  {idx + 1}
+                              </div>
+                              <span className="truncate text-gray-700">{step.description}</span>
+                          </div>
+                      ))
+                  )}
+              </div>
+          </div>
+      )}
+
+      {/* Create Workflow Type Modal */}
+      {createWorkflowTypeModal && (
+          <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Create New Workflow</h2>
+                  <p className="text-gray-500 mb-6 text-sm">What type of data process do you want to automate?</p>
+                  
+                  <div className="space-y-3">
+                      <button 
+                          onClick={() => { 
+                              setCreateWorkflowTypeModal(false); 
+                              navigate('/extract/new'); 
+                              setIsRecording(true); 
+                              setSessionSteps([]); 
+                          }}
+                          className="w-full p-4 border border-gray-200 rounded-xl flex items-center gap-4 hover:border-orange-300 hover:bg-orange-50/50 transition-all group text-left"
+                      >
+                          <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <ScanText size={20} />
+                          </div>
+                          <div>
+                              <div className="font-bold text-gray-900">PDF Extraction</div>
+                              <div className="text-xs text-gray-500">Automate invoice/receipt processing</div>
+                          </div>
+                      </button>
+
+                      <button 
+                          onClick={() => { 
+                              setCreateWorkflowTypeModal(false);
+                              const activeFile = getActiveFile();
+                              if (activeFile) {
+                                  navigate(`/sheet/${jobs.find(j => j.fileIds.includes(activeFile.id))?.id}`);
+                                  setIsRecording(true);
+                                  setSessionSteps([]);
+                              } else {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = '.csv,.xlsx';
+                                  input.onchange = (e: any) => {
+                                      handleCSVUpload(e);
+                                      setTimeout(() => {
+                                          setIsRecording(true);
+                                          setSessionSteps([]);
+                                      }, 1000);
+                                  };
+                                  input.click();
+                              }
+                          }}
+                          className="w-full p-4 border border-gray-200 rounded-xl flex items-center gap-4 hover:border-green-300 hover:bg-green-50/50 transition-all group text-left"
+                      >
+                          <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <FileSpreadsheet size={20} />
+                          </div>
+                          <div>
+                              <div className="font-bold text-gray-900">Spreadsheet Action</div>
+                              <div className="text-xs text-gray-500">Automate cleaning, sorting, formulas</div>
+                          </div>
+                      </button>
+                  </div>
+                  
+                  <button 
+                      onClick={() => setCreateWorkflowTypeModal(false)}
+                      className="mt-6 w-full py-2 text-sm text-gray-400 font-bold hover:text-gray-600"
+                  >
+                      Cancel
+                  </button>
+              </div>
+          </div>
+      )}
 
       {showMergeModal && <MergeModal files={files} onClose={() => setShowMergeModal(false)} onMergeComplete={(newFile) => {
           db.upsertFile(newFile);

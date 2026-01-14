@@ -77,6 +77,16 @@ const SpreadsheetView: React.FC = () => {
     fetchSheet();
   }, [id, addToast]);
 
+  // Sync file state with context files (for workflow updates)
+  useEffect(() => {
+    if (!file || !job) return;
+    const contextFile = allFiles.find(f => f.id === file.id);
+    if (contextFile && contextFile.lastModified > file.lastModified) {
+      // File was updated in context (e.g., by workflow), sync local state
+      setFile(contextFile);
+    }
+  }, [allFiles, file, job]);
+
   // Persist Chat
   const handleUpdateChatHistory = (update: React.SetStateAction<ChatMessage[]>) => {
       setChatHistory(prev => {
@@ -243,7 +253,23 @@ const SpreadsheetView: React.FC = () => {
                       const sheetId = hfInstance.current.getSheetId(sheetNames[0]);
                       if (sheetId !== undefined) {
                           const val = hfInstance.current.getCellValue({ sheet: sheetId, row: r, col: c });
-                          if (val instanceof Error || (typeof val === 'object' && val?.type === 'ERROR')) return '#ERROR';
+                          if (val instanceof Error || (typeof val === 'object' && val !== null && val?.type === 'ERROR')) return '#ERROR';
+                          
+                          // Convert objects to primitives - React cannot render objects directly
+                          if (typeof val === 'object' && val !== null) {
+                              // If object has a 'result' property, use that (common pattern)
+                              if ('result' in val && val.result !== undefined) {
+                                  return String(val.result);
+                              }
+                              // If object has a 'formula' property but no result, return the formula string
+                              if ('formula' in val && typeof val.formula === 'string') {
+                                  return val.formula;
+                              }
+                              // Otherwise, convert to string representation
+                              return JSON.stringify(val);
+                          }
+                          
+                          // Return primitive values as-is
                           return val;
                       }
                   }
@@ -251,6 +277,15 @@ const SpreadsheetView: React.FC = () => {
           }
           return rawVal; 
       }
+      
+      // Handle non-formula values that might be objects
+      if (typeof rawVal === 'object' && rawVal !== null) {
+          if ('result' in rawVal && rawVal.result !== undefined) {
+              return String(rawVal.result);
+          }
+          return JSON.stringify(rawVal);
+      }
+      
       return rawVal;
   };
 
@@ -330,36 +365,69 @@ const SpreadsheetView: React.FC = () => {
   const handleEnrichment = async () => {
     if (enrichmentTargetCol === null || !enrichmentPrompt) return;
 
-    if (credits < 25) {
-        addToast('error', 'Insufficient Credits', 'Data enrichment requires 25 credits.');
+    // Calculate cost based on unique items (25 credits per batch of 50)
+    const sourceData = file.data.slice(1).map(r => r[enrichmentTargetCol]).filter(v => v !== undefined && v !== null && v !== '');
+    const allUniqueItems = Array.from(new Set(sourceData.map(v => String(v).trim())));
+    const BATCH_SIZE = 50;
+    const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
+    const totalCost = numBatches * 25;
+
+    if (credits < totalCost) {
+        addToast('error', 'Insufficient Credits', `Data enrichment requires ${totalCost} credits (${allUniqueItems.length} unique items).`);
         return;
     }
 
     setIsProcessingAI(true);
     try {
         const colIdx = enrichmentTargetCol;
-        const sourceData = file.data.slice(1).map(r => r[colIdx]).filter(v => v);
-        const uniqueItems = Array.from(new Set(sourceData)).slice(0, 20); 
-
-        const response = await api.enrich(uniqueItems, enrichmentPrompt);
-        const result = response.result;
+        const mergedResult: Record<string, any> = {};
+        
+        // Process in batches
+        for (let i = 0; i < allUniqueItems.length; i += BATCH_SIZE) {
+            const batch = allUniqueItems.slice(i, i + BATCH_SIZE);
+            try {
+                const response = await api.enrich(batch, enrichmentPrompt);
+                Object.assign(mergedResult, response.result);
+            } catch (batchError: any) {
+                console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
+                // Continue with other batches even if one fails
+            }
+        }
+        
+        // Create normalized lookup map for flexible matching
+        const lookupMap = new Map<string, any>();
+        for (const [key, value] of Object.entries(mergedResult)) {
+            const normalizedKey = String(key).trim().toLowerCase();
+            lookupMap.set(normalizedKey, value);
+        }
         
         const newData = [...file.data];
         const emptyColIdx = file.data[0].length;
         newData[0][emptyColIdx] = "Enriched Info";
 
-        for(let r=1; r < newData.length; r++) {
-            const key = newData[r][colIdx];
-            if (key && result[key]) {
-                const val = result[key];
-                newData[r][emptyColIdx] = typeof val === 'object' ? JSON.stringify(val) : val;
+        // Populate enriched data for ALL rows
+        for(let r = 1; r < newData.length; r++) {
+            const cellValue = newData[r][colIdx];
+            if (cellValue !== undefined && cellValue !== null && cellValue !== '') {
+                // Try exact match first
+                let enrichedValue = mergedResult[cellValue] || mergedResult[String(cellValue)];
+                
+                // If no exact match, try normalized lookup
+                if (enrichedValue === undefined) {
+                    const normalizedCellValue = String(cellValue).trim().toLowerCase();
+                    enrichedValue = lookupMap.get(normalizedCellValue);
+                }
+                
+                if (enrichedValue !== undefined) {
+                    newData[r][emptyColIdx] = typeof enrichedValue === 'object' ? JSON.stringify(enrichedValue) : enrichedValue;
+                }
             }
         }
 
         handleFileChange({ data: newData });
-        handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)} with "${enrichmentPrompt}"`, { prompt: enrichmentPrompt });
-        handleUseCredit(25);
-        addToast('success', 'Enrichment Complete', 'Data successfully added to your sheet.');
+        handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)} with "${enrichmentPrompt}"`, { prompt: enrichmentPrompt, colIndex: colIdx });
+        handleUseCredit(totalCost);
+        addToast('success', 'Enrichment Complete', `Data successfully added to your sheet (${allUniqueItems.length} unique items processed).`);
         setEnrichmentPrompt(null);
         setEnrichmentTargetCol(null);
     } catch (e: any) {
@@ -405,6 +473,7 @@ const SpreadsheetView: React.FC = () => {
       if (!newData[activeCell.r]) newData[activeCell.r] = [];
       
       let valToSave: any = editValue;
+      const isFormula = editValue.startsWith('=');
       if (!isNaN(parseFloat(editValue)) && isFinite(Number(editValue))) {
           if (editValue.startsWith('0') && editValue.length > 1 && editValue[1] !== '.') {
              valToSave = editValue;
@@ -412,10 +481,20 @@ const SpreadsheetView: React.FC = () => {
              valToSave = Number(editValue);
           }
       }
-      if (editValue.startsWith('=')) valToSave = editValue;
+      if (isFormula) valToSave = editValue;
       
       newData[activeCell.r][activeCell.c] = valToSave;
       handleFileChange({ data: newData });
+      
+      // Record formula step if it's a formula
+      if (isFormula) {
+          handleRecordAction('formula', `Added formula in ${getColumnLabel(activeCell.c)}${activeCell.r + 1}`, { 
+              formula: editValue, 
+              rowIndex: activeCell.r, 
+              colIndex: activeCell.c 
+          });
+      }
+      
       setIsEditing(false);
     }
   };
