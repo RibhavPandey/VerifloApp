@@ -15,3 +15,12 @@ Refresh your website → changes are live
 https://generativelanguage.googleapis.com/v1beta/models?key=AIzaSyCG6-mVJr2CXG6395IU4cA8fmyrmmy629E
 To check which models can be used in the current api key
 
+
+How to stop anything on a certain port?
+1) Find the process using 3002:
+netstat -ano | findstr :3002
+You’ll see a line ending with a PID (a number).
+2) Kill it:
+taskkill /PID <PID> /F
+3) Start backend again.
+

@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ExtractedField, VerificationDocument } from '../types';
 import { Check, ChevronLeft, ChevronRight, AlertTriangle, Eye, ArrowRight, CheckCircle2, Download } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface VerificationViewProps {
     docs: VerificationDocument[];
@@ -11,6 +12,7 @@ interface VerificationViewProps {
 
 const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteReview, onSaveProgress }) => {
     const [localDocs, setLocalDocs] = useState<VerificationDocument[]>(docs);
+    const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
     
     // Identify Risky Fields across ALL documents
     const riskyItems = useMemo(() => {
@@ -34,6 +36,29 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     
+    // Resolve storage refs to signed URLs (for private Supabase Storage)
+    useEffect(() => {
+        let isCancelled = false;
+        const run = async () => {
+            if (!activeDoc) return;
+            const data = activeDoc.fileData || '';
+            if (!data.startsWith('storage:')) return;
+
+            const ref = data.slice('storage:'.length);
+            const [bucket, ...rest] = ref.split('/');
+            const path = rest.join('/');
+            if (!bucket || !path) return;
+
+            const { data: signed, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+            if (error) return;
+            if (!isCancelled && signed?.signedUrl) {
+                setSignedUrls(prev => ({ ...prev, [activeDoc.id]: signed.signedUrl! }));
+            }
+        };
+        run();
+        return () => { isCancelled = true; };
+    }, [activeDoc?.id, activeDoc?.fileData]);
+
     // Draw Image and Boxes
     useEffect(() => {
         if (!activeDoc || !canvasRef.current || !containerRef.current) return;
@@ -43,7 +68,11 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
         if (!ctx) return;
 
         const img = new Image();
-        img.src = `data:${activeDoc.mimeType};base64,${activeDoc.fileData}`;
+        const storageUrl = signedUrls[activeDoc.id];
+        img.src = activeDoc.fileData?.startsWith('storage:')
+            ? (storageUrl || '')
+            : `data:${activeDoc.mimeType};base64,${activeDoc.fileData}`;
+        if (!img.src) return;
         
         img.onload = () => {
             const containerWidth = containerRef.current!.clientWidth;

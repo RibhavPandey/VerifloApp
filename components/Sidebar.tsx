@@ -173,7 +173,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         const currentPrompt = prompt;
         setPrompt('');
         setIsLoading(true);
-        onUseCredit(5);
+        // Credits are enforced server-side; UI will refresh via profile sync.
 
         setTimeout(async () => {
             try {
@@ -394,6 +394,8 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                 }));
             } finally {
                 setIsLoading(false);
+                // Refresh credits after server-side charging
+                onUseCredit(0);
             }
         }, 10);
     };
@@ -410,7 +412,7 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
 
         setIsAnalyzing(true);
         setAnalysisInput('');
-        onUseCredit(20);
+        // Credits are enforced server-side; UI will refresh via profile sync.
 
         try {
             const fileContext = files.map(f => {
@@ -427,6 +429,8 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
             addToast('error', 'Analysis Failed', 'Could not generate insights.');
         } finally {
             setIsAnalyzing(false);
+            // Refresh credits after server-side charging
+            onUseCredit(0);
         }
     };
 

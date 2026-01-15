@@ -1,29 +1,26 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { chargeCredits, InsufficientCreditsError } from '../utils/credits.js';
 
 const router = express.Router();
 // Note: genAI instance will be created per request to ensure fresh API key
 
-router.post('/stream', async (req, res) => {
+router.post('/stream', async (req: AuthenticatedRequest, res) => {
   try {
     const { prompt, fileContext, history, isDataMode } = req.body;
-    
-    console.log('Chat request received:', { prompt: prompt?.substring(0, 50), hasHistory: !!history, isDataMode });
-    
+
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     // Check if API key is set
     const apiKey = process.env.GEMINI_API_KEY;
-    console.log('API Key check:', {
-      exists: !!apiKey,
-      length: apiKey?.length || 0,
-      startsWith: apiKey?.substring(0, 10) || 'N/A',
-      endsWith: apiKey?.substring(apiKey?.length - 4) || 'N/A'
-    });
     
     if (!apiKey || apiKey.trim() === '') {
       console.error('ERROR: GEMINI_API_KEY is not set or is empty');
-      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('API')));
       return res.status(500).json({ 
-        error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' 
+        error: 'Service is not configured.'
       });
     }
     
@@ -33,6 +30,9 @@ router.post('/stream', async (req, res) => {
     if (!prompt) {
       return res.status(400).json({ error: 'Missing prompt' });
     }
+
+    // Charge credits before streaming starts (5 credits per chat message)
+    await chargeCredits(req.user.id, 5);
 
     const systemInstruction = isDataMode ? `
                 You are an expert Data Analyst JavaScript Engine.
@@ -239,6 +239,15 @@ router.post('/stream', async (req, res) => {
     }
   } catch (error: any) {
     console.error('Chat error:', error);
+
+    if (error instanceof InsufficientCreditsError) {
+      return res.status(402).json({
+        error: 'Insufficient credits',
+        required: error.required,
+        available: error.available,
+      });
+    }
+
     // If headers not set yet, send JSON error
     if (!res.headersSent) {
       res.status(500).json({ 

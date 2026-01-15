@@ -22,7 +22,7 @@ export const db = {
             .from('profiles')
             .insert({ 
                 id: user.id, 
-                credits: 500, 
+                credits: 200, 
                 email: user.email 
             })
             .select()
@@ -34,7 +34,7 @@ export const db = {
              if (createError.code === '42501') {
                  console.error("CRITICAL: RLS Policy missing. Please run the contents of supabase_setup.sql in your Supabase SQL Editor.");
              }
-             return { credits: 500 }; 
+             return { credits: 200 }; 
         }
         return newProfile;
     }
@@ -42,7 +42,7 @@ export const db = {
     // 3. Other errors
     if (error) {
         console.error('Error fetching profile:', error);
-        return { credits: 500 }; 
+        return { credits: 200 }; 
     }
 
     return data;
@@ -157,11 +157,14 @@ export const db = {
   // --- FILES ---
   async fetchFiles(fileIds: string[]) {
     if (fileIds.length === 0) return [];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
     
     const { data, error } = await supabase
         .from('files')
         .select('*')
-        .in('id', fileIds);
+        .in('id', fileIds)
+        .eq('user_id', user.id);
 
     if (error) {
         console.error("Error fetching files:", error);
@@ -175,10 +178,14 @@ export const db = {
   },
 
   async getFile(fileId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
     const { data, error } = await supabase
         .from('files')
         .select('*')
         .eq('id', fileId)
+        .eq('user_id', user.id)
         .single();
 
     if (error) {
@@ -216,9 +223,13 @@ export const db = {
 
   // --- WORKFLOWS ---
   async fetchWorkflows() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
     const { data, error } = await supabase
         .from('workflows')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
     if (error) {
@@ -268,7 +279,14 @@ export const db = {
   // --- VERIFICATION DOCS ---
   async fetchVerificationDocs(ids: string[]) {
       if(ids.length === 0) return [];
-      const { data, error } = await supabase.from('verification_docs').select('*').in('id', ids);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('verification_docs')
+        .select('*')
+        .in('id', ids)
+        .eq('user_id', user.id);
       if(error) throw error;
       
       return data.map((d: any) => ({

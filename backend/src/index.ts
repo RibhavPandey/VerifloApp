@@ -1,11 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import extractRoutes from './routes/extract.js';
-import analyzeRoutes from './routes/analyze.js';
-import enrichRoutes from './routes/enrich.js';
-import chatRoutes from './routes/chat.js';
-import { authenticate } from './middleware/auth.js';
 
 // Load .env file - try multiple locations
 import path from 'path';
@@ -36,14 +31,6 @@ if (!envLoaded) {
   console.warn('⚠️  No .env file found, using system environment variables');
   dotenv.config(); // Try default location
 }
-
-// Log API key status (without exposing the full key)
-const apiKey = process.env.GEMINI_API_KEY;
-console.log('API Key Status:', {
-  exists: !!apiKey,
-  length: apiKey?.length || 0,
-  preview: apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT SET'
-});
 
 // Validate required environment variables
 if (!process.env.GEMINI_API_KEY) {
@@ -93,12 +80,35 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Routes (all protected with authentication)
-app.use('/api/extract', authenticate, extractRoutes);
-app.use('/api/analyze', authenticate, analyzeRoutes);
-app.use('/api/enrich', authenticate, enrichRoutes);
-app.use('/api/chat', authenticate, chatRoutes);
+// Import auth AFTER env is loaded (prevents import-time env issues)
+const { authenticate } = await import('./middleware/auth.js');
+const { rateLimit } = await import('./middleware/rateLimit.js');
 
-app.listen(PORT, () => {
+// Import routes AFTER env is loaded (prevents import-time env issues)
+const [{ default: extractRoutes }, { default: analyzeRoutes }, { default: enrichRoutes }, { default: chatRoutes }] =
+  await Promise.all([
+    import('./routes/extract.js'),
+    import('./routes/analyze.js'),
+    import('./routes/enrich.js'),
+    import('./routes/chat.js'),
+  ]);
+
+// Routes (all protected with authentication)
+app.use('/api/extract', authenticate, rateLimit({ keyPrefix: 'extract', windowMs: 60_000, max: 10 }), extractRoutes);
+app.use('/api/analyze', authenticate, rateLimit({ keyPrefix: 'analyze', windowMs: 60_000, max: 20 }), analyzeRoutes);
+app.use('/api/enrich', authenticate, rateLimit({ keyPrefix: 'enrich', windowMs: 60_000, max: 30 }), enrichRoutes);
+app.use('/api/chat', authenticate, rateLimit({ keyPrefix: 'chat', windowMs: 60_000, max: 30 }), chatRoutes);
+
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+});
+
+server.on('error', (err: any) => {
+  if (err?.code === 'EADDRINUSE') {
+    console.error(`ERROR: Port ${PORT} is already in use.`);
+    console.error(`Fix: stop the other process using port ${PORT}, or change PORT in your backend .env (or system env).`);
+    process.exit(1);
+  }
+  console.error('Server error:', err);
+  process.exit(1);
 });

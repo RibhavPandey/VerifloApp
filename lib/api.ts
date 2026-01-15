@@ -15,7 +15,7 @@ const getAuthToken = async (): Promise<string | null> => {
 };
 
 export const api = {
-  extract: async (file: string, fields: string[], fileType: string) => {
+  extract: async (file: string, fields: string[], fileType: string, fileName?: string) => {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');
 
@@ -25,7 +25,7 @@ export const api = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ file, fields, fileType })
+      body: JSON.stringify({ file, fields, fileType, fileName })
     });
     
     if (!response.ok) {

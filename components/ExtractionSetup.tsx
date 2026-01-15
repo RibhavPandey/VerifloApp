@@ -76,7 +76,7 @@ const ExtractionSetup: React.FC = () => {
                     reader.readAsDataURL(file);
                });
                
-               const response = await api.extract(base64, selectedFields, file.type || 'image/jpeg');
+               const response = await api.extract(base64, selectedFields, file.type || 'image/jpeg', file.name);
                
                if (!response || !response.fields) {
                    extractionErrors.push(`${file.name}: Invalid response from server`);
@@ -98,7 +98,7 @@ const ExtractionSetup: React.FC = () => {
                    id: crypto.randomUUID(),
                    fileName: file.name,
                    mimeType: file.type || 'image/jpeg',
-                   fileData: base64,
+                   fileData: response.fileRef || base64,
                    fields: fields,
                    status: 'pending'
                };

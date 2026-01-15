@@ -1,12 +1,20 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { chargeCredits, InsufficientCreditsError } from '../utils/credits.js';
+import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
 
 const router = express.Router();
 // Note: genAI instance will be created per request to ensure fresh API key
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthenticatedRequest, res) => {
   try {
-    const { file, fields, fileType } = req.body;
+    const { file, fields, fileType, fileName } = req.body;
+
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     
     // Check if API key is set
     const apiKey = process.env.GEMINI_API_KEY;
@@ -15,6 +23,36 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ 
         error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' 
       });
+    }
+
+    // Charge credits (Extraction is expensive; 100 credits per document)
+    await chargeCredits(req.user.id, 100);
+
+    // Store original document in Supabase Storage (avoid DB bloat)
+    const storageUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'documents';
+    if (!storageUrl || !serviceRoleKey) {
+      return res.status(500).json({ error: 'Service is not configured.' });
+    }
+
+    const supabaseAdmin = createClient(storageUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+
+    const buffer = Buffer.from(file, 'base64');
+    const ext =
+      typeof fileName === 'string' && fileName.includes('.') ? fileName.split('.').pop()?.toLowerCase() :
+      fileType === 'application/pdf' ? 'pdf' :
+      fileType === 'image/png' ? 'png' :
+      fileType === 'image/webp' ? 'webp' : 'jpg';
+
+    const objectPath = `${req.user.id}/${randomUUID()}.${ext || 'bin'}`;
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from(bucket)
+      .upload(objectPath, buffer, { contentType: fileType || 'application/octet-stream', upsert: false });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      return res.status(500).json({ error: 'Failed to store document for review.' });
     }
     
     // Create genAI instance per request to ensure it's using the right one
@@ -84,9 +122,17 @@ router.post('/', async (req, res) => {
       extractedFields = [];
     }
     
-    res.json({ fields: extractedFields });
+    res.json({ fields: extractedFields, fileRef: `storage:${bucket}/${objectPath}` });
   } catch (error: any) {
     console.error('Extraction error:', error);
+
+    if (error instanceof InsufficientCreditsError) {
+      return res.status(402).json({
+        error: 'Insufficient credits',
+        required: error.required,
+        available: error.available,
+      });
+    }
     
     // Provide user-friendly error messages
     let errorMessage = 'Extraction failed';

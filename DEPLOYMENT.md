@@ -90,8 +90,9 @@ git push -u origin main
 6. **Add Environment Variables** (in Railway dashboard):
    ```
    GEMINI_API_KEY=your_gemini_api_key_here
-   SUPABASE_URL=https://aovdburokypwghgbrfmb.supabase.co
-   SUPABASE_ANON_KEY=sb_publishable_nCiUEYVy2Tu41hiimDZ12A_cCiqdOs0
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    FRONTEND_URL=https://your-app.vercel.app
    PORT=3001
    NODE_ENV=production
@@ -111,8 +112,8 @@ git push -u origin main
 5. **Add Environment Variables** (in Vercel dashboard):
    ```
    VITE_API_URL=https://your-backend.railway.app
-   VITE_SUPABASE_URL=https://aovdburokypwghgbrfmb.supabase.co
-   VITE_SUPABASE_ANON_KEY=sb_publishable_nCiUEYVy2Tu41hiimDZ12A_cCiqdOs0
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 6. **Deploy**: Click "Deploy"
 7. **Get Frontend URL**: Vercel gives you URL like `https://your-app.vercel.app`
@@ -131,8 +132,10 @@ git push -u origin main
 ### Backend (Railway)
 ```env
 GEMINI_API_KEY=your_key
-SUPABASE_URL=https://aovdburokypwghgbrfmb.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_nCiUEYVy2Tu41hiimDZ12A_cCiqdOs0
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_STORAGE_BUCKET=documents
 FRONTEND_URL=https://your-app.vercel.app
 PORT=3001
 NODE_ENV=production
@@ -141,8 +144,8 @@ NODE_ENV=production
 ### Frontend (Vercel)
 ```env
 VITE_API_URL=https://your-backend.railway.app
-VITE_SUPABASE_URL=https://aovdburokypwghgbrfmb.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_nCiUEYVy2Tu41hiimDZ12A_cCiqdOs0
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ## ✅ Checklist Before Deploying

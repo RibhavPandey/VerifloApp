@@ -70,7 +70,7 @@ const Navigation: React.FC<NavigationProps> = ({
   const isExpanded = isHovered || isDropdownOpen;
 
   return (
-    <div ref={navRef} className="relative w-[68px] h-full flex-shrink-0 z-50" style={{ backgroundColor: 'white' }}>
+    <div ref={navRef} className="relative w-[68px] h-full flex-shrink-0 z-[200]" style={{ backgroundColor: 'white' }}>
       <div 
         className={`group absolute top-0 left-0 h-full border-r border-gray-200 text-gray-500 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col shadow-xl ${isExpanded ? 'w-[260px]' : 'w-[68px]'}`}
         style={{ 
@@ -113,7 +113,7 @@ const Navigation: React.FC<NavigationProps> = ({
                  />
                  <NavItem 
                    icon={<GitMerge size={20} />} 
-                   label="Merge Tool" 
+                   label="Smart Merge" 
                    isActive={false} 
                    onClick={onMergeClick} 
                  />

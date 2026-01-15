@@ -1,12 +1,28 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { chargeCredits, InsufficientCreditsError } from '../utils/credits.js';
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthenticatedRequest, res) => {
   try {
     const { query, fileContext } = req.body;
+
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey.trim() === '') {
+      console.error('ERROR: GEMINI_API_KEY is not set or is empty');
+      return res.status(500).json({ error: 'Service is not configured.' });
+    }
+
+    // Charge credits (20 credits per analysis, matches frontend)
+    await chargeCredits(req.user.id, 20);
+
+    const genAI = new GoogleGenerativeAI(apiKey);
     
     // Input validation
     if (!query || !fileContext) {
@@ -84,6 +100,15 @@ router.post('/', async (req, res) => {
     res.json(json);
   } catch (error: any) {
     console.error('Analysis error:', error);
+
+    if (error instanceof InsufficientCreditsError) {
+      return res.status(402).json({
+        error: 'Insufficient credits',
+        required: error.required,
+        available: error.available,
+      });
+    }
+
     res.status(500).json({ 
       error: error.message || 'Analysis failed',
       timeout: error.message?.includes('timeout') || false

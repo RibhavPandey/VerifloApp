@@ -4,7 +4,7 @@ import { useParams, useOutletContext } from 'react-router-dom';
 import {
   Bold, Italic, Underline, Check, X, 
   Scissors, CaseUpper, CaseLower, CaseSensitive, CopyMinus, Undo, Redo,
-  Globe, Loader2, ChevronLeft, ChevronRight
+  Globe, Loader2, ChevronLeft, ChevronRight, Download, ChevronDown, FileText
 } from 'lucide-react';
 import { ExcelFile, CellStyle, AutomationStep, Job, FileSnapshot, ChatMessage } from '../types';
 import { HyperFormula } from 'hyperformula';
@@ -13,6 +13,15 @@ import { db } from '../lib/db';
 import { api } from '../lib/api';
 import Sidebar from './Sidebar';
 import { WorkspaceContextType } from './Workspace';
+import ExcelJS from 'exceljs';
+import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import { cn } from '../lib/utils';
 
 const ROW_HEIGHT = 24;
 const DEFAULT_COL_WIDTH = 100;
@@ -43,6 +52,23 @@ const SpreadsheetView: React.FC = () => {
   const [file, setFile] = useState<ExcelFile | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Debounced DB save (reduces frequent writes while keeping UI instant)
+  const saveTimerRef = useRef<number | null>(null);
+  const scheduleFileSave = (nextFile: ExcelFile) => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = window.setTimeout(() => {
+          db.upsertFile(nextFile).catch((e) => {
+              console.error("Failed to save file", e);
+              addToast('error', 'Save Failed', 'Could not save your latest changes. Please try again.');
+          });
+      }, 500);
+  };
+  useEffect(() => {
+      return () => {
+          if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      };
+  }, []);
 
   // Load Data
   useEffect(() => {
@@ -103,6 +129,18 @@ const SpreadsheetView: React.FC = () => {
   const handleFileChange = (changes: Partial<ExcelFile>) => {
       if (!file) return;
 
+      // Ensure we always have a baseline history snapshot
+      const baseHistory = (Array.isArray(file.history) && file.history.length > 0)
+          ? file.history
+          : [{
+              data: file.data,
+              styles: file.styles || {},
+              columns: file.columns || []
+          }];
+      const baseIndex = (typeof file.currentHistoryIndex === 'number' && file.currentHistoryIndex >= 0)
+          ? file.currentHistoryIndex
+          : baseHistory.length - 1;
+
       const updatedFile = { ...file, ...changes, lastModified: Date.now() };
       
       // Manage History Stack
@@ -112,7 +150,7 @@ const SpreadsheetView: React.FC = () => {
           columns: updatedFile.columns || []
       };
       
-      const historyPast = file.history.slice(0, file.currentHistoryIndex + 1);
+      const historyPast = baseHistory.slice(0, baseIndex + 1);
       const newHistory = [...historyPast, newSnapshot];
       
       if (newHistory.length > 30) newHistory.shift();
@@ -121,7 +159,7 @@ const SpreadsheetView: React.FC = () => {
       updatedFile.currentHistoryIndex = newHistory.length - 1;
 
       setFile(updatedFile);
-      db.upsertFile(updatedFile).catch(console.error);
+      scheduleFileSave(updatedFile);
   };
 
   const onUndo = () => {
@@ -137,7 +175,7 @@ const SpreadsheetView: React.FC = () => {
           lastModified: Date.now()
       };
       setFile(updatedFile);
-      db.upsertFile(updatedFile).catch(console.error);
+      scheduleFileSave(updatedFile);
   };
 
   const onRedo = () => {
@@ -153,7 +191,7 @@ const SpreadsheetView: React.FC = () => {
           lastModified: Date.now()
       };
       setFile(updatedFile);
-      db.upsertFile(updatedFile).catch(console.error);
+      scheduleFileSave(updatedFile);
   };
 
   // --- EDITOR STATE ---
@@ -170,6 +208,8 @@ const SpreadsheetView: React.FC = () => {
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [enrichmentPrompt, setEnrichmentPrompt] = useState<string | null>(null);
   const [enrichmentTargetCol, setEnrichmentTargetCol] = useState<number | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // HyperFormula
   const hfInstance = useRef<HyperFormula | null>(null);
@@ -365,10 +405,10 @@ const SpreadsheetView: React.FC = () => {
   const handleEnrichment = async () => {
     if (enrichmentTargetCol === null || !enrichmentPrompt) return;
 
-    // Calculate cost based on unique items (25 credits per batch of 50)
+    // Calculate cost based on unique items (25 credits per batch of 100)
     const sourceData = file.data.slice(1).map(r => r[enrichmentTargetCol]).filter(v => v !== undefined && v !== null && v !== '');
     const allUniqueItems = Array.from(new Set(sourceData.map(v => String(v).trim())));
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 100; // Process 100 items per API call (backend limit)
     const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
     const totalCost = numBatches * 25;
 
@@ -426,7 +466,8 @@ const SpreadsheetView: React.FC = () => {
 
         handleFileChange({ data: newData });
         handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)} with "${enrichmentPrompt}"`, { prompt: enrichmentPrompt, colIndex: colIdx });
-        handleUseCredit(totalCost);
+        // Credits are enforced server-side; refresh UI credits.
+        handleUseCredit(0);
         addToast('success', 'Enrichment Complete', `Data successfully added to your sheet (${allUniqueItems.length} unique items processed).`);
         setEnrichmentPrompt(null);
         setEnrichmentTargetCol(null);
@@ -436,6 +477,164 @@ const SpreadsheetView: React.FC = () => {
         addToast('error', 'Enrichment Failed', errorMessage);
     } finally { 
         setIsProcessingAI(false);
+    }
+  };
+
+  // Export Functions
+  const exportToExcel = async () => {
+    if (!file) return;
+    setIsExporting(true);
+    setShowExportMenu(false);
+    
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Sheet1');
+
+      // Add data to worksheet
+      file.data.forEach((row, rowIndex) => {
+        const excelRow = worksheet.addRow(row);
+        
+        // Apply styles and handle formulas
+        row.forEach((cellValue, colIndex) => {
+          const styleKey = `${rowIndex},${colIndex}`;
+          const cellStyle = file.styles[styleKey];
+          const excelCell = excelRow.getCell(colIndex + 1);
+          
+          // Handle formulas - export calculated value if available
+          let finalValue = cellValue;
+          if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
+            if (hfReady && hfInstance.current) {
+              try {
+                const sheetNames = hfInstance.current.getSheetNames();
+                if (sheetNames.length > 0) {
+                  const sheetId = hfInstance.current.getSheetId(sheetNames[0]);
+                  if (sheetId !== undefined) {
+                    const calculatedValue = hfInstance.current.getCellValue({ sheet: sheetId, row: rowIndex, col: colIndex });
+                    if (!(calculatedValue instanceof Error)) {
+                      finalValue = calculatedValue;
+                    }
+                  }
+                }
+              } catch (e) {
+                // Keep original value
+              }
+            }
+          }
+          
+          excelCell.value = finalValue;
+          
+          // Apply styles
+          if (cellStyle) {
+            if (cellStyle.bold) excelCell.font = { ...excelCell.font, bold: true };
+            if (cellStyle.italic) excelCell.font = { ...excelCell.font, italic: true };
+            if (cellStyle.underline) excelCell.font = { ...excelCell.font, underline: true };
+            if (cellStyle.color) {
+              const colorHex = cellStyle.color.replace('#', '');
+              excelCell.font = { ...excelCell.font, color: { argb: `FF${colorHex}` } };
+            }
+            if (cellStyle.bg) {
+              const bgHex = cellStyle.bg.replace('#', '');
+              excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${bgHex}` } };
+            }
+            if (cellStyle.align) {
+              excelCell.alignment = { 
+                horizontal: cellStyle.align === 'center' ? 'center' : cellStyle.align === 'right' ? 'right' : 'left',
+                vertical: 'middle'
+              };
+            }
+          }
+        });
+      });
+
+      // Auto-fit columns
+      worksheet.columns.forEach((column) => {
+        if (column.values) {
+          const lengths = column.values.map((v: any) => v ? String(v).length : 10);
+          const maxLength = Math.max(...lengths.filter((v: number) => !isNaN(v)));
+          column.width = Math.min(maxLength + 2, 50);
+        }
+      });
+
+      // Generate buffer and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = file.name.replace(/\.[^/.]+$/, '') || 'export';
+      link.download = `${fileName}_exported.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      addToast('success', 'Export Complete', 'File downloaded successfully.');
+    } catch (error: any) {
+      console.error('Excel export failed:', error);
+      addToast('error', 'Export Failed', error.message || 'Failed to export to Excel.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportToCSV = () => {
+    if (!file) return;
+    setShowExportMenu(false);
+    
+    try {
+      // Convert data to CSV format
+      const csvRows: string[] = [];
+      
+      file.data.forEach((row, rowIndex) => {
+        const csvRow = row.map((cell, colIndex) => {
+          let cellValue = cell;
+          
+          // Handle formulas - get calculated value if available
+          if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
+            if (hfReady && hfInstance.current) {
+              try {
+                const sheetNames = hfInstance.current.getSheetNames();
+                if (sheetNames.length > 0) {
+                  const sheetId = hfInstance.current.getSheetId(sheetNames[0]);
+                  if (sheetId !== undefined) {
+                    const calculatedValue = hfInstance.current.getCellValue({ sheet: sheetId, row: rowIndex, col: colIndex });
+                    if (!(calculatedValue instanceof Error)) {
+                      cellValue = calculatedValue;
+                    }
+                  }
+                }
+              } catch (e) {
+                // Keep original value
+              }
+            }
+          }
+          
+          // Escape CSV values
+          const stringValue = cellValue === null || cellValue === undefined ? '' : String(cellValue);
+          if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        });
+        csvRows.push(csvRow.join(','));
+      });
+      
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = file.name.replace(/\.[^/.]+$/, '') || 'export';
+      link.download = `${fileName}_exported.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      addToast('success', 'Export Complete', 'CSV file downloaded successfully.');
+    } catch (error: any) {
+      console.error('CSV export failed:', error);
+      addToast('error', 'Export Failed', error.message || 'Failed to export to CSV.');
     }
   };
 
@@ -519,6 +718,22 @@ const SpreadsheetView: React.FC = () => {
         setEditValue(val !== undefined ? String(val) : '');
       }
       return;
+    }
+
+    // Undo / Redo shortcuts (only when not editing a cell input)
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) onRedo();
+        else onUndo();
+        return;
+      }
+      if (k === 'y') {
+        e.preventDefault();
+        onRedo();
+        return;
+      }
     }
 
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
@@ -788,6 +1003,39 @@ const SpreadsheetView: React.FC = () => {
               onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
             />
         </div>
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isExporting}
+              className="gap-2"
+            >
+              <Download size={16} />
+              <span className="hidden md:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+              <ChevronDown size={14} className={cn("transition-transform", showExportMenu && "rotate-180")} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              onClick={exportToExcel}
+              disabled={isExporting}
+              className="gap-2"
+            >
+              <FileText size={16} className="text-green-600" />
+              Export to Excel (.xlsx)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={exportToCSV}
+              disabled={isExporting}
+              className="gap-2"
+            >
+              <FileText size={16} className="text-blue-600" />
+              Export to CSV (.csv)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="flex-1 relative overflow-hidden">

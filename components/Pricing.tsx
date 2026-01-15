@@ -12,26 +12,29 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
   const plans = [
     {
       name: "Starter",
-      price: "$9",
+      price: "$19",
       period: "/month",
-      description: "Perfect for trying out our platform",
-      features: ["Up to 5 projects", "1 GB storage", "Basic analytics", "Email support", "Community access"],
+      description: "For individuals and light usage",
+      features: [
+        "2,000 credits / month",
+        "Chat: 5 credits / message",
+        "Analysis: 20 credits / run",
+        "Enrich: 25 credits / batch (100 items)",
+        "Extraction: 100 credits / document",
+      ],
       highlighted: false,
       color: "secondary",
     },
     {
       name: "Pro",
-      price: "$29",
+      price: "$49",
       period: "/month",
-      description: "For professionals and growing teams",
+      description: "Best value for regular users",
       features: [
-        "Unlimited projects",
-        "50 GB storage",
-        "Advanced analytics",
-        "Priority email support",
-        "API access",
-        "Custom integrations",
-        "Team collaboration",
+        "7,500 credits / month",
+        "Everything in Starter",
+        "Higher monthly limits",
+        "Priority support",
       ],
       highlighted: true,
       color: "primary",
@@ -40,16 +43,12 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
       name: "Enterprise",
       price: "$99",
       period: "/month",
-      description: "For large organizations with custom needs",
+      description: "For teams and higher usage",
       features: [
+        "20,000 credits / month",
         "Everything in Pro",
-        "Unlimited storage",
-        "White-label solution",
-        "Dedicated account manager",
-        "24/7 phone support",
-        "Custom SLA",
-        "Advanced security",
-        "On-premise option",
+        "Team-friendly limits",
+        "Dedicated support",
       ],
       highlighted: false,
       color: "accent",
@@ -73,7 +72,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
             <br />
             scalable plans</h1>
           <p className="text-xl sm:text-2xl max-w-2xl mx-auto text-gray-600">
-            Made to save you time and money.
+            Simple credits so you only pay for what you use.
           </p>
         </div>
 

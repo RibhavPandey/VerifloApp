@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Plus, ScanText, FileSpreadsheet, Play, Trash2 } from 'lucide-react';
+import { Plus, ScanText, FileSpreadsheet, Play, Trash2, Loader2 } from 'lucide-react';
 import { db } from '../lib/db';
 import { Workflow, ExcelFile, Job } from '../types';
 import { useToast } from './ui/toast';
@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 
 const Workflows: React.FC = () => {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
+    const [runningWorkflowId, setRunningWorkflowId] = useState<string | null>(null);
     const { addToast } = useToast();
     const navigate = useNavigate();
     const { files, jobs, credits, handleUseCredit, onCreateWorkflow, refreshData, onJobCreated } = useOutletContext<WorkspaceContextType>();
@@ -82,9 +83,9 @@ const Workflows: React.FC = () => {
                                  const sourceData = data.slice(1).map(r => r[targetCol]).filter(v => v !== undefined && v !== null && v !== '');
                                  const allUniqueItems = Array.from(new Set(sourceData.map(v => String(v).trim())));
                                  
-                                 if (allUniqueItems.length > 0) {
+                            if (allUniqueItems.length > 0) {
                                      const { api } = await import('../lib/api');
-                                     const BATCH_SIZE = 50; // Process 50 items per API call
+                                     const BATCH_SIZE = 100; // Process 100 items per API call (backend limit)
                                      const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
                                      const batchCost = numBatches * 25; // 25 credits per batch
                                      
@@ -94,12 +95,11 @@ const Workflows: React.FC = () => {
                                          continue; // Skip this enrich step
                                      }
                                      
-                                     // Deduct credits for all batches upfront
-                                     if (batchCost > 0) handleUseCredit(batchCost);
+                                     // Credits are enforced server-side per API call; do not deduct client-side.
                                      
                                      const mergedResult: Record<string, any> = {};
                                      
-                                     // Process in batches
+                                    // Process in batches
                                      for (let i = 0; i < allUniqueItems.length; i += BATCH_SIZE) {
                                          const batch = allUniqueItems.slice(i, i + BATCH_SIZE);
                                          try {
@@ -107,6 +107,8 @@ const Workflows: React.FC = () => {
                                              Object.assign(mergedResult, response.result);
                                          } catch (batchError: any) {
                                              console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
+                                            // If credits run out mid-run, stop further batches
+                                            if (batchError?.message?.includes('Insufficient credits')) break;
                                              // Continue with other batches even if one fails
                                          }
                                      }
@@ -254,18 +256,23 @@ const Workflows: React.FC = () => {
         if (wf.sourceType === 'spreadsheet') {
             const activeFile = getActiveFile();
             if (activeFile) {
-                const updatedFile = await runWorkflow(wf, activeFile);
-                // Refresh files data to update context
-                if (refreshData) {
-                    refreshData();
-                }
-                // Navigate to show results if not already there
-                const currentJobId = window.location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
-                if (!currentJobId) {
-                    const job = jobs.find(j => j.fileIds.includes(activeFile.id));
-                    if (job) {
-                        navigate(`/sheet/${job.id}`);
+                setRunningWorkflowId(wf.id);
+                try {
+                    await runWorkflow(wf, activeFile);
+                    // Refresh files data to update context
+                    if (refreshData) {
+                        refreshData();
                     }
+                    // Navigate to show results if not already there
+                    const currentJobId = window.location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
+                    if (!currentJobId) {
+                        const job = jobs.find(j => j.fileIds.includes(activeFile.id));
+                        if (job) {
+                            navigate(`/sheet/${job.id}`);
+                        }
+                    }
+                } finally {
+                    setRunningWorkflowId(null);
                 }
             } else {
                 const input = document.createElement('input');
@@ -275,10 +282,14 @@ const Workflows: React.FC = () => {
                     const fileList = e.target.files;
                     if (!fileList) return;
                     const file = fileList[0];
+                    setRunningWorkflowId(wf.id);
                     const reader = new FileReader();
                     reader.onload = async (ev) => {
                         const ab = ev.target?.result as ArrayBuffer;
-                        if (!ab) return;
+                        if (!ab) {
+                            setRunningWorkflowId(null);
+                            return;
+                        }
                         try {
                             let data: any[][] = [];
                             const lowerName = file.name.toLowerCase();
@@ -341,6 +352,8 @@ const Workflows: React.FC = () => {
                         } catch (err) {
                             console.error(err);
                             addToast('error', 'File Error', 'Failed to process file.');
+                        } finally {
+                            setRunningWorkflowId(null);
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -421,14 +434,28 @@ const Workflows: React.FC = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div
+                                                className={`flex items-center justify-end gap-2 transition-opacity ${
+                                                    runningWorkflowId === w.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                                }`}
+                                            >
                                                 <button 
-                                                    className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors" title="Run"
+                                                    className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed" title="Run"
                                                     onClick={() => handleRun(w)}
+                                                    disabled={runningWorkflowId !== null}
                                                 >
-                                                    <Play size={16} fill="currentColor" />
+                                                    {runningWorkflowId === w.id ? (
+                                                        <Loader2 size={16} className="animate-spin" />
+                                                    ) : (
+                                                        <Play size={16} fill="currentColor" />
+                                                    )}
                                                 </button>
-                                                <button onClick={() => handleDelete(w.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="Delete">
+                                                <button
+                                                    onClick={() => handleDelete(w.id)}
+                                                    disabled={runningWorkflowId !== null}
+                                                    className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                                    title="Delete"
+                                                >
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>

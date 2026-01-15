@@ -34,7 +34,7 @@ const Workspace: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [files, setFiles] = useState<ExcelFile[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [credits, setCredits] = useState(500);
+  const [credits, setCredits] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // --- UI STATE ---
@@ -47,6 +47,8 @@ const Workspace: React.FC = () => {
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [sessionSteps, setSessionSteps] = useState<AutomationStep[]>([]);
   const [createWorkflowTypeModal, setCreateWorkflowTypeModal] = useState(false);
+  const [isWorkflowRunning, setIsWorkflowRunning] = useState(false);
+  const [runningWorkflowId, setRunningWorkflowId] = useState<string | null>(null);
 
   const loadData = async () => {
       setIsSyncing(true);
@@ -68,6 +70,7 @@ const Workspace: React.FC = () => {
           }
       } catch (e) {
           console.error("Failed to load data", e);
+          addToast('error', 'Sync Failed', 'Could not refresh your data. Please try again.');
       } finally {
           setIsSyncing(false);
       }
@@ -78,11 +81,14 @@ const Workspace: React.FC = () => {
   }, []);
 
   const handleUseCredit = async (amount: number) => {
-      setCredits(prev => Math.max(0, prev - amount));
+      // Credits are enforced server-side. Keep this as a lightweight "refresh credits" helper
+      // to avoid double-charging from the client.
       try {
-          await db.decrementCredits(amount);
+          const profile = await db.getUserProfile();
+          if (profile) setCredits(profile.credits);
       } catch (e) {
-          console.error("Failed to update credits", e);
+          console.error("Failed to refresh credits", e);
+          addToast('warning', 'Credits Update Failed', 'Credits may be out of sync. Please refresh.');
       }
   };
 
@@ -228,7 +234,7 @@ const Workspace: React.FC = () => {
                                
                                if (allUniqueItems.length > 0) {
                                    const { api } = await import('../lib/api');
-                                   const BATCH_SIZE = 50; // Process 50 items per API call
+                                   const BATCH_SIZE = 100; // Process 100 items per API call (backend limit)
                                    const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
                                    const batchCost = numBatches * 25; // 25 credits per batch
                                    
@@ -238,8 +244,7 @@ const Workspace: React.FC = () => {
                                        continue; // Skip this enrich step
                                    }
                                    
-                                   // Deduct credits for all batches upfront
-                                   if (batchCost > 0) handleUseCredit(batchCost);
+                                   // Credits are enforced server-side per API call; do not deduct client-side.
                                    
                                    const mergedResult: Record<string, any> = {};
                                    
@@ -251,6 +256,8 @@ const Workspace: React.FC = () => {
                                            Object.assign(mergedResult, response.result);
                                        } catch (batchError: any) {
                                            console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
+                                           // If credits run out mid-run, stop further batches
+                                           if (batchError?.message?.includes('Insufficient credits')) break;
                                            // Continue with other batches even if one fails
                                        }
                                    }
@@ -402,14 +409,21 @@ const Workspace: React.FC = () => {
       if (wf.sourceType === 'spreadsheet') {
           const activeFile = getActiveFile();
           if (activeFile) {
-              await runWorkflow(wf, activeFile);
-              // Navigate to show results if not already there
-              const currentJobId = location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
-              if (!currentJobId) {
-                  const job = jobs.find(j => j.fileIds.includes(activeFile.id));
-                  if (job) {
-                      navigate(`/sheet/${job.id}`);
+              setIsWorkflowRunning(true);
+              setRunningWorkflowId(wf.id);
+              try {
+                  await runWorkflow(wf, activeFile);
+                  // Navigate to show results if not already there
+                  const currentJobId = location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
+                  if (!currentJobId) {
+                      const job = jobs.find(j => j.fileIds.includes(activeFile.id));
+                      if (job) {
+                          navigate(`/sheet/${job.id}`);
+                      }
                   }
+              } finally {
+                  setIsWorkflowRunning(false);
+                  setRunningWorkflowId(null);
               }
           } else {
               const input = document.createElement('input');
@@ -419,10 +433,16 @@ const Workspace: React.FC = () => {
                   const fileList = e.target.files;
                   if (!fileList) return;
                   const file = fileList[0];
+                  setIsWorkflowRunning(true);
+                  setRunningWorkflowId(wf.id);
                   const reader = new FileReader();
                   reader.onload = async (ev) => {
                       const ab = ev.target?.result as ArrayBuffer;
-                      if (!ab) return;
+                      if (!ab) {
+                          setIsWorkflowRunning(false);
+                          setRunningWorkflowId(null);
+                          return;
+                      }
                       try {
                           let data: any[][] = [];
                           const lowerName = file.name.toLowerCase();
@@ -478,6 +498,9 @@ const Workspace: React.FC = () => {
                       } catch (err) {
                           console.error(err);
                           addToast('error', 'File Error', 'Failed to process file.');
+                      } finally {
+                          setIsWorkflowRunning(false);
+                          setRunningWorkflowId(null);
                       }
                   };
                   reader.readAsArrayBuffer(file);
@@ -571,7 +594,7 @@ const Workspace: React.FC = () => {
       />
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 z-20">
+         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 z-[100]">
             <div className="flex items-center gap-2">
                 <div className="text-sm font-medium text-gray-500">Workspace /</div>
                 <h1 className="font-bold text-gray-800">
@@ -601,15 +624,20 @@ const Workspace: React.FC = () => {
                    ) : (
                        <button 
                             onClick={handleAutomateClick}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                            disabled={isWorkflowRunning}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                        >
-                           <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
-                           Automate
+                           {isWorkflowRunning ? (
+                               <Loader2 size={16} className="animate-spin text-gray-500" />
+                           ) : (
+                               <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
+                           )}
+                           {isWorkflowRunning ? "Running..." : "Automate"}
                        </button>
                    )}
 
                    {showAutomateMenu && !isRecording && (
-                       <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                       <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2">
                            <div className="p-2 border-b border-gray-100">
                                <button 
                                    onClick={() => {
@@ -645,13 +673,18 @@ const Workspace: React.FC = () => {
                                        <button 
                                            key={w.id}
                                            className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center justify-between group transition-colors"
+                                           disabled={isWorkflowRunning}
                                            onClick={() => { setShowAutomateMenu(false); handleExecuteWorkflow(w); }}
                                        >
                                            <div className="flex items-center gap-2 overflow-hidden">
                                                <WorkflowIcon size={14} className="text-gray-400 group-hover:text-purple-600 shrink-0" />
                                                <span className="text-sm text-gray-700 truncate">{w.name}</span>
                                            </div>
-                                           <Play size={12} className="text-gray-300 group-hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all" />
+                                           {isWorkflowRunning && runningWorkflowId === w.id ? (
+                                               <Loader2 size={12} className="animate-spin text-gray-500" />
+                                           ) : (
+                                               <Play size={12} className="text-gray-300 group-hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all" />
+                                           )}
                                        </button>
                                    ))
                                )}
@@ -659,7 +692,7 @@ const Workspace: React.FC = () => {
                        </div>
                    )}
                    {showAutomateMenu && !isRecording && (
-                       <div className="fixed inset-0 z-40" onClick={() => setShowAutomateMenu(false)}></div>
+                       <div className="fixed inset-0 z-[105]" onClick={() => setShowAutomateMenu(false)}></div>
                    )}
                </div>
                <div className="h-6 w-px bg-gray-200 mx-1"></div>

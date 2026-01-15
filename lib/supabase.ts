@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Your Project URL
-const supabaseUrl = 'https://aovdburokypwghgbrfmb.supabase.co';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-// Your Anon Public Key
-const supabaseAnonKey = 'sb_publishable_nCiUEYVy2Tu41hiimDZ12A_cCiqdOs0';
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Missing Supabase env vars. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
