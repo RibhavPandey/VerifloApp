@@ -52,7 +52,16 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
-      return res.status(500).json({ error: 'Failed to store document for review.' });
+      // Provide specific error messages based on the error
+      let storageErrorMessage = 'Failed to store document for review.';
+      if (uploadError.message?.includes('Bucket not found') || (uploadError as any).statusCode === '404') {
+        storageErrorMessage = `Storage bucket "${bucket}" not found. Please create it in Supabase Storage.`;
+      } else if (uploadError.message?.includes('not allowed') || uploadError.message?.includes('permission')) {
+        storageErrorMessage = 'Storage permission denied. Check your Supabase service role key.';
+      } else if (uploadError.message) {
+        storageErrorMessage = uploadError.message;
+      }
+      return res.status(500).json({ error: storageErrorMessage });
     }
     
     // Create genAI instance per request to ensure it's using the right one

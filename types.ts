@@ -134,6 +134,14 @@ export interface ExtractedField {
   flagged?: boolean; // If true, requires review
 }
 
+export interface FieldChange {
+  fieldKey: string;
+  oldValue: string;
+  newValue: string;
+  timestamp: number;
+  oldConfidence: number;
+}
+
 export interface VerificationDocument {
   id: string;
   fileName: string;
@@ -141,6 +149,7 @@ export interface VerificationDocument {
   fileData: string; // Base64
   fields: ExtractedField[];
   status: 'pending' | 'reviewed';
+  auditTrail?: FieldChange[]; // Track all changes made during review
 }
 
 export type JobStatus = 'uploading' | 'setup' | 'processing' | 'needs_review' | 'verified' | 'completed';

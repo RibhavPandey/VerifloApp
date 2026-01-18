@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { ExtractedField, VerificationDocument } from '../types';
+import { ExtractedField, VerificationDocument, FieldChange } from '../types';
 import { Check, ChevronLeft, ChevronRight, AlertTriangle, Eye, ArrowRight, CheckCircle2, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -108,6 +108,7 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
         
         const newDocs = localDocs.map(d => {
             if (d.id === activeItem.docId) {
+                const oldField = d.fields[activeItem.fieldIndex];
                 const newFields = [...d.fields];
                 newFields[activeItem.fieldIndex] = { 
                     ...newFields[activeItem.fieldIndex], 
@@ -115,7 +116,23 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                     flagged: false,
                     confidence: 1.0 
                 };
-                return { ...d, fields: newFields };
+                
+                // Track change in audit trail
+                const change: FieldChange = {
+                    fieldKey: oldField.key,
+                    oldValue: oldField.value,
+                    newValue: val,
+                    timestamp: Date.now(),
+                    oldConfidence: oldField.confidence
+                };
+                
+                const auditTrail = d.auditTrail || [];
+                
+                return { 
+                    ...d, 
+                    fields: newFields,
+                    auditTrail: [...auditTrail, change]
+                };
             }
             return d;
         });
@@ -184,9 +201,14 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                         </button>
                     </div>
                     
-                    <p className="text-xs text-gray-500 mb-4">
+                    <p className="text-xs text-gray-500 mb-2">
                         {riskyItems.length} items flagged for low confidence or formatting issues.
                     </p>
+                    {localDocs.some(d => d.auditTrail && d.auditTrail.length > 0) && (
+                        <p className="text-xs text-blue-600 font-medium mb-4">
+                            ✏️ {localDocs.reduce((sum, d) => sum + (d.auditTrail?.length || 0), 0)} changes made
+                        </p>
+                    )}
                     
                     <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                         <div 

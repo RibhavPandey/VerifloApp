@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Plus, ScanText, FileSpreadsheet, Play, Trash2, Loader2 } from 'lucide-react';
+import { Plus, ScanText, FileSpreadsheet, Play, Trash2, Loader2, Workflow as WorkflowIcon, Zap } from 'lucide-react';
 import { db } from '../lib/db';
 import { Workflow, ExcelFile, Job } from '../types';
 import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
-import { Button } from './ui/button';
 
 const Workflows: React.FC = () => {
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -28,33 +27,25 @@ const Workflows: React.FC = () => {
     };
 
     const runWorkflow = async (workflow: Workflow, targetFile: ExcelFile): Promise<ExcelFile> => {
-        // Validation
         if (!workflow.steps || workflow.steps.length === 0) {
             addToast('error', 'Invalid Workflow', 'Workflow has no steps to execute.');
-            return targetFile; // Return original file if validation fails
+            return targetFile;
         }
 
         addToast('info', 'Running Workflow', `Executing ${workflow.name}...`);
         let data = targetFile.data.map(row => [...row]);
         let columns = [...targetFile.columns];
-        
-        // Note: Enrich steps calculate and deduct their own cost based on unique items
-        // We don't deduct upfront to avoid double-deduction
 
-        // Separate steps by type for proper execution order
         const deleteColSteps = workflow.steps.filter(s => s.type === 'delete_col').sort((a, b) => b.params.colIndex - a.params.colIndex);
         const deleteRowSteps = workflow.steps.filter(s => s.type === 'delete_row').sort((a, b) => b.params.rowIndex - a.params.rowIndex);
         const otherSteps = workflow.steps.filter(s => s.type !== 'delete_col' && s.type !== 'delete_row');
 
         try {
-            // Execute other steps first (sort, enrich, etc.)
             for (const step of otherSteps) {
                 try {
                     if (step.type === 'sort') {
                          const { action, r1, c1, r2, c2 } = step.params;
-                         // Bounds checking
                          if (r1 < 0 || r2 >= data.length || c1 < 0 || c2 >= (data[0]?.length || 0)) {
-                             console.warn(`Step "${step.description}": Range out of bounds, skipping`);
                              continue;
                          }
                          for(let r = r1; r <= r2; r++) {
@@ -76,7 +67,6 @@ const Workflows: React.FC = () => {
                     }
                     if (step.type === 'enrich') {
                          const { prompt, colIndex } = step.params;
-                         // If colIndex not recorded, try to extract from description or use first column
                          const targetCol = colIndex !== undefined ? colIndex : 0;
                          if (targetCol >= 0 && targetCol < (data[0]?.length || 0) && prompt) {
                              try {
@@ -85,56 +75,44 @@ const Workflows: React.FC = () => {
                                  
                             if (allUniqueItems.length > 0) {
                                      const { api } = await import('../lib/api');
-                                     const BATCH_SIZE = 100; // Process 100 items per API call (backend limit)
+                                     const BATCH_SIZE = 100;
                                      const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
-                                     const batchCost = numBatches * 25; // 25 credits per batch
+                                     const batchCost = numBatches * 25;
                                      
-                                     // Check if user has enough credits for all batches
                                      if (credits < batchCost) {
-                                         addToast('error', 'Insufficient Credits', `Enrichment requires ${batchCost} credits (${allUniqueItems.length} unique items in ${numBatches} batches). You have ${credits}.`);
-                                         continue; // Skip this enrich step
+                                         addToast('error', 'Insufficient Credits', `Enrichment requires ${batchCost} credits.`);
+                                         continue;
                                      }
-                                     
-                                     // Credits are enforced server-side per API call; do not deduct client-side.
                                      
                                      const mergedResult: Record<string, any> = {};
                                      
-                                    // Process in batches
                                      for (let i = 0; i < allUniqueItems.length; i += BATCH_SIZE) {
                                          const batch = allUniqueItems.slice(i, i + BATCH_SIZE);
                                          try {
                                              const response = await api.enrich(batch, prompt);
                                              Object.assign(mergedResult, response.result);
                                          } catch (batchError: any) {
-                                             console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
-                                            // If credits run out mid-run, stop further batches
                                             if (batchError?.message?.includes('Insufficient credits')) break;
-                                             // Continue with other batches even if one fails
                                          }
                                      }
                                      
-                                     // Create normalized lookup map for flexible matching
                                      const lookupMap = new Map<string, any>();
                                      for (const [key, value] of Object.entries(mergedResult)) {
                                          const normalizedKey = String(key).trim().toLowerCase();
                                          lookupMap.set(normalizedKey, value);
                                      }
                                      
-                                     // Add enriched data to new column
                                      const newColIdx = data[0].length;
                                      data[0][newColIdx] = "Enriched Info";
                                      columns.push("Enriched Info");
                                      
-                                     // Match and populate enriched data for ALL rows
                                      for(let r = 1; r < data.length; r++) {
                                          if (!data[r]) data[r] = [];
                                          const cellValue = data[r][targetCol];
                                          
                                          if (cellValue !== undefined && cellValue !== null && cellValue !== '') {
-                                             // Try exact match first (preserves original behavior)
                                              let enrichedValue = mergedResult[cellValue] || mergedResult[String(cellValue)];
                                              
-                                             // If no exact match, try normalized lookup (handles case/whitespace differences)
                                              if (enrichedValue === undefined) {
                                                  const normalizedCellValue = String(cellValue).trim().toLowerCase();
                                                  enrichedValue = lookupMap.get(normalizedCellValue);
@@ -147,8 +125,7 @@ const Workflows: React.FC = () => {
                                      }
                                  }
                              } catch (enrichError: any) {
-                                 console.error('Enrichment step failed:', enrichError);
-                                 addToast('warning', 'Enrichment Failed', `Step "${step.description}" failed: ${enrichError.message || 'Unknown error'}`);
+                                 addToast('warning', 'Enrichment Failed', `Step "${step.description}" failed`);
                              }
                          }
                     }
@@ -161,50 +138,32 @@ const Workflows: React.FC = () => {
                     }
                     if (step.type === 'filter') {
                          const { colIndex, operator, value } = step.params;
-                         // Filter rows based on column criteria
                          if (colIndex >= 0 && colIndex < (data[0]?.length || 0) && operator && value !== undefined) {
                              const headerRow = data[0];
-                             const filteredData = [headerRow]; // Keep header
+                             const filteredData = [headerRow];
                              
                              for (let r = 1; r < data.length; r++) {
                                  if (!data[r]) continue;
                                  const cellValue = data[r][colIndex];
                                  let shouldInclude = false;
                                  
-                                 if (operator === 'equals') {
-                                     shouldInclude = String(cellValue) === String(value);
-                                 } else if (operator === 'contains') {
-                                     shouldInclude = String(cellValue).toLowerCase().includes(String(value).toLowerCase());
-                                 } else if (operator === 'greater') {
-                                     shouldInclude = Number(cellValue) > Number(value);
-                                 } else if (operator === 'less') {
-                                     shouldInclude = Number(cellValue) < Number(value);
-                                 } else if (operator === 'not_empty') {
-                                     shouldInclude = cellValue !== undefined && cellValue !== null && cellValue !== '';
-                                 } else if (operator === 'empty') {
-                                     shouldInclude = cellValue === undefined || cellValue === null || cellValue === '';
-                                 }
+                                 if (operator === 'equals') shouldInclude = String(cellValue) === String(value);
+                                 else if (operator === 'contains') shouldInclude = String(cellValue).toLowerCase().includes(String(value).toLowerCase());
+                                 else if (operator === 'greater') shouldInclude = Number(cellValue) > Number(value);
+                                 else if (operator === 'less') shouldInclude = Number(cellValue) < Number(value);
+                                 else if (operator === 'not_empty') shouldInclude = cellValue !== undefined && cellValue !== null && cellValue !== '';
+                                 else if (operator === 'empty') shouldInclude = cellValue === undefined || cellValue === null || cellValue === '';
                                  
-                                 if (shouldInclude) {
-                                     filteredData.push(data[r]);
-                                 }
+                                 if (shouldInclude) filteredData.push(data[r]);
                              }
-                             
                              data = filteredData;
                          }
                     }
-                    if (step.type === 'extraction') {
-                         // Extraction steps are for PDF workflows, not spreadsheet workflows
-                         // This is a placeholder - actual extraction happens during PDF processing
-                         console.warn('Extraction step in spreadsheet workflow - skipping (extraction is for PDF workflows)');
-                    }
                 } catch (stepError: any) {
-                    console.error(`Step "${step.description}" failed:`, stepError);
-                    addToast('warning', 'Step Failed', `Step "${step.description}" failed: ${stepError.message || 'Unknown error'}`);
+                    addToast('warning', 'Step Failed', `Step "${step.description}" failed`);
                 }
             }
 
-            // Execute delete_col steps in reverse order (highest index first) to avoid index shifting
             for (const step of deleteColSteps) {
                 try {
                     const { colIndex } = step.params;
@@ -215,12 +174,10 @@ const Workflows: React.FC = () => {
                         }
                     }
                 } catch (stepError: any) {
-                    console.error(`Delete column step failed:`, stepError);
                     addToast('warning', 'Step Failed', `Delete column step failed`);
                 }
             }
 
-            // Execute delete_row steps in reverse order (highest index first) to avoid index shifting
             for (const step of deleteRowSteps) {
                 try {
                     const { rowIndex } = step.params;
@@ -228,7 +185,6 @@ const Workflows: React.FC = () => {
                         data = data.filter((_, i) => i !== rowIndex);
                     }
                 } catch (stepError: any) {
-                    console.error(`Delete row step failed:`, stepError);
                     addToast('warning', 'Step Failed', `Delete row step failed`);
                 }
             }
@@ -244,11 +200,11 @@ const Workflows: React.FC = () => {
             
             return updatedFile;
         } catch (error: any) {
-            console.error('Workflow execution failed:', error);
             const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'failed' as const };
             await db.upsertWorkflow(updatedWorkflow);
             setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
-            addToast('error', 'Workflow Failed', `Workflow execution failed: ${error.message || 'Unknown error'}`);
+            addToast('error', 'Workflow Failed', `Workflow execution failed`);
+            return targetFile;
         }
     };
 
@@ -259,17 +215,11 @@ const Workflows: React.FC = () => {
                 setRunningWorkflowId(wf.id);
                 try {
                     await runWorkflow(wf, activeFile);
-                    // Refresh files data to update context
-                    if (refreshData) {
-                        refreshData();
-                    }
-                    // Navigate to show results if not already there
+                    if (refreshData) refreshData();
                     const currentJobId = window.location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
                     if (!currentJobId) {
                         const job = jobs.find(j => j.fileIds.includes(activeFile.id));
-                        if (job) {
-                            navigate(`/sheet/${job.id}`);
-                        }
+                        if (job) navigate(`/sheet/${job.id}`);
                     }
                 } finally {
                     setRunningWorkflowId(null);
@@ -286,10 +236,7 @@ const Workflows: React.FC = () => {
                     const reader = new FileReader();
                     reader.onload = async (ev) => {
                         const ab = ev.target?.result as ArrayBuffer;
-                        if (!ab) {
-                            setRunningWorkflowId(null);
-                            return;
-                        }
+                        if (!ab) { setRunningWorkflowId(null); return; }
                         try {
                             let data: any[][] = [];
                             const lowerName = file.name.toLowerCase();
@@ -306,9 +253,7 @@ const Workflows: React.FC = () => {
                                 if (worksheet) {
                                     worksheet.eachRow((row) => {
                                         const rowValues: any[] = [];
-                                        row.eachCell((cell) => {
-                                            rowValues.push(cell.value);
-                                        });
+                                        row.eachCell((cell) => { rowValues.push(cell.value); });
                                         data.push(rowValues);
                                     });
                                 }
@@ -321,10 +266,8 @@ const Workflows: React.FC = () => {
                                 lastModified: Date.now(), history: [{data, styles: {}, columns}], currentHistoryIndex: 0
                             };
                             
-                            // Execute workflow and get updated file
                             const updatedFile = await runWorkflow(wf, newFile);
                             
-                            // Create Job to link the processed file
                             const newJob: Job = {
                                 id: crypto.randomUUID(),
                                 title: `${file.name} (${wf.name})`,
@@ -338,19 +281,12 @@ const Workflows: React.FC = () => {
                             
                             await db.upsertJob(newJob);
                             
-                            // Update context to refresh jobs list - use updatedFile instead of newFile
-                            if (onJobCreated) {
-                                onJobCreated(newJob, updatedFile);
-                            } else if (refreshData) {
-                                refreshData();
-                            }
+                            if (onJobCreated) onJobCreated(newJob, updatedFile);
+                            else if (refreshData) refreshData();
                             
-                            // Navigate to sheet view to show results
                             navigate(`/sheet/${newJob.id}`);
-                            
                             addToast('success', 'Workflow Completed', 'File processed and ready to view.');
                         } catch (err) {
-                            console.error(err);
                             addToast('error', 'File Error', 'Failed to process file.');
                         } finally {
                             setRunningWorkflowId(null);
@@ -376,96 +312,137 @@ const Workflows: React.FC = () => {
         }
     };
 
+    const getRelativeTime = (timestamp: number) => {
+        const now = Date.now();
+        const diff = now - timestamp;
+        const days = Math.floor(diff / 86400000);
+        if (days === 0) return 'Today';
+        if (days === 1) return 'Yesterday';
+        if (days < 7) return `${days} days ago`;
+        return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
     return (
-        <div className="h-full overflow-y-auto p-8">
-            <div className="max-w-5xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
+        <div 
+            className="h-full overflow-y-auto"
+            style={{ background: 'linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%)', zoom: 0.85 }}
+        >
+            <div className="max-w-5xl mx-auto px-8 py-10">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-8">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Workflows</h2>
-                        <p className="text-gray-500">Manage and automate your repetitive tasks.</p>
+                        <h1 className="text-[28px] font-semibold text-[#0a0a0a] tracking-[-0.02em] mb-1">
+                            Workflows
+                        </h1>
+                        <p className="text-[15px] text-[#666]">Automate repetitive tasks and save time</p>
                     </div>
-                    <Button 
+                    <button 
                         onClick={onCreateWorkflow}
-                        variant="default"
-                        size="default"
+                        className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-all shadow-sm"
                     >
-                        <Plus size={16} /> Create Workflow
-                    </Button>
+                        <Plus size={16} />
+                        Create Workflow
+                    </button>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-3 font-bold text-gray-500 uppercase text-xs">Name</th>
-                                <th className="px-6 py-3 font-bold text-gray-500 uppercase text-xs">Source</th>
-                                <th className="px-6 py-3 font-bold text-gray-500 uppercase text-xs">Last Run</th>
-                                <th className="px-6 py-3 font-bold text-gray-500 uppercase text-xs text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {workflows.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-400 italic">
-                                        No workflows created yet. Record actions in a sheet to create one.
-                                    </td>
+                {/* Table */}
+                {workflows.length === 0 ? (
+                    <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-[#e5e5e5]">
+                        <div className="w-14 h-14 rounded-full bg-[#f5f5f5] flex items-center justify-center mx-auto mb-5">
+                            <WorkflowIcon size={28} className="text-[#999]" />
+                        </div>
+                        <h3 className="text-[17px] font-medium text-[#0a0a0a] mb-2">No workflows yet</h3>
+                        <p className="text-[14px] text-[#666] mb-6 max-w-sm mx-auto">
+                            Record actions in a spreadsheet to create reusable workflows that automate your work.
+                        </p>
+                        <button 
+                            onClick={onCreateWorkflow}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-colors"
+                        >
+                            <Zap size={14} />
+                            Create Your First Workflow
+                        </button>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl border border-[#e5e5e5] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-[#f0f0f0]">
+                                    <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide">Workflow</th>
+                                    <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide">Type</th>
+                                    <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide">Last Run</th>
+                                    <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide text-right">Actions</th>
                                 </tr>
-                            ) : (
-                                workflows.map(w => (
-                                    <tr key={w.id} className="hover:bg-gray-50 transition-colors group">
+                            </thead>
+                            <tbody>
+                                {workflows.map((w, idx) => (
+                                    <tr 
+                                        key={w.id} 
+                                        className={`group hover:bg-[#fafafa] transition-colors ${idx !== workflows.length - 1 ? 'border-b border-[#f5f5f5]' : ''}`}
+                                    >
                                         <td className="px-6 py-4">
-                                            <div className="font-bold text-gray-900">{w.name}</div>
-                                            <div className="text-xs text-gray-400">{w.steps.length} steps</div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-lg bg-[#f5f5f5] flex items-center justify-center">
+                                                    <WorkflowIcon size={16} className="text-[#666]" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-[14px] font-medium text-[#0a0a0a]">{w.name}</div>
+                                                    <div className="text-[12px] text-[#999]">{w.steps.length} step{w.steps.length !== 1 ? 's' : ''}</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${w.sourceType === 'pdf' ? 'bg-orange-50 text-orange-700' : 'bg-green-50 text-green-700'}`}>
-                                                {w.sourceType === 'pdf' ? <ScanText size={12} /> : <FileSpreadsheet size={12} />}
-                                                {w.sourceType === 'pdf' ? 'PDF Extraction' : 'Spreadsheet'}
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                                                w.sourceType === 'pdf' 
+                                                    ? 'bg-orange-50 text-orange-600 border border-orange-100' 
+                                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                            }`}>
+                                                {w.sourceType === 'pdf' ? <ScanText size={11} /> : <FileSpreadsheet size={11} />}
+                                                {w.sourceType === 'pdf' ? 'PDF' : 'Spreadsheet'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             {w.lastRun ? (
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-2 h-2 rounded-full ${w.lastRunStatus === 'success' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                                    <span className="text-gray-600">{new Date(w.lastRun).toLocaleDateString()}</span>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${w.lastRunStatus === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                                    <span className="text-[13px] text-[#666]">{getRelativeTime(w.lastRun)}</span>
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400">Never</span>
+                                                <span className="text-[13px] text-[#999]">Never run</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div
-                                                className={`flex items-center justify-end gap-2 transition-opacity ${
-                                                    runningWorkflowId === w.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                                }`}
-                                            >
+                                        <td className="px-6 py-4">
+                                            <div className={`flex items-center justify-end gap-1 transition-opacity ${
+                                                runningWorkflowId === w.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                            }`}>
                                                 <button 
-                                                    className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed" title="Run"
                                                     onClick={() => handleRun(w)}
                                                     disabled={runningWorkflowId !== null}
+                                                    className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Run workflow"
                                                 >
                                                     {runningWorkflowId === w.id ? (
-                                                        <Loader2 size={16} className="animate-spin" />
+                                                        <Loader2 size={15} className="animate-spin" />
                                                     ) : (
-                                                        <Play size={16} fill="currentColor" />
+                                                        <Play size={15} fill="currentColor" />
                                                     )}
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(w.id)}
                                                     disabled={runningWorkflowId !== null}
-                                                    className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                                    title="Delete"
+                                                    className="p-2 rounded-lg text-[#999] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Delete workflow"
                                                 >
-                                                    <Trash2 size={16} />
+                                                    <Trash2 size={15} />
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

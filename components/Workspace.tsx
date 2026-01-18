@@ -412,14 +412,14 @@ const Workspace: React.FC = () => {
               setIsWorkflowRunning(true);
               setRunningWorkflowId(wf.id);
               try {
-                  await runWorkflow(wf, activeFile);
-                  // Navigate to show results if not already there
-                  const currentJobId = location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
-                  if (!currentJobId) {
-                      const job = jobs.find(j => j.fileIds.includes(activeFile.id));
-                      if (job) {
-                          navigate(`/sheet/${job.id}`);
-                      }
+              await runWorkflow(wf, activeFile);
+              // Navigate to show results if not already there
+              const currentJobId = location.pathname.match(/\/sheet\/([^\/]+)/)?.[1];
+              if (!currentJobId) {
+                  const job = jobs.find(j => j.fileIds.includes(activeFile.id));
+                  if (job) {
+                      navigate(`/sheet/${job.id}`);
+                  }
                   }
               } finally {
                   setIsWorkflowRunning(false);
@@ -630,7 +630,7 @@ const Workspace: React.FC = () => {
                            {isWorkflowRunning ? (
                                <Loader2 size={16} className="animate-spin text-gray-500" />
                            ) : (
-                               <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
+                           <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
                            )}
                            {isWorkflowRunning ? "Running..." : "Automate"}
                        </button>
@@ -683,7 +683,7 @@ const Workspace: React.FC = () => {
                                            {isWorkflowRunning && runningWorkflowId === w.id ? (
                                                <Loader2 size={12} className="animate-spin text-gray-500" />
                                            ) : (
-                                               <Play size={12} className="text-gray-300 group-hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all" />
+                                           <Play size={12} className="text-gray-300 group-hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all" />
                                            )}
                                        </button>
                                    ))
@@ -808,12 +808,12 @@ const Workspace: React.FC = () => {
 
       {/* Create Workflow Type Modal */}
       {createWorkflowTypeModal && (
-          <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center backdrop-blur-sm">
-              <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Create New Workflow</h2>
-                  <p className="text-gray-500 mb-6 text-sm">What type of data process do you want to automate?</p>
+          <div className="fixed inset-0 z-[300] bg-[#0f172a]/40 flex items-center justify-center backdrop-blur-md">
+              <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200 border border-white/20">
+                  <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-1.5 tracking-[-0.01em]">Create New Workflow</h2>
+                  <p className="text-[#666] mb-5 text-[13px]">What type of data process do you want to automate?</p>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                       <button 
                           onClick={() => { 
                               setCreateWorkflowTypeModal(false); 
@@ -821,14 +821,14 @@ const Workspace: React.FC = () => {
                               setIsRecording(true); 
                               setSessionSteps([]); 
                           }}
-                          className="w-full p-4 border border-gray-200 rounded-xl flex items-center gap-4 hover:border-orange-300 hover:bg-orange-50/50 transition-all group text-left"
+                          className="w-full p-3.5 border border-[#e5e5e5] rounded-xl flex items-center gap-3 hover:border-orange-300 hover:bg-orange-50/50 transition-all group text-left"
                       >
-                          <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <ScanText size={20} />
+                          <div className="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                              <ScanText size={18} />
                           </div>
                           <div>
-                              <div className="font-bold text-gray-900">PDF Extraction</div>
-                              <div className="text-xs text-gray-500">Automate invoice/receipt processing</div>
+                              <div className="font-medium text-[14px] text-[#0a0a0a]">PDF Extraction</div>
+                              <div className="text-[12px] text-[#666]">Automate invoice/receipt processing</div>
                           </div>
                       </button>
 
@@ -854,21 +854,21 @@ const Workspace: React.FC = () => {
                                   input.click();
                               }
                           }}
-                          className="w-full p-4 border border-gray-200 rounded-xl flex items-center gap-4 hover:border-green-300 hover:bg-green-50/50 transition-all group text-left"
+                          className="w-full p-3.5 border border-[#e5e5e5] rounded-xl flex items-center gap-3 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all group text-left"
                       >
-                          <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <FileSpreadsheet size={20} />
+                          <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                              <FileSpreadsheet size={18} />
                           </div>
                           <div>
-                              <div className="font-bold text-gray-900">Spreadsheet Action</div>
-                              <div className="text-xs text-gray-500">Automate cleaning, sorting, formulas</div>
+                              <div className="font-medium text-[14px] text-[#0a0a0a]">Spreadsheet Action</div>
+                              <div className="text-[12px] text-[#666]">Automate cleaning, sorting, formulas</div>
                           </div>
                       </button>
                   </div>
                   
                   <button 
                       onClick={() => setCreateWorkflowTypeModal(false)}
-                      className="mt-6 w-full py-2 text-sm text-gray-400 font-bold hover:text-gray-600"
+                      className="mt-4 w-full py-2 text-[12px] text-[#999] font-medium hover:text-[#666] transition-colors"
                   >
                       Cancel
                   </button>

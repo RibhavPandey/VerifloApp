@@ -4,7 +4,8 @@ import { useParams, useOutletContext } from 'react-router-dom';
 import {
   Bold, Italic, Underline, Check, X, 
   Scissors, CaseUpper, CaseLower, CaseSensitive, CopyMinus, Undo, Redo,
-  Globe, Loader2, ChevronLeft, ChevronRight, Download, ChevronDown, FileText
+  Globe, Loader2, ChevronLeft, ChevronRight, Download, ChevronDown, FileText,
+  Wand2, Sparkles
 } from 'lucide-react';
 import { ExcelFile, CellStyle, AutomationStep, Job, FileSnapshot, ChatMessage } from '../types';
 import { HyperFormula } from 'hyperformula';
@@ -29,6 +30,65 @@ const HEADER_COL_WIDTH = 40;
 const HEADER_ROW_HEIGHT = 24;
 const BUFFER_ROWS = 10;
 const BUFFER_COLS = 5;
+
+// ERP Export Templates
+interface ERPTemplate {
+  id: string;
+  name: string;
+  requiredColumns: string[];
+  columnMapping: Record<string, string[]>; // ERP column -> possible source column names
+  formatters?: Record<string, (val: any) => any>;
+}
+
+const ERP_TEMPLATES: ERPTemplate[] = [
+  {
+    id: 'generic',
+    name: 'Generic CSV/Excel',
+    requiredColumns: [],
+    columnMapping: {},
+  },
+  {
+    id: 'tally',
+    name: 'Tally Import',
+    requiredColumns: ['Date', 'Vendor Name', 'Invoice Number', 'Total Amount'],
+    columnMapping: {
+      'Date': ['Date', 'Invoice Date', 'Transaction Date', 'date'],
+      'Vendor Name': ['Vendor Name', 'Vendor', 'Supplier', 'Party Name', 'vendor', 'supplier'],
+      'Invoice Number': ['Invoice Number', 'Invoice No', 'Bill No', 'invoice_number', 'invoice'],
+      'Total Amount': ['Total Amount', 'Total', 'Amount', 'Grand Total', 'total', 'amount'],
+      'Tax Amount': ['Tax Amount', 'Tax', 'GST', 'VAT', 'tax'],
+      'Reference': ['PO Number', 'PO', 'Reference', 'Ref', 'po_number'],
+    },
+  },
+  {
+    id: 'zoho',
+    name: 'Zoho Books',
+    requiredColumns: ['Date', 'Vendor Name', 'Invoice Number', 'Total'],
+    columnMapping: {
+      'Date': ['Date', 'Invoice Date', 'Transaction Date', 'date'],
+      'Vendor Name': ['Vendor Name', 'Vendor', 'Supplier', 'vendor'],
+      'Invoice Number': ['Invoice Number', 'Invoice No', 'invoice_number', 'invoice'],
+      'Total': ['Total Amount', 'Total', 'Amount', 'total', 'amount'],
+      'Tax': ['Tax Amount', 'Tax', 'GST', 'tax'],
+      'Currency': ['Currency', 'currency'],
+      'Notes': ['Notes', 'Description', 'notes'],
+    },
+  },
+  {
+    id: 'quickbooks',
+    name: 'QuickBooks',
+    requiredColumns: ['*Vendor', '*InvoiceDate', '*DueDate', '*Total'],
+    columnMapping: {
+      '*Vendor': ['Vendor Name', 'Vendor', 'Supplier', 'vendor'],
+      '*InvoiceDate': ['Date', 'Invoice Date', 'date'],
+      '*DueDate': ['Due Date', 'Payment Due', 'due_date'],
+      '*Total': ['Total Amount', 'Total', 'Amount', 'total'],
+      'RefNumber': ['Invoice Number', 'Invoice No', 'Reference', 'invoice_number'],
+      'Memo': ['Notes', 'Description', 'Memo', 'notes'],
+      'TaxAmount': ['Tax Amount', 'Tax', 'tax'],
+    },
+  },
+];
 
 // Utilities
 const getColumnLabel = (index: number): string => {
@@ -210,6 +270,10 @@ const SpreadsheetView: React.FC = () => {
   const [enrichmentTargetCol, setEnrichmentTargetCol] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedERPFormat, setSelectedERPFormat] = useState<string>('generic');
+  const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100%, range: 0.5 to 2.0
+  const [showTransformMenu, setShowTransformMenu] = useState(false);
+  const [isGridFocused, setIsGridFocused] = useState(false);
 
   // HyperFormula
   const hfInstance = useRef<HyperFormula | null>(null);
@@ -245,6 +309,30 @@ const SpreadsheetView: React.FC = () => {
 
   const getColWidth = (index: number) => colWidths[index] || DEFAULT_COL_WIDTH;
   const getColLeft = (index: number) => colPositions[index] || 0;
+
+  // Scaled dimensions for zoom
+  const scaledRowHeight = ROW_HEIGHT * zoomLevel;
+  const scaledHeaderRowHeight = HEADER_ROW_HEIGHT * zoomLevel;
+  const scaledHeaderColWidth = HEADER_COL_WIDTH * zoomLevel;
+  const getScaledColWidth = (index: number) => getColWidth(index) * zoomLevel;
+  const getScaledColLeft = (index: number) => getColLeft(index) * zoomLevel;
+
+  // Handle Ctrl+Scroll for zoom (with passive: false to prevent browser zoom)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        setZoomLevel(prev => Math.min(2, Math.max(0.5, Math.round((prev + delta) * 100) / 100)));
+      }
+    };
+    
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [file]); // Re-attach when file loads (ensures container is mounted)
 
   useEffect(() => {
     const handleResize = () => {
@@ -328,6 +416,23 @@ const SpreadsheetView: React.FC = () => {
       
       return rawVal;
   };
+
+  // #region agent log
+  React.useEffect(() => {
+    const radiusValue = getComputedStyle(document.documentElement).getPropertyValue('--radius');
+    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:useEffect',message:'CSS --radius value',data:{radiusValue: radiusValue.trim()},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+    
+    setTimeout(() => {
+      const buttons = document.querySelectorAll('[data-slot="button"]');
+      buttons.forEach((btn, idx) => {
+        const classes = btn.className;
+        const computedRadius = getComputedStyle(btn).borderRadius;
+        const hasRoundedLg = classes.includes('rounded-lg');
+        fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SpreadsheetView.tsx:useEffect',message:`Button ${idx} classes and computed styles`,data:{index:idx,className:classes,computedBorderRadius:computedRadius,hasRoundedLg,firstClasses:classes.split(' ').slice(0,5)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      });
+    }, 100);
+  }, [file]);
+  // #endregion
 
   if (loading || !file) {
       return <div className="flex-1 flex items-center justify-center h-full"><Loader2 className="animate-spin text-blue-600" /></div>;
@@ -480,6 +585,59 @@ const SpreadsheetView: React.FC = () => {
     }
   };
 
+  // ERP Column Mapping Helper
+  const mapDataToERPFormat = (data: any[][]): { mappedData: any[][], warnings: string[] } => {
+    const template = ERP_TEMPLATES.find(t => t.id === selectedERPFormat);
+    if (!template || template.id === 'generic') {
+      return { mappedData: data, warnings: [] };
+    }
+
+    const warnings: string[] = [];
+    const headerRow = data[0] || [];
+    const headerMap: Record<string, number> = {};
+    
+    // Build case-insensitive header index
+    headerRow.forEach((col, idx) => {
+      if (col) headerMap[String(col).toLowerCase().trim()] = idx;
+    });
+
+    // Find best matches for ERP columns
+    const columnIndexMap: Record<string, number> = {};
+    for (const [erpCol, possibleNames] of Object.entries(template.columnMapping)) {
+      let foundIdx = -1;
+      for (const possibleName of possibleNames) {
+        const normalized = possibleName.toLowerCase().trim();
+        if (headerMap[normalized] !== undefined) {
+          foundIdx = headerMap[normalized];
+          break;
+        }
+      }
+      if (foundIdx !== -1) {
+        columnIndexMap[erpCol] = foundIdx;
+      } else if (template.requiredColumns.includes(erpCol)) {
+        warnings.push(`Missing required column: ${erpCol}`);
+      }
+    }
+
+    // Build mapped data
+    const mappedData: any[][] = [];
+    const newHeader = Object.keys(template.columnMapping);
+    mappedData.push(newHeader);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const mappedRow: any[] = [];
+      for (const erpCol of newHeader) {
+        const sourceIdx = columnIndexMap[erpCol];
+        const value = sourceIdx !== undefined ? row[sourceIdx] : '';
+        mappedRow.push(value);
+      }
+      mappedData.push(mappedRow);
+    }
+
+    return { mappedData, warnings };
+  };
+
   // Export Functions
   const exportToExcel = async () => {
     if (!file) return;
@@ -487,21 +645,33 @@ const SpreadsheetView: React.FC = () => {
     setShowExportMenu(false);
     
     try {
+      // Map data to ERP format
+      const { mappedData, warnings } = mapDataToERPFormat(file.data);
+      
+      // Show warnings if any
+      if (warnings.length > 0) {
+        const proceed = window.confirm(
+          `Export Warnings:\n${warnings.join('\n')}\n\nDo you want to continue anyway?`
+        );
+        if (!proceed) {
+          setIsExporting(false);
+          return;
+        }
+      }
+
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Sheet1');
 
       // Add data to worksheet
-      file.data.forEach((row, rowIndex) => {
+      mappedData.forEach((row, rowIndex) => {
         const excelRow = worksheet.addRow(row);
         
-        // Apply styles and handle formulas
+        // Apply basic styling (header row gets bold)
         row.forEach((cellValue, colIndex) => {
-          const styleKey = `${rowIndex},${colIndex}`;
-          const cellStyle = file.styles[styleKey];
           const excelCell = excelRow.getCell(colIndex + 1);
+          let finalValue = cellValue;
           
           // Handle formulas - export calculated value if available
-          let finalValue = cellValue;
           if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
             if (hfReady && hfInstance.current) {
               try {
@@ -523,25 +693,10 @@ const SpreadsheetView: React.FC = () => {
           
           excelCell.value = finalValue;
           
-          // Apply styles
-          if (cellStyle) {
-            if (cellStyle.bold) excelCell.font = { ...excelCell.font, bold: true };
-            if (cellStyle.italic) excelCell.font = { ...excelCell.font, italic: true };
-            if (cellStyle.underline) excelCell.font = { ...excelCell.font, underline: true };
-            if (cellStyle.color) {
-              const colorHex = cellStyle.color.replace('#', '');
-              excelCell.font = { ...excelCell.font, color: { argb: `FF${colorHex}` } };
-            }
-            if (cellStyle.bg) {
-              const bgHex = cellStyle.bg.replace('#', '');
-              excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${bgHex}` } };
-            }
-            if (cellStyle.align) {
-              excelCell.alignment = { 
-                horizontal: cellStyle.align === 'center' ? 'center' : cellStyle.align === 'right' ? 'right' : 'left',
-                vertical: 'middle'
-              };
-            }
+          // Apply header styling
+          if (rowIndex === 0) {
+            excelCell.font = { bold: true };
+            excelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
           }
         });
       });
@@ -582,10 +737,23 @@ const SpreadsheetView: React.FC = () => {
     setShowExportMenu(false);
     
     try {
+      // Map data to ERP format
+      const { mappedData, warnings } = mapDataToERPFormat(file.data);
+      
+      // Show warnings if any
+      if (warnings.length > 0) {
+        const proceed = window.confirm(
+          `Export Warnings:\n${warnings.join('\n')}\n\nDo you want to continue anyway?`
+        );
+        if (!proceed) {
+          return;
+        }
+      }
+
       // Convert data to CSV format
       const csvRows: string[] = [];
       
-      file.data.forEach((row, rowIndex) => {
+      mappedData.forEach((row, rowIndex) => {
         const csvRow = row.map((cell, colIndex) => {
           let cellValue = cell;
           
@@ -911,11 +1079,11 @@ const SpreadsheetView: React.FC = () => {
     handleRecordAction('sort', `Transformed range to ${action}`, { action, r1, c1, r2, c2 });
   };
 
-  const startRow = Math.max(0, Math.floor(scrollPos.top / ROW_HEIGHT) - BUFFER_ROWS);
-  const endRow = Math.min(rowCount, Math.ceil((scrollPos.top + viewportSize.height) / ROW_HEIGHT) + BUFFER_ROWS);
-  let startCol = 0; while(startCol < colCount && getColLeft(startCol + 1) < scrollPos.left) startCol++;
+  const startRow = Math.max(0, Math.floor(scrollPos.top / scaledRowHeight) - BUFFER_ROWS);
+  const endRow = Math.min(rowCount, Math.ceil((scrollPos.top + viewportSize.height) / scaledRowHeight) + BUFFER_ROWS);
+  let startCol = 0; while(startCol < colCount && getScaledColLeft(startCol + 1) < scrollPos.left) startCol++;
   startCol = Math.max(0, startCol - BUFFER_COLS);
-  let endCol = startCol; while(endCol < colCount && getColLeft(endCol) < scrollPos.left + viewportSize.width) endCol++;
+  let endCol = startCol; while(endCol < colCount && getScaledColLeft(endCol) < scrollPos.left + viewportSize.width) endCol++;
   endCol = Math.min(colCount, endCol + BUFFER_COLS);
 
   const getSelectionStyle = () => {
@@ -926,10 +1094,10 @@ const SpreadsheetView: React.FC = () => {
     const c2 = Math.max(selection.start.c, selection.end.c);
 
     return {
-      top: r1 * ROW_HEIGHT,
-      left: HEADER_COL_WIDTH + getColLeft(c1),
-      width: getColLeft(c2 + 1) - getColLeft(c1),
-      height: (r2 - r1 + 1) * ROW_HEIGHT,
+      top: r1 * scaledRowHeight,
+      left: scaledHeaderColWidth + getScaledColLeft(c1),
+      width: getScaledColLeft(c2 + 1) - getScaledColLeft(c1),
+      height: (r2 - r1 + 1) * scaledRowHeight,
       pointerEvents: 'none' as const,
     };
   };
@@ -937,11 +1105,35 @@ const SpreadsheetView: React.FC = () => {
   const getActiveCellStyle = () => {
     if (!activeCell) return { display: 'none' };
     return {
-      top: activeCell.r * ROW_HEIGHT,
-      left: HEADER_COL_WIDTH + getColLeft(activeCell.c),
-      width: getColWidth(activeCell.c),
-      height: ROW_HEIGHT,
+      top: activeCell.r * scaledRowHeight,
+      left: scaledHeaderColWidth + getScaledColLeft(activeCell.c),
+      width: getScaledColWidth(activeCell.c),
+      height: scaledRowHeight,
       pointerEvents: 'none' as const,
+    };
+  };
+
+  // Floating toolbar position - appears above selection
+  const getFloatingToolbarStyle = () => {
+    if (!selection || !activeCell || isEditing) return { display: 'none' as const };
+    
+    const r1 = Math.min(selection.start.r, selection.end.r);
+    const c1 = Math.min(selection.start.c, selection.end.c);
+    const c2 = Math.max(selection.start.c, selection.end.c);
+    
+    const selectionLeft = getScaledColLeft(c1);
+    const selectionRight = getScaledColLeft(c2 + 1);
+    const selectionCenterX = scaledHeaderColWidth + (selectionLeft + selectionRight) / 2;
+    
+    // Position above selection, with offset for scroll
+    const topPos = r1 * scaledRowHeight - 48; // 48px above selection
+    
+    return {
+      position: 'absolute' as const,
+      top: Math.max(8, topPos),
+      left: Math.max(scaledHeaderColWidth + 8, selectionCenterX - 140), // Center the ~280px toolbar
+      zIndex: 45,
+      transform: topPos < 8 ? 'translateY(60px)' : 'none', // Move below if too close to top
     };
   };
 
@@ -959,42 +1151,49 @@ const SpreadsheetView: React.FC = () => {
 
         {/* MAIN EDITOR AREA */}
         <div className="flex-1 flex flex-col h-full bg-white text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
-      <div className="flex items-center gap-2 p-2 border-b border-gray-200 bg-[#f8f9fa]">
-        <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
-             <button onClick={onUndo} disabled={file.currentHistoryIndex <= 0} className="p-1.5 hover:bg-gray-100 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Undo size={16} /></button>
-             <button onClick={onRedo} disabled={file.currentHistoryIndex >= file.history.length - 1} className="p-1.5 hover:bg-gray-100 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><Redo size={16} /></button>
+      
+      {/* MINIMAL TOP BAR - Clean & Modern */}
+      <div className="flex items-center justify-between h-12 px-4 border-b border-gray-100 bg-white">
+        {/* Left: Undo/Redo + Cell Reference */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-0.5">
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={onUndo} 
+              disabled={file.currentHistoryIndex <= 0} 
+              title="Undo (Ctrl+Z)"
+              className="rounded-lg"
+            >
+              <Undo size={18} />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={onRedo} 
+              disabled={file.currentHistoryIndex >= file.history.length - 1} 
+              title="Redo (Ctrl+Y)"
+              className="rounded-lg"
+            >
+              <Redo size={18} />
+            </Button>
+          </div>
+          
+          {activeCell && (
+            <div className="hidden sm:flex items-center px-2.5 py-1 bg-muted rounded-lg">
+              <span className="text-xs font-semibold text-foreground">{getColumnLabel(activeCell.c)}{activeCell.r + 1}</span>
+            </div>
+          )}
         </div>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
-        <div className="flex items-center gap-1 flex-shrink-0">
-            <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
-                <button onClick={() => toggleStyle('bold', true)} className="p-1.5 hover:bg-gray-100 text-gray-700"><Bold size={16} /></button>
-                <button onClick={() => toggleStyle('italic', true)} className="p-1.5 hover:bg-gray-100 text-gray-700"><Italic size={16} /></button>
-                <button onClick={() => toggleStyle('underline', true)} className="p-1.5 hover:bg-gray-100 text-gray-700"><Underline size={16} /></button>
-            </div>
-            <div className="w-px h-6 bg-gray-300 mx-1" />
-            <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
-                <button 
-                  onClick={() => { if(activeCell) { setEnrichmentTargetCol(activeCell.c); setEnrichmentPrompt(""); } else { addToast('warning', "Select a column first"); } }} 
-                  className="p-1.5 hover:bg-blue-50 text-blue-600 font-bold flex items-center gap-1" 
-                  title="Enrich (25 Credits)"
-                >
-                  <Globe size={16} /> <span className="text-xs hidden md:inline">Enrich</span>
-                </button>
-            </div>
-            <div className="w-px h-6 bg-gray-300 mx-1" />
-            <div className="flex bg-white rounded-md border border-gray-200 shadow-sm overflow-hidden">
-                <button onClick={() => handleDataAction('trim')} className="p-1.5 hover:bg-gray-100 text-gray-700"><Scissors size={16} /></button>
-                <button onClick={() => handleDataAction('upper')} className="p-1.5 hover:bg-gray-100 text-gray-700"><CaseUpper size={16} /></button>
-                <button onClick={() => handleDataAction('lower')} className="p-1.5 hover:bg-gray-100 text-gray-700"><CaseLower size={16} /></button>
-                <button onClick={() => handleDataAction('title')} className="p-1.5 hover:bg-gray-100 text-gray-700"><CaseSensitive size={16} /></button>
-                <button onClick={() => handleDataAction('dedup')} className="p-1.5 hover:bg-gray-100 text-red-600"><CopyMinus size={16} /></button>
-            </div>
-        </div>
-        <div className="flex-1 flex items-center gap-2">
-            <div className="text-gray-400 italic font-serif select-none px-1">fx</div>
+
+        {/* Center: Formula Bar */}
+        <div className="flex-1 max-w-2xl mx-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg border border-transparent focus-within:border-ring focus-within:bg-background focus-within:shadow-sm transition-all">
+            <span className="text-muted-foreground text-sm font-medium">fx</span>
             <input 
               type="text" 
-              className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
+              placeholder={activeCell ? "Enter value or formula..." : "Select a cell"}
               value={editValue}
               onChange={(e) => {
                 setEditValue(e.target.value);
@@ -1002,54 +1201,112 @@ const SpreadsheetView: React.FC = () => {
               }}
               onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
             />
+          </div>
         </div>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
-        <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isExporting}
-              className="gap-2"
+
+        {/* Right: Export + Zoom */}
+        <div className="flex items-center gap-2">
+          {/* Export with ERP Format inside */}
+          <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={isExporting} className="rounded-lg">
+                <Download size={16} />
+                <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 p-2">
+              <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                Template
+              </div>
+              <div className="space-y-0.5 mb-2">
+                {ERP_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => setSelectedERPFormat(template.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left",
+                      selectedERPFormat === template.id 
+                        ? "bg-blue-50 text-blue-700" 
+                        : "text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    {selectedERPFormat === template.id && <Check size={14} className="text-blue-600" />}
+                    {selectedERPFormat !== template.id && <span className="w-[14px]" />}
+                    {template.name}
+                  </button>
+                ))}
+              </div>
+              <div className="h-px bg-gray-100 my-2" />
+              <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                Download as
+              </div>
+              <div className="space-y-0.5">
+                <button
+                  onClick={exportToExcel}
+                  disabled={isExporting}
+                  className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                >
+                  <FileText size={16} className="text-green-600" />
+                  Excel (.xlsx)
+                </button>
+                <button
+                  onClick={exportToCSV}
+                  disabled={isExporting}
+                  className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                >
+                  <FileText size={16} className="text-blue-600" />
+                  CSV (.csv)
+                </button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Zoom - Minimal */}
+          <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded-xl px-1">
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={() => setZoomLevel(prev => Math.max(0.5, Math.round((prev - 0.1) * 100) / 100))}
+              title="Zoom out"
+              className="h-7 w-7 rounded-lg"
             >
-              <Download size={16} />
-              <span className="hidden md:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
-              <ChevronDown size={14} className={cn("transition-transform", showExportMenu && "rotate-180")} />
+              −
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={exportToExcel}
-              disabled={isExporting}
-              className="gap-2"
+            <span className="w-10 text-center text-xs font-medium text-muted-foreground">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={() => setZoomLevel(prev => Math.min(2, Math.round((prev + 0.1) * 100) / 100))}
+              title="Zoom in"
+              className="h-7 w-7 rounded-lg"
             >
-              <FileText size={16} className="text-green-600" />
-              Export to Excel (.xlsx)
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={exportToCSV}
-              disabled={isExporting}
-              className="gap-2"
-            >
-              <FileText size={16} className="text-blue-600" />
-              Export to CSV (.csv)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              +
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 relative overflow-hidden">
         <div
           ref={containerRef}
-                className="w-full h-full overflow-auto bg-gray-100 relative focus:outline-none"
+          className="w-full h-full overflow-auto bg-gray-100 relative focus:outline-none"
           tabIndex={0}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsGridFocused(true)}
+          onBlur={(e) => {
+            // Only blur if focus moved outside the container
+            if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+              setIsGridFocused(false);
+            }
+          }}
         >
-                <div style={{ width: HEADER_COL_WIDTH + getColLeft(colCount), height: HEADER_ROW_HEIGHT + rowCount * ROW_HEIGHT, position: 'relative' }}>
+                <div style={{ width: scaledHeaderColWidth + getScaledColLeft(colCount), height: scaledHeaderRowHeight + rowCount * scaledRowHeight, position: 'relative', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)' }}>
                     
                     {/* Headers */}
-                    <div className="sticky top-0 z-40 flex h-[24px] bg-[#f8f9fa] shadow-[0_1px_0_#e2e8f0]" style={{ width: HEADER_COL_WIDTH + getColLeft(colCount) }}>
-                        <div onClick={handleSelectAll} className="sticky left-0 z-50 bg-[#f8f9fa] border-r border-gray-300 border-b w-[40px] flex-shrink-0 flex items-center justify-center text-xs font-bold text-blue-600 cursor-pointer">
+                    <div className="sticky top-0 z-40 flex bg-[#f8f9fa] shadow-[0_1px_0_#e2e8f0]" style={{ height: scaledHeaderRowHeight, width: scaledHeaderColWidth + getScaledColLeft(colCount) }}>
+                        <div onClick={handleSelectAll} className="sticky left-0 z-50 bg-[#f8f9fa] border-r border-gray-300 border-b flex-shrink-0 flex items-center justify-center font-bold text-blue-600 cursor-pointer" style={{ width: scaledHeaderColWidth, fontSize: 12 * zoomLevel }}>
                             {activeCell ? `${getColumnLabel(activeCell.c)}${activeCell.r + 1}` : ''}
                         </div>
               <div className="relative flex-1">
@@ -1059,8 +1316,8 @@ const SpreadsheetView: React.FC = () => {
                     return (
                         <div 
                            key={c} 
-                           className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa] group cursor-pointer hover:bg-gray-200"
-                           style={{ left: getColLeft(c), width: getColWidth(c), height: HEADER_ROW_HEIGHT }}
+                           className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center font-semibold text-gray-500 bg-[#f8f9fa] group cursor-pointer hover:bg-gray-200"
+                           style={{ left: getScaledColLeft(c), width: getScaledColWidth(c), height: scaledHeaderRowHeight, fontSize: 12 * zoomLevel }}
                            onClick={() => handleColumnHeaderClick(c)}
                         >
                             {getColumnLabel(c)}
@@ -1076,15 +1333,15 @@ const SpreadsheetView: React.FC = () => {
 
             <div className="relative">
                  {/* Sticky Row Numbers */}
-                 <div className="sticky left-0 z-40 w-[40px] bg-[#f8f9fa] border-r border-gray-300" style={{ height: rowCount * ROW_HEIGHT }}>
+                 <div className="sticky left-0 z-40 bg-[#f8f9fa] border-r border-gray-300" style={{ width: scaledHeaderColWidth, height: rowCount * scaledRowHeight }}>
                     {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                         const r = startRow + i;
                         if (r >= rowCount) return null;
                         return (
                             <div 
                                 key={r}
-                                className="absolute left-0 border-b border-gray-300 flex items-center justify-center text-xs font-semibold text-gray-500 bg-[#f8f9fa] cursor-pointer hover:bg-gray-200"
-                                style={{ top: r * ROW_HEIGHT, width: HEADER_COL_WIDTH, height: ROW_HEIGHT }}
+                                className="absolute left-0 border-b border-gray-300 flex items-center justify-center font-semibold text-gray-500 bg-[#f8f9fa] cursor-pointer hover:bg-gray-200"
+                                style={{ top: r * scaledRowHeight, width: scaledHeaderColWidth, height: scaledRowHeight, fontSize: 12 * zoomLevel }}
                                 onClick={() => handleRowHeaderClick(r)}
                             >
                                 {r + 1}
@@ -1094,7 +1351,7 @@ const SpreadsheetView: React.FC = () => {
                  </div>
 
                  {/* Grid Cells */}
-              <div className="absolute top-0 left-[40px]">
+              <div className="absolute top-0" style={{ left: scaledHeaderColWidth }}>
                 {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                   const r = startRow + i;
                   if (r >= rowCount) return null;
@@ -1107,12 +1364,15 @@ const SpreadsheetView: React.FC = () => {
                     return (
                       <div
                           key={`${r}-${c}`}
-                          className="absolute border-r border-b border-gray-200 bg-white overflow-hidden px-1 whitespace-nowrap flex items-center cursor-cell select-none"
+                          className="absolute border-r border-b border-gray-200 bg-white overflow-hidden whitespace-nowrap flex items-center cursor-cell select-none"
                           style={{
-                              top: r * ROW_HEIGHT,
-                              left: getColLeft(c),
-                              width: getColWidth(c),
-                              height: ROW_HEIGHT,
+                              top: r * scaledRowHeight,
+                              left: getScaledColLeft(c),
+                              width: getScaledColWidth(c),
+                              height: scaledRowHeight,
+                              paddingLeft: 4 * zoomLevel,
+                              paddingRight: 4 * zoomLevel,
+                              fontSize: 14 * zoomLevel,
                               fontWeight: styles.bold ? 'bold' : 'normal',
                               fontStyle: styles.italic ? 'italic' : 'normal',
                               textDecoration: styles.underline ? 'underline' : 'none',
@@ -1140,15 +1400,113 @@ const SpreadsheetView: React.FC = () => {
                     className="absolute border-2 border-blue-600 z-30 pointer-events-none"
                     style={getActiveCellStyle()}
                  />
+                 
+                 {/* FLOATING SELECTION TOOLBAR - Modern & Contextual */}
+                 {selection && activeCell && !isEditing && !isDragging && isGridFocused && (
+                   <div 
+                     className="flex items-center gap-1.5 p-1.5 bg-background/95 backdrop-blur-xl rounded-xl shadow-lg border border-border animate-in fade-in slide-in-from-bottom-2 duration-200"
+                     style={getFloatingToolbarStyle()}
+                   >
+                     {/* Format Group */}
+                     <div className="flex items-center gap-0.5">
+                       <Button 
+                         variant="ghost" 
+                         size="icon-sm"
+                         onClick={() => toggleStyle('bold', true)}
+                         title="Bold (Ctrl+B)"
+                         className="h-7 w-7 rounded-lg"
+                       >
+                         <Bold size={15} />
+                       </Button>
+                       <Button 
+                         variant="ghost" 
+                         size="icon-sm"
+                         onClick={() => toggleStyle('italic', true)}
+                         title="Italic (Ctrl+I)"
+                         className="h-7 w-7 rounded-lg"
+                       >
+                         <Italic size={15} />
+                       </Button>
+                       <Button 
+                         variant="ghost" 
+                         size="icon-sm"
+                         onClick={() => toggleStyle('underline', true)}
+                         title="Underline (Ctrl+U)"
+                         className="h-7 w-7 rounded-lg"
+                       >
+                         <Underline size={15} />
+                       </Button>
+                     </div>
+
+                     <div className="w-px h-5 bg-border" />
+
+                     {/* Transform Dropdown */}
+                     <DropdownMenu open={showTransformMenu} onOpenChange={setShowTransformMenu}>
+                       <DropdownMenuTrigger asChild>
+                         <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-lg">
+                           <Wand2 size={14} />
+                           <span className="hidden sm:inline">Transform</span>
+                           <ChevronDown size={12} className={cn("transition-transform", showTransformMenu && "rotate-180")} />
+                         </Button>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="center" className="w-48">
+                         <DropdownMenuItem onClick={() => { handleDataAction('trim'); setShowTransformMenu(false); }} className="gap-2">
+                           <Scissors size={14} className="text-muted-foreground" />
+                           Trim whitespace
+                         </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => { handleDataAction('upper'); setShowTransformMenu(false); }} className="gap-2">
+                           <CaseUpper size={14} className="text-muted-foreground" />
+                           UPPERCASE
+                         </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => { handleDataAction('lower'); setShowTransformMenu(false); }} className="gap-2">
+                           <CaseLower size={14} className="text-muted-foreground" />
+                           lowercase
+                         </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => { handleDataAction('title'); setShowTransformMenu(false); }} className="gap-2">
+                           <CaseSensitive size={14} className="text-muted-foreground" />
+                           Title Case
+                         </DropdownMenuItem>
+                         <div className="h-px bg-border my-1" />
+                         <DropdownMenuItem onClick={() => { handleDataAction('dedup'); setShowTransformMenu(false); }} className="gap-2 text-destructive focus:text-destructive">
+                           <CopyMinus size={14} />
+                           Remove duplicates
+                         </DropdownMenuItem>
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+
+                     <div className="w-px h-5 bg-border" />
+
+                     {/* Enrich - Primary Action */}
+                     <Button
+                       size="sm"
+                       onClick={() => { 
+                         if(activeCell) { 
+                           setEnrichmentTargetCol(activeCell.c); 
+                           setEnrichmentPrompt(""); 
+                         } else { 
+                           addToast('warning', "Select a column first"); 
+                         } 
+                       }}
+                       title="AI Enrich (25 credits)"
+                       className="h-7 gap-1.5 rounded-lg"
+                     >
+                       <Sparkles size={14} />
+                       <span className="hidden sm:inline">Enrich</span>
+                     </Button>
+                   </div>
+                 )}
+
               {isEditing && activeCell && (
                 <input
-                  className="absolute z-50 px-1 text-sm border-2 border-blue-600 outline-none shadow-lg"
+                  className="absolute z-50 border-2 border-blue-600 outline-none shadow-lg"
                   style={{
-                    top: activeCell.r * ROW_HEIGHT,
-                    left: HEADER_COL_WIDTH + getColLeft(activeCell.c),
-                    width: getColWidth(activeCell.c),
-                    height: ROW_HEIGHT,
-                    font: 'inherit'
+                    top: activeCell.r * scaledRowHeight,
+                    left: scaledHeaderColWidth + getScaledColLeft(activeCell.c),
+                    width: getScaledColWidth(activeCell.c),
+                    height: scaledRowHeight,
+                    fontSize: 14 * zoomLevel,
+                    paddingLeft: 4 * zoomLevel,
+                    paddingRight: 4 * zoomLevel,
                   }}
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}

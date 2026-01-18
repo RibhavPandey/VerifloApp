@@ -6,6 +6,7 @@ import { WorkspaceContextType } from './Workspace';
 import { Job, VerificationDocument, ExtractedField } from '../types';
 import { db } from '../lib/db';
 import { api } from '../lib/api';
+import { useToast } from './ui/toast';
 
 // Standard Fields Configuration with Metadata
 const STANDARD_FIELDS = [
@@ -20,12 +21,19 @@ const STANDARD_FIELDS = [
 const ExtractionSetup: React.FC = () => {
     const { onJobCreated } = useOutletContext<WorkspaceContextType>();
     const navigate = useNavigate();
+    const { addToast } = useToast();
     
     const [pendingUploads, setPendingUploads] = useState<File[]>([]);
     const [selectedFields, setSelectedFields] = useState<string[]>(['Invoice Number', 'Date', 'Total Amount', 'Vendor Name']);
     const [customFields, setCustomFields] = useState<string[]>([]);
     const [customFieldInput, setCustomFieldInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [extractionProgress, setExtractionProgress] = useState<{
+        current: number;
+        total: number;
+        fileName: string;
+        failed: string[];
+    } | null>(null);
 
     const allAvailableFields = useMemo(() => {
         const customObjs = customFields.map(f => ({
@@ -49,6 +57,12 @@ const ExtractionSetup: React.FC = () => {
     const runExtraction = async () => {
         if (pendingUploads.length === 0) return;
         setIsProcessing(true);
+        setExtractionProgress({
+            current: 0,
+            total: pendingUploads.length,
+            fileName: '',
+            failed: []
+        });
         
         const jobId = crypto.randomUUID();
         const newJob: Job = {
@@ -68,7 +82,13 @@ const ExtractionSetup: React.FC = () => {
 
         let extractionErrors: string[] = [];
         
-        for (const file of pendingUploads) {
+        for (let i = 0; i < pendingUploads.length; i++) {
+            const file = pendingUploads[i];
+            setExtractionProgress(prev => ({
+                ...prev!,
+                current: i + 1,
+                fileName: file.name
+            }));
             try {
                const base64 = await new Promise<string>((resolve) => {
                     const reader = new FileReader();
@@ -109,12 +129,17 @@ const ExtractionSetup: React.FC = () => {
                 console.error(`Extraction error for ${file.name}:`, err);
                 const errorMsg = err instanceof Error ? err.message : 'Unknown error';
                 extractionErrors.push(`${file.name}: ${errorMsg}`);
+                setExtractionProgress(prev => ({
+                    ...prev!,
+                    failed: [...prev!.failed, file.name]
+                }));
             }
         }
         
         // Check if any documents were successfully extracted
         if (newDocs.length === 0) {
             setIsProcessing(false);
+            setExtractionProgress(null);
             // Update job status to indicate failure
             const failedJob: Job = { 
                 ...newJob, 
@@ -123,11 +148,11 @@ const ExtractionSetup: React.FC = () => {
             };
             await db.upsertJob(failedJob);
             
-            // Show error to user
-            const errorSummary = extractionErrors.length > 0 
-                ? extractionErrors.join('\n')
+            // Show error to user via toast
+            const firstError = extractionErrors.length > 0 
+                ? extractionErrors[0]
                 : 'No documents could be extracted. Please check your API key and try again.';
-            alert(`Extraction Failed:\n\n${errorSummary}`);
+            addToast('error', 'Extraction Failed', firstError);
             return;
         }
         
@@ -147,23 +172,75 @@ const ExtractionSetup: React.FC = () => {
 
         await db.upsertJob(updatedJob);
         
+        setIsProcessing(false);
+        setExtractionProgress(null);
+        
+        // Show completion summary via toast
+        if (extractionErrors.length > 0) {
+            addToast(
+                'warning', 
+                'Extraction Complete with Issues',
+                `${newDocs.length} extracted, ${extractionErrors.length} failed, ${riskyCount} risky fields`
+            );
+        } else {
+            addToast(
+                'success',
+                'Extraction Complete',
+                `${newDocs.length} document(s) extracted successfully`
+            );
+        }
+        
         // We do NOT use onJobCreated here because we want to redirect to Review view, not Sheet view
         // But onJobCreated redirects to sheet.
         // We will just navigate manually.
         navigate(`/extract/${jobId}/review`);
     };
 
-    if (isProcessing) {
+    if (isProcessing && extractionProgress) {
         return (
-            <div className="h-full flex flex-col items-center justify-center">
-                <div className="animate-spin text-blue-600 mb-4"><Upload size={48} /></div>
-                <h2 className="text-xl font-bold text-gray-900">AI is Analyzing Documents...</h2>
+            <div className="h-full flex flex-col items-center justify-center p-8" style={{ zoom: 0.85 }}>
+                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-lg w-full">
+                    <div className="animate-spin text-blue-600 mb-4 mx-auto w-12 h-12 flex items-center justify-center">
+                        <Upload size={48} />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
+                        AI is Analyzing Documents...
+                    </h2>
+                    <p className="text-sm text-gray-500 text-center mb-6">
+                        Processing: {extractionProgress.fileName}
+                    </p>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden mb-2">
+                        <div 
+                            className="bg-blue-600 h-full transition-all duration-300"
+                            style={{ width: `${(extractionProgress.current / extractionProgress.total) * 100}%` }}
+                        />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-4">
+                        <span>{extractionProgress.current} of {extractionProgress.total}</span>
+                        <span>{Math.round((extractionProgress.current / extractionProgress.total) * 100)}%</span>
+                    </div>
+                    
+                    {extractionProgress.failed.length > 0 && (
+                        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                            <p className="text-xs font-bold text-orange-700 mb-1">
+                                ⚠️ {extractionProgress.failed.length} file(s) failed
+                            </p>
+                            <div className="text-xs text-orange-600 max-h-20 overflow-y-auto">
+                                {extractionProgress.failed.map((name, idx) => (
+                                    <div key={idx}>• {name}</div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-50/50 overflow-y-auto">
+        <div className="h-full flex flex-col items-center justify-center p-8 bg-gray-50/50 overflow-y-auto" style={{ zoom: 0.85 }}>
             <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-4xl w-full">
                 <div className="flex items-start justify-between mb-8">
                     <div>
