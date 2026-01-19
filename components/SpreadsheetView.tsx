@@ -1017,19 +1017,38 @@ const SpreadsheetView: React.FC = () => {
     const c1 = Math.min(selection.start.c, selection.end.c);
     const c2 = Math.max(selection.start.c, selection.end.c);
 
+    let appliedValue: boolean | string;
     for (let r = r1; r <= r2; r++) {
       for (let c = c1; c <= c2; c++) {
         const key = `${r},${c}`;
         const current = newStyles[key] || {};
         if (styleKey === 'align') {
              newStyles[key] = { ...current, [styleKey]: value };
+             appliedValue = value;
         } else {
              const val = current[styleKey as keyof Pick<CellStyle, 'bold'|'italic'|'underline'>];
-             newStyles[key] = { ...current, [styleKey]: !val };
+             const newVal = !val;
+             newStyles[key] = { ...current, [styleKey]: newVal };
+             appliedValue = newVal;
         }
       }
     }
     handleFileChange({ styles: newStyles });
+    
+    // Record formatting action for workflows
+    const styleName = styleKey === 'bold' ? 'Bold' : styleKey === 'italic' ? 'Italic' : styleKey === 'underline' ? 'Underline' : styleKey === 'align' ? `Align ${value}` : styleKey;
+    const action = styleKey === 'align' ? 'set' : (appliedValue ? 'applied' : 'removed');
+    const cellRange = r1 === r2 && c1 === c2 
+      ? `${getColumnLabel(c1)}${r1 + 1}` 
+      : `${getColumnLabel(c1)}${r1 + 1}:${getColumnLabel(c2)}${r2 + 1}`;
+    handleRecordAction('format', `${styleName} ${action} on ${cellRange}`, { 
+      styleKey, 
+      value: appliedValue, 
+      r1, 
+      r2, 
+      c1, 
+      c2 
+    });
   };
 
   const handleDataAction = (action: 'trim' | 'upper' | 'lower' | 'title' | 'dedup') => {
@@ -1209,7 +1228,7 @@ const SpreadsheetView: React.FC = () => {
           {/* Export with ERP Format inside */}
           <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={isExporting} className="rounded-lg">
+              <Button variant="outline" size="sm" disabled={isExporting} className="rounded-xl">
                 <Download size={16} />
                 <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
               </Button>

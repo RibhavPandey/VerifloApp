@@ -24,8 +24,11 @@ const Navbar = () => {
                             <a href="#features" className="font-medium hover:text-primary">
                                 Features
                             </a>
-                            <a href="#benefits" className="font-medium hover:text-primary">
-                                Benefits
+                            <a href="#how-it-works" className="font-medium hover:text-primary">
+                                How It Works
+                            </a>
+                            <a href="#use-cases" className="font-medium hover:text-primary">
+                                Use Cases
                             </a>
                         </>
                     ) : (
@@ -33,8 +36,11 @@ const Navbar = () => {
                             <Link to="/#features" className="font-medium hover:text-primary">
                                 Features
                             </Link>
-                            <Link to="/#benefits" className="font-medium hover:text-primary">
-                                Benefits
+                            <Link to="/#how-it-works" className="font-medium hover:text-primary">
+                                How It Works
+                            </Link>
+                            <Link to="/#use-cases" className="font-medium hover:text-primary">
+                                Use Cases
                             </Link>
                         </>
                     )}
@@ -45,9 +51,13 @@ const Navbar = () => {
                 </div>
 
                 {/* CTA */}
-                    <Button size="lg" className="font-mono font-bold">
-                        Start Free Trial
-                    </Button>
+                <Button 
+                    size="lg" 
+                    className="font-mono font-bold"
+                    onClick={() => window.location.href = '/auth'}
+                >
+                    Start Free Trial
+                </Button>
             </nav>
         </header>
     );

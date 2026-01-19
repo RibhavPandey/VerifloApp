@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Plus, ScanText, FileSpreadsheet, Play, Trash2, Loader2, Workflow as WorkflowIcon, Zap } from 'lucide-react';
+import { Plus, ScanText, FileSpreadsheet, Play, Trash2, Loader2, Workflow as WorkflowIcon, Zap, X, AlertTriangle } from 'lucide-react';
 import { db } from '../lib/db';
 import { Workflow, ExcelFile, Job } from '../types';
 import { useToast } from './ui/toast';
@@ -35,6 +35,7 @@ const Workflows: React.FC = () => {
         addToast('info', 'Running Workflow', `Executing ${workflow.name}...`);
         let data = targetFile.data.map(row => [...row]);
         let columns = [...targetFile.columns];
+        let styles = { ...targetFile.styles }; // Preserve styles
 
         const deleteColSteps = workflow.steps.filter(s => s.type === 'delete_col').sort((a, b) => b.params.colIndex - a.params.colIndex);
         const deleteRowSteps = workflow.steps.filter(s => s.type === 'delete_row').sort((a, b) => b.params.rowIndex - a.params.rowIndex);
@@ -141,6 +142,7 @@ const Workflows: React.FC = () => {
                          if (colIndex >= 0 && colIndex < (data[0]?.length || 0) && operator && value !== undefined) {
                              const headerRow = data[0];
                              const filteredData = [headerRow];
+                             const rowsToKeep = new Set([0]); // Always keep header row
                              
                              for (let r = 1; r < data.length; r++) {
                                  if (!data[r]) continue;
@@ -154,9 +156,50 @@ const Workflows: React.FC = () => {
                                  else if (operator === 'not_empty') shouldInclude = cellValue !== undefined && cellValue !== null && cellValue !== '';
                                  else if (operator === 'empty') shouldInclude = cellValue === undefined || cellValue === null || cellValue === '';
                                  
-                                 if (shouldInclude) filteredData.push(data[r]);
+                                 if (shouldInclude) {
+                                     filteredData.push(data[r]);
+                                     rowsToKeep.add(r);
+                                 }
                              }
                              data = filteredData;
+                             
+                             // Preserve styles only for kept rows, remap row indices
+                             const newStyles: Record<string, any> = {};
+                             const rowMapping = new Map<number, number>();
+                             let newRowIndex = 0;
+                             for (let oldRowIndex = 0; oldRowIndex < data.length + (data.length - filteredData.length); oldRowIndex++) {
+                                 if (rowsToKeep.has(oldRowIndex)) {
+                                     rowMapping.set(oldRowIndex, newRowIndex);
+                                     newRowIndex++;
+                                 }
+                             }
+                             
+                             for (const [key, style] of Object.entries(styles)) {
+                                 const [r, c] = key.split(',').map(Number);
+                                 if (rowsToKeep.has(r)) {
+                                     const newR = rowMapping.get(r);
+                                     if (newR !== undefined) {
+                                         newStyles[`${newR},${c}`] = style;
+                                     }
+                                 }
+                             }
+                             styles = newStyles;
+                         }
+                    }
+                    if (step.type === 'format') {
+                         const { styleKey, value, r1, r2, c1, c2 } = step.params;
+                         if (r1 >= 0 && r2 < data.length && c1 >= 0 && c2 < (data[0]?.length || 0)) {
+                             for (let r = r1; r <= r2; r++) {
+                                 for (let c = c1; c <= c2; c++) {
+                                     const key = `${r},${c}`;
+                                     const current = styles[key] || {};
+                                     if (styleKey === 'align') {
+                                         styles[key] = { ...current, [styleKey]: value };
+                                     } else {
+                                         styles[key] = { ...current, [styleKey]: value };
+                                     }
+                                 }
+                             }
                          }
                     }
                 } catch (stepError: any) {
@@ -172,6 +215,18 @@ const Workflows: React.FC = () => {
                         if (columns && columns.length > colIndex) {
                             columns = columns.filter((_, i) => i !== colIndex);
                         }
+                        // Remove styles for deleted column and shift remaining column styles
+                        const newStyles: Record<string, any> = {};
+                        for (const [key, style] of Object.entries(styles)) {
+                            const [r, c] = key.split(',').map(Number);
+                            if (c < colIndex) {
+                                newStyles[key] = style; // Keep styles before deleted column
+                            } else if (c > colIndex) {
+                                newStyles[`${r},${c - 1}`] = style; // Shift styles after deleted column
+                            }
+                            // Skip styles for deleted column (c === colIndex)
+                        }
+                        styles = newStyles;
                     }
                 } catch (stepError: any) {
                     addToast('warning', 'Step Failed', `Delete column step failed`);
@@ -183,13 +238,25 @@ const Workflows: React.FC = () => {
                     const { rowIndex } = step.params;
                     if (rowIndex >= 0 && rowIndex < data.length) {
                         data = data.filter((_, i) => i !== rowIndex);
+                        // Remove styles for deleted row and shift remaining row styles
+                        const newStyles: Record<string, any> = {};
+                        for (const [key, style] of Object.entries(styles)) {
+                            const [r, c] = key.split(',').map(Number);
+                            if (r < rowIndex) {
+                                newStyles[key] = style; // Keep styles before deleted row
+                            } else if (r > rowIndex) {
+                                newStyles[`${r - 1},${c}`] = style; // Shift styles after deleted row
+                            }
+                            // Skip styles for deleted row (r === rowIndex)
+                        }
+                        styles = newStyles;
                     }
                 } catch (stepError: any) {
                     addToast('warning', 'Step Failed', `Delete row step failed`);
                 }
             }
 
-            const updatedFile = { ...targetFile, data, columns, lastModified: Date.now() };
+            const updatedFile = { ...targetFile, data, columns, styles, lastModified: Date.now() };
             await db.upsertFile(updatedFile);
 
             const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'success' as const };
@@ -301,14 +368,22 @@ const Workflows: React.FC = () => {
         }
     };
 
+    const [deleteWorkflowId, setDeleteWorkflowId] = useState<string | null>(null);
+
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this workflow?')) return;
+        setDeleteWorkflowId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteWorkflowId) return;
         try {
-            await db.deleteWorkflow(id);
-            setWorkflows(prev => prev.filter(w => w.id !== id));
+            await db.deleteWorkflow(deleteWorkflowId);
+            setWorkflows(prev => prev.filter(w => w.id !== deleteWorkflowId));
             addToast('success', 'Deleted', 'Workflow removed.');
+            setDeleteWorkflowId(null);
         } catch (e) {
             addToast('error', 'Error', 'Failed to delete workflow.');
+            setDeleteWorkflowId(null);
         }
     };
 
@@ -444,6 +519,49 @@ const Workflows: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteWorkflowId && (
+                <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center backdrop-blur-sm" onClick={() => setDeleteWorkflowId(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 border border-gray-200 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle size={24} className="text-red-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Delete Workflow</h3>
+                                    <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                                </div>
+                                <button
+                                    onClick={() => setDeleteWorkflowId(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Are you sure you want to delete <span className="font-semibold text-gray-900">{workflows.find(w => w.id === deleteWorkflowId)?.name}</span>? This will permanently remove the workflow and all its steps.
+                            </p>
+                            <div className="flex items-center justify-end gap-3">
+                                <button
+                                    onClick={() => setDeleteWorkflowId(null)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+                                >
+                                    <Trash2 size={16} />
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

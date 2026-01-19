@@ -186,6 +186,7 @@ const Workspace: React.FC = () => {
       addToast('info', 'Running Workflow', `Executing ${workflow.name}...`);
       let data = targetFile.data.map(row => [...row]);
       let columns = [...targetFile.columns];
+      let styles = { ...targetFile.styles }; // Preserve styles
       
       // Note: Enrich steps calculate and deduct their own cost based on unique items
       // We don't deduct upfront to avoid double-deduction
@@ -342,6 +343,22 @@ const Workspace: React.FC = () => {
                            data = filteredData;
                        }
                   }
+                  if (step.type === 'format') {
+                       const { styleKey, value, r1, r2, c1, c2 } = step.params;
+                       if (r1 >= 0 && r2 < data.length && c1 >= 0 && c2 < (data[0]?.length || 0)) {
+                           for (let r = r1; r <= r2; r++) {
+                               for (let c = c1; c <= c2; c++) {
+                                   const key = `${r},${c}`;
+                                   const current = styles[key] || {};
+                                   if (styleKey === 'align') {
+                                       styles[key] = { ...current, [styleKey]: value };
+                                   } else {
+                                       styles[key] = { ...current, [styleKey]: value };
+                                   }
+                               }
+                           }
+                       }
+                  }
                   if (step.type === 'extraction') {
                        // Extraction steps are for PDF workflows, not spreadsheet workflows
                        // This is a placeholder - actual extraction happens during PDF processing
@@ -362,6 +379,18 @@ const Workspace: React.FC = () => {
                       if (columns && columns.length > colIndex) {
                           columns = columns.filter((_, i) => i !== colIndex);
                       }
+                      // Remove styles for deleted column and shift remaining column styles
+                      const newStyles: Record<string, any> = {};
+                      for (const [key, style] of Object.entries(styles)) {
+                          const [r, c] = key.split(',').map(Number);
+                          if (c < colIndex) {
+                              newStyles[key] = style; // Keep styles before deleted column
+                          } else if (c > colIndex) {
+                              newStyles[`${r},${c - 1}`] = style; // Shift styles after deleted column
+                          }
+                          // Skip styles for deleted column (c === colIndex)
+                      }
+                      styles = newStyles;
                   }
               } catch (stepError: any) {
                   console.error(`Delete column step failed:`, stepError);
@@ -375,6 +404,18 @@ const Workspace: React.FC = () => {
                   const { rowIndex } = step.params;
                   if (rowIndex >= 0 && rowIndex < data.length) {
                       data = data.filter((_, i) => i !== rowIndex);
+                      // Remove styles for deleted row and shift remaining row styles
+                      const newStyles: Record<string, any> = {};
+                      for (const [key, style] of Object.entries(styles)) {
+                          const [r, c] = key.split(',').map(Number);
+                          if (r < rowIndex) {
+                              newStyles[key] = style; // Keep styles before deleted row
+                          } else if (r > rowIndex) {
+                              newStyles[`${r - 1},${c}`] = style; // Shift styles after deleted row
+                          }
+                          // Skip styles for deleted row (r === rowIndex)
+                      }
+                      styles = newStyles;
                   }
               } catch (stepError: any) {
                   console.error(`Delete row step failed:`, stepError);
@@ -383,7 +424,7 @@ const Workspace: React.FC = () => {
           }
 
           // Update the file
-          const updatedFile = { ...targetFile, data, columns, lastModified: Date.now() };
+          const updatedFile = { ...targetFile, data, columns, styles, lastModified: Date.now() };
           setFiles(prev => prev.map(f => f.id === targetFile.id ? updatedFile : f));
           await db.upsertFile(updatedFile);
 
@@ -607,8 +648,8 @@ const Workspace: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3">
-               <div className="flex items-center gap-1.5 px-4 py-2 bg-yellow-50 text-yellow-800 rounded-full border border-yellow-300 text-sm font-bold mr-2 shadow-sm">
-                  <Coins size={16} className="text-yellow-600" />
+               <div className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-sm font-semibold mr-2 shadow-sm">
+                  <Coins size={16} className="text-blue-600" />
                   <span>{credits} Credits</span>
                </div>
 
@@ -625,7 +666,7 @@ const Workspace: React.FC = () => {
                        <button 
                             onClick={handleAutomateClick}
                             disabled={isWorkflowRunning}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                        >
                            {isWorkflowRunning ? (
                                <Loader2 size={16} className="animate-spin text-gray-500" />

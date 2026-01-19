@@ -168,7 +168,7 @@ const Dashboard: React.FC = () => {
           </div>
           <button 
             onClick={handleLoadDemo}
-            className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-lg hover:border-[#ccc] hover:text-[#0a0a0a] transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-all shadow-sm"
           >
             <Sparkles size={14} />
             Try Demo
