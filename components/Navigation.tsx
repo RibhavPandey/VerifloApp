@@ -124,55 +124,6 @@ const Navigation: React.FC<NavigationProps> = ({
             />
           </div>
 
-          {/* Active Files Section */}
-          <div className="mt-6 px-2">
-            <div className={`flex items-center justify-between mb-1.5 px-2.5 h-5 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
-              <span className="text-[11px] font-semibold text-[#999] uppercase tracking-wide">
-                Active Files
-              </span>
-            </div>
-            
-            <div className="space-y-0.5">
-              {files.length === 0 ? (
-                <div className={`px-2.5 py-2 text-[12px] text-[#999] transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                  No files uploaded
-                </div>
-              ) : (
-                files.map(f => {
-                  const job = jobs.find(j => j.fileIds.includes(f.id));
-                  if (!job) return null;
-                  return (
-                    <NavItem
-                      key={f.id}
-                      icon={<FileText size={16} />}
-                      label={f.name}
-                      isActive={location.pathname === `/sheet/${job.id}`}
-                      onClick={() => navigate(`/sheet/${job.id}`)}
-                      isExpanded={isExpanded}
-                    />
-                  );
-                }).filter(Boolean)
-              )}
-            </div>
-            
-            {/* Merge Button - shows only when 2+ files */}
-            {files.length >= 2 && (
-              <button
-                onClick={onMergeClick}
-                style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                className={`mt-2 flex items-center px-3 py-2 rounded-lg border border-dashed border-[#d0d0d0] text-[12px] text-[#666] hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 overflow-hidden ${isExpanded ? 'w-full gap-2' : 'w-[44px] gap-0 justify-center'}`}
-              >
-                <GitMerge size={14} className="flex-shrink-0" />
-                <span 
-                  style={{ transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                  className={`whitespace-nowrap ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
-                >
-                  Merge Files
-                </span>
-              </button>
-            )}
-          </div>
-          
           {/* Recent Section */}
           <div className="mt-6 px-2">
             <div className={`flex items-center mb-1.5 px-2.5 h-5 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>

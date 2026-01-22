@@ -413,7 +413,7 @@ const Workflows: React.FC = () => {
                     </div>
                     <button 
                         onClick={onCreateWorkflow}
-                        className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-all shadow-sm"
+                        className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-all shadow-sm"
                     >
                         <Plus size={16} />
                         Create Workflow
@@ -432,7 +432,7 @@ const Workflows: React.FC = () => {
                         </p>
                         <button 
                             onClick={onCreateWorkflow}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-colors"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-colors"
                         >
                             <Zap size={14} />
                             Create Your First Workflow

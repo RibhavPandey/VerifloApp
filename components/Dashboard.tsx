@@ -11,6 +11,7 @@ import { db } from '../lib/db';
 import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
 import { supabase } from '../lib/supabase';
+import WelcomeModal from './WelcomeModal';
 
 const Dashboard: React.FC = () => {
   const { jobs, onJobCreated, refreshData } = useOutletContext<WorkspaceContextType>();
@@ -25,6 +26,7 @@ const Dashboard: React.FC = () => {
   const [renameJobId, setRenameJobId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
   const [deleteJobId, setDeleteJobId] = useState<string | null>(null);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -35,6 +37,25 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchUser();
+  }, []);
+
+  // Check if this is first visit
+  useEffect(() => {
+    const checkFirstVisit = () => {
+      const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+      // Show modal if user hasn't seen it AND has no projects (truly new user)
+      if (!hasSeenWelcome) {
+        // Small delay for smooth appearance after component mounts
+        const timer = setTimeout(() => {
+          setShowWelcomeModal(true);
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    };
+    
+    // Check after component is fully mounted
+    const timer = setTimeout(checkFirstVisit, 200);
+    return () => clearTimeout(timer);
   }, []);
 
   const getGreeting = () => {
@@ -162,7 +183,7 @@ const Dashboard: React.FC = () => {
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-[28px] font-semibold text-[#0a0a0a] tracking-[-0.02em] mb-1">
-              {getGreeting()}, {userName}
+              {getGreeting()}{userName ? `, ${userName}` : ''}
             </h1>
             <p className="text-[15px] text-[#666]">What would you like to do today?</p>
           </div>
@@ -283,14 +304,25 @@ const Dashboard: React.FC = () => {
                 <FolderOpen size={24} className="text-[#999]" />
               </div>
               <h3 className="text-[15px] font-medium text-[#0a0a0a] mb-1">No projects yet</h3>
-              <p className="text-[13px] text-[#999] mb-5">Create your first project to get started</p>
-              <button 
-                onClick={() => navigate('/extract/new')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-colors"
-              >
-                <Plus size={14} />
-                New Project
-              </button>
+              <p className="text-[13px] text-[#666] mb-5 max-w-sm mx-auto leading-relaxed">
+                Start by extracting PDFs, uploading a spreadsheet, or creating a new sheet.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button 
+                  onClick={() => navigate('/extract/new')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-colors"
+                >
+                  <Plus size={14} />
+                  New Project
+                </button>
+                <button 
+                  onClick={handleLoadDemo}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-colors"
+                >
+                  <Sparkles size={14} />
+                  Try Demo
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -395,6 +427,21 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Welcome Modal */}
+      {showWelcomeModal && (
+        <WelcomeModal
+          userName={userName}
+          onClose={() => {
+            setShowWelcomeModal(false);
+            localStorage.setItem('hasSeenWelcome', 'true');
+          }}
+          onTryDemo={handleLoadDemo}
+          onExtract={() => navigate('/extract/new')}
+          onUpload={() => document.getElementById('hidden-csv-upload')?.click()}
+          onCreateSheet={handleCreateEmpty}
+        />
       )}
     </div>
   );
