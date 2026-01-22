@@ -648,11 +648,6 @@ const Workspace: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3">
-               <div className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-sm font-semibold mr-2 shadow-sm">
-                  <Coins size={16} className="text-blue-600" />
-                  <span>{credits} Credits</span>
-               </div>
-
                <div className="relative">
                    {isRecording ? (
                        <button 
@@ -736,6 +731,12 @@ const Workspace: React.FC = () => {
                        <div className="fixed inset-0 z-[105]" onClick={() => setShowAutomateMenu(false)}></div>
                    )}
                </div>
+               
+               <div className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-sm font-semibold mr-2 shadow-sm">
+                  <Coins size={16} className="text-blue-600" />
+                  <span>{credits} Credits</span>
+               </div>
+
                <div className="h-6 w-px bg-gray-200 mx-1"></div>
                <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"><Bell size={20} /></button>
             </div>

@@ -33,6 +33,12 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              full_name: name,
+              name: name
+            }
+          }
         })
         if (error) throw error
       }
@@ -52,6 +58,9 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth`,
+        }
       })
       if (error) throw error
     } catch (err: any) {

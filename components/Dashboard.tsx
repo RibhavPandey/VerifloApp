@@ -32,8 +32,15 @@ const Dashboard: React.FC = () => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'there';
-        setUserName(name.split(' ')[0]);
+        // Only use name from metadata, never use email
+        const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
+        if (fullName && fullName.trim()) {
+          // Get first name from full name
+          setUserName(fullName.trim().split(' ')[0]);
+        } else {
+          // If no name in metadata, use generic greeting
+          setUserName('there');
+        }
       }
     };
     fetchUser();
