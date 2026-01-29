@@ -4,13 +4,16 @@ import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { chargeCredits, InsufficientCreditsError } from '../utils/credits.js';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
+import { createLogger } from '../utils/logger.js';
 
 const router = express.Router();
 // Note: genAI instance will be created per request to ensure fresh API key
 
 router.post('/', async (req: AuthenticatedRequest, res) => {
+  const logger = createLogger((req as any).requestId);
   try {
     const { file, fields, fileType, fileName } = req.body;
+    logger.info('Extract request received', { userId: req.user?.id, fileType, fileName });
 
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -19,14 +22,29 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
     // Check if API key is set
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.trim() === '') {
-      console.error('ERROR: GEMINI_API_KEY is not set or is empty');
+      logger.error('GEMINI_API_KEY is not set or is empty');
       return res.status(500).json({ 
         error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' 
       });
     }
 
     // Charge credits (Extraction is expensive; 100 credits per document)
-    await chargeCredits(req.user.id, 100);
+    // Note: Credits are charged upfront. If extraction fails after this point,
+    // credits are not refunded (by design - prevents abuse of retries).
+    let creditsCharged = false;
+    try {
+      await chargeCredits(req.user.id, 100);
+      creditsCharged = true;
+    } catch (error: any) {
+      if (error instanceof InsufficientCreditsError) {
+        return res.status(402).json({
+          error: 'Insufficient credits',
+          required: error.required,
+          available: error.available,
+        });
+      }
+      throw error;
+    }
 
     // Store original document in Supabase Storage (avoid DB bloat)
     const storageUrl = process.env.SUPABASE_URL;

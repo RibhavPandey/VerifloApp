@@ -32,7 +32,23 @@ router.post('/stream', async (req: AuthenticatedRequest, res) => {
     }
 
     // Charge credits before streaming starts (5 credits per chat message)
-    await chargeCredits(req.user.id, 5);
+    // Note: Credits are charged upfront. If the request fails after this point,
+    // credits are not refunded (by design - prevents abuse of retries).
+    // For expensive operations, consider charging after successful completion.
+    let creditsCharged = false;
+    try {
+      await chargeCredits(req.user.id, 5);
+      creditsCharged = true;
+    } catch (error: any) {
+      if (error instanceof InsufficientCreditsError) {
+        return res.status(402).json({
+          error: 'Insufficient credits',
+          required: error.required,
+          available: error.available,
+        });
+      }
+      throw error;
+    }
 
     const systemInstruction = isDataMode ? `
                 You are an expert Data Analyst JavaScript Engine.

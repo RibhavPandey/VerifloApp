@@ -12,6 +12,7 @@ import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
 import { supabase } from '../lib/supabase';
 import WelcomeModal from './WelcomeModal';
+import { trackEvent } from '../lib/analytics';
 
 const Dashboard: React.FC = () => {
   const { jobs, onJobCreated, refreshData } = useOutletContext<WorkspaceContextType>();
@@ -44,6 +45,11 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchUser();
+  }, []);
+
+  // Track page view
+  useEffect(() => {
+    trackEvent('page_view', { page: 'dashboard' });
   }, []);
 
   // Check if this is first visit

@@ -564,8 +564,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             ))}
           </div>
 
-          <div className="mt-12 pt-8 text-center text-sm text-muted-foreground">
-            © 2025 ExcelAI Pro. All rights reserved.
+          <div className="mt-12 pt-8 border-t border-border">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+              <div>
+                © 2025 ExcelAI Pro. All rights reserved.
+              </div>
+              <div className="flex gap-6">
+                <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
+                <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

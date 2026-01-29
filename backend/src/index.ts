@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+
+// Initialize Sentry before anything else
+import './utils/sentry.js';
 
 // Load .env file - try multiple locations
 import path from 'path';
@@ -38,10 +42,14 @@ if (!process.env.GEMINI_API_KEY) {
   process.exit(1);
 }
 
+// Import middleware early (before app.use)
+const { authenticate } = await import('./middleware/auth.js');
+const { rateLimit } = await import('./middleware/rateLimit.js');
+const { requestIdMiddleware } = await import('./middleware/requestId.js');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS - Never allow * in production
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
   : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
@@ -72,25 +80,41 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", ...allowedOrigins],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Request ID middleware (must be before routes)
+app.use(requestIdMiddleware);
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Import auth AFTER env is loaded (prevents import-time env issues)
-const { authenticate } = await import('./middleware/auth.js');
-const { rateLimit } = await import('./middleware/rateLimit.js');
-
 // Import routes AFTER env is loaded (prevents import-time env issues)
-const [{ default: extractRoutes }, { default: analyzeRoutes }, { default: enrichRoutes }, { default: chatRoutes }] =
+const [{ default: extractRoutes }, { default: analyzeRoutes }, { default: enrichRoutes }, { default: chatRoutes }, { default: authRoutes }, { default: adminRoutes }] =
   await Promise.all([
     import('./routes/extract.js'),
     import('./routes/analyze.js'),
     import('./routes/enrich.js'),
     import('./routes/chat.js'),
+    import('./routes/auth.js'),
+    import('./routes/admin.js'),
   ]);
 
 // Routes (all protected with authentication)
@@ -98,6 +122,8 @@ app.use('/api/extract', authenticate, rateLimit({ keyPrefix: 'extract', windowMs
 app.use('/api/analyze', authenticate, rateLimit({ keyPrefix: 'analyze', windowMs: 60_000, max: 20 }), analyzeRoutes);
 app.use('/api/enrich', authenticate, rateLimit({ keyPrefix: 'enrich', windowMs: 60_000, max: 30 }), enrichRoutes);
 app.use('/api/chat', authenticate, rateLimit({ keyPrefix: 'chat', windowMs: 60_000, max: 30 }), chatRoutes);
+app.use('/api/auth', authenticate, authRoutes);
+app.use('/api/admin', authenticate, adminRoutes);
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

@@ -1,12 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
-import { Upload, FileText, Tag, Trash2, Plus, ArrowRight } from 'lucide-react';
+import { Upload, FileText, Tag, Trash2, Plus, ArrowRight, X, AlertCircle } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { WorkspaceContextType } from './Workspace';
 import { Job, VerificationDocument, ExtractedField } from '../types';
 import { db } from '../lib/db';
 import { api } from '../lib/api';
 import { useToast } from './ui/toast';
+import { validateFiles, formatFileSize, isImageFile, isPDFFile } from '../lib/file-validation';
 
 // Standard Fields Configuration with Metadata
 const STANDARD_FIELDS = [
@@ -24,6 +25,7 @@ const ExtractionSetup: React.FC = () => {
     const { addToast } = useToast();
     
     const [pendingUploads, setPendingUploads] = useState<File[]>([]);
+    const [uploadErrors, setUploadErrors] = useState<Array<{ file: File; error: string }>>([]);
     const [selectedFields, setSelectedFields] = useState<string[]>(['Invoice Number', 'Date', 'Total Amount', 'Vendor Name']);
     const [customFields, setCustomFields] = useState<string[]>([]);
     const [customFieldInput, setCustomFieldInput] = useState('');
@@ -43,7 +45,40 @@ const ExtractionSetup: React.FC = () => {
     }, [customFields]);
 
     const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) setPendingUploads(prev => [...prev, ...Array.from(e.target.files!)]);
+        if (!e.target.files || e.target.files.length === 0) return;
+        
+        const files = Array.from(e.target.files);
+        
+        // Validate files
+        const validationResult = validateFiles(files, {
+            maxSize: 10 * 1024 * 1024, // 10MB
+            allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'],
+            allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'webp'],
+        });
+        
+        // Add valid files
+        if (validationResult.valid.length > 0) {
+            setPendingUploads(prev => [...prev, ...validationResult.valid]);
+        }
+        
+        // Show errors for invalid files
+        if (validationResult.invalid.length > 0) {
+            setUploadErrors(prev => [...prev, ...validationResult.invalid]);
+            validationResult.invalid.forEach(({ file, error }) => {
+                addToast('error', 'Invalid File', error);
+            });
+        }
+        
+        // Reset input
+        e.target.value = '';
+    };
+    
+    const removeUpload = (index: number) => {
+        setPendingUploads(prev => prev.filter((_, i) => i !== index));
+    };
+    
+    const clearUploadErrors = () => {
+        setUploadErrors([]);
     };
 
     const addCustomField = () => {
@@ -252,15 +287,61 @@ const ExtractionSetup: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="md:col-span-1">
                         <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 h-full text-center hover:bg-gray-50 transition-colors cursor-pointer relative group flex flex-col items-center justify-center min-h-[250px]">
-                            <input type="file" multiple accept=".pdf,.png,.jpg" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleUpload} />
+                            <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleUpload} />
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Upload size={32} /></div>
                             <p className="font-bold text-gray-900">Upload Files</p>
-                            <p className="text-xs text-gray-400 mt-1 mb-4">PDF, PNG, JPG</p>
-                            {pendingUploads.length > 0 && <div className="w-full bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2"><FileText size={14}/> {pendingUploads.length} Selected</div>}
+                            <p className="text-xs text-gray-400 mt-1 mb-4">PDF, PNG, JPG, WebP (max 10MB)</p>
+                            {pendingUploads.length > 0 && (
+                                <div className="w-full space-y-2">
+                                    <div className="bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                                        <FileText size={14}/> {pendingUploads.length} Selected
+                                    </div>
+                                    <div className="max-h-32 overflow-y-auto space-y-1">
+                                        {pendingUploads.map((file, idx) => (
+                                            <div key={idx} className="bg-gray-50 rounded-lg p-2 flex items-center justify-between text-xs">
+                                                <div className="flex-1 min-w-0 text-left">
+                                                    <div className="font-medium text-gray-700 truncate">{file.name}</div>
+                                                    <div className="text-gray-500">{formatFileSize(file.size)}</div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeUpload(idx);
+                                                    }}
+                                                    className="ml-2 p-1 hover:bg-red-100 rounded text-red-600"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="md:col-span-2 flex flex-col">
+                        {uploadErrors.length > 0 && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2 text-red-700 font-bold text-sm">
+                                        <AlertCircle size={16} />
+                                        {uploadErrors.length} file(s) rejected
+                                    </div>
+                                    <button
+                                        onClick={clearUploadErrors}
+                                        className="text-red-600 hover:text-red-800 text-xs"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
+                                <div className="text-xs text-red-600 space-y-1 max-h-20 overflow-y-auto">
+                                    {uploadErrors.map((err, idx) => (
+                                        <div key={idx}>• {err.error}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-center justify-between mb-4"><h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider">Fields to Extract</h3><span className="text-xs text-gray-400">{selectedFields.length} selected</span></div>
                         <div className="grid grid-cols-2 gap-3 mb-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                             {allAvailableFields.map((field) => {

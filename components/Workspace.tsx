@@ -12,6 +12,7 @@ import { db } from '../lib/db';
 import { useToast } from './ui/toast';
 import { worker } from '../lib/worker';
 import ExcelJS from 'exceljs';
+import { validateFiles, formatFileSize } from '../lib/file-validation';
 
 export interface WorkspaceContextType {
     jobs: Job[];
@@ -53,24 +54,43 @@ const Workspace: React.FC = () => {
   const loadData = async () => {
       setIsSyncing(true);
       try {
-          const fetchedJobs = await db.fetchJobs();
+          // Load data in parallel for better performance
+          const [fetchedJobs, fetchedWorkflows, profile] = await Promise.all([
+              db.fetchJobs().catch(err => {
+                  console.error("Failed to fetch jobs:", err);
+                  addToast('error', 'Load Error', 'Failed to load projects. Some data may be missing.');
+                  return [];
+              }),
+              db.fetchWorkflows().catch(err => {
+                  console.error("Failed to fetch workflows:", err);
+                  return [];
+              }),
+              db.getUserProfile().catch(err => {
+                  console.error("Failed to fetch profile:", err);
+                  return null;
+              })
+          ]);
+          
           setJobs(fetchedJobs);
-
-          const fetchedWorkflows = await db.fetchWorkflows();
           setWorkflows(fetchedWorkflows);
-
-          const profile = await db.getUserProfile();
           if (profile) setCredits(profile.credits);
           
           if (fetchedJobs.length > 0) {
               const allFileIds = fetchedJobs.flatMap(j => j.fileIds);
               const uniqueIds = Array.from(new Set(allFileIds));
-              const fetchedFiles = await db.fetchFiles(uniqueIds);
-              setFiles(fetchedFiles);
+              if (uniqueIds.length > 0) {
+                  const fetchedFiles = await db.fetchFiles(uniqueIds).catch(err => {
+                      console.error("Failed to fetch files:", err);
+                      addToast('error', 'Load Error', 'Failed to load some files.');
+                      return [];
+                  });
+                  setFiles(fetchedFiles);
+              }
           }
-      } catch (e) {
+      } catch (e: any) {
           console.error("Failed to load data", e);
-          addToast('error', 'Sync Failed', 'Could not refresh your data. Please try again.');
+          const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+          addToast('error', 'Sync Failed', `Could not refresh your data: ${errorMsg}`);
       } finally {
           setIsSyncing(false);
       }
@@ -198,7 +218,14 @@ const Workspace: React.FC = () => {
 
       try {
           // Execute other steps first (sort, enrich, etc.)
-          for (const step of otherSteps) {
+          for (let stepIdx = 0; stepIdx < otherSteps.length; stepIdx++) {
+              const step = otherSteps[stepIdx];
+              const stepResult: StepResult = {
+                step,
+                success: false,
+                index: stepIdx,
+              };
+              
               try {
                   if (step.type === 'sort') {
                        const { action, r1, c1, r2, c2 } = step.params;
@@ -364,14 +391,48 @@ const Workspace: React.FC = () => {
                        // This is a placeholder - actual extraction happens during PDF processing
                        console.warn('Extraction step in spreadsheet workflow - skipping (extraction is for PDF workflows)');
                   }
+                  
+                  // Mark step as successful
+                  stepResult.success = true;
+                  stepResults.push(stepResult);
               } catch (stepError: any) {
                   console.error(`Step "${step.description}" failed:`, stepError);
-                  addToast('warning', 'Step Failed', `Step "${step.description}" failed: ${stepError.message || 'Unknown error'}`);
+                  stepResult.error = stepError.message || 'Unknown error';
+                  stepResult.success = false;
+                  stepResults.push(stepResult);
+                  failedStepIndex = stepIdx;
+                  
+                  // Show detailed error
+                  addToast('error', 'Step Failed', `Step ${stepIdx + 1}: "${step.description}" failed: ${stepResult.error}`);
+                  
+                  // Ask user if they want to continue or rollback
+                  // For now, we'll continue but mark the failure
+                  // In a more advanced version, we could show a dialog here
               }
+          }
+          
+          // If critical steps failed, consider rollback
+          const criticalFailures = stepResults.filter(r => !r.success && 
+            (r.step.type === 'enrich' || r.step.type === 'filter'));
+          
+          if (criticalFailures.length > 0 && failedStepIndex !== null) {
+              // Show summary of failures
+              const failureSummary = criticalFailures.map(f => 
+                `Step ${f.index + 1}: ${f.step.description}`
+              ).join(', ');
+              addToast('warning', 'Workflow Partially Failed', 
+                `${criticalFailures.length} critical step(s) failed: ${failureSummary}. Some changes may be incomplete.`);
           }
 
           // Execute delete_col steps in reverse order (highest index first) to avoid index shifting
-          for (const step of deleteColSteps) {
+          for (let stepIdx = 0; stepIdx < deleteColSteps.length; stepIdx++) {
+              const step = deleteColSteps[stepIdx];
+              const stepResult: StepResult = {
+                step,
+                success: false,
+                index: otherSteps.length + stepIdx,
+              };
+              
               try {
                   const { colIndex } = step.params;
                   if (colIndex >= 0 && colIndex < (data[0]?.length || 0)) {
@@ -391,15 +452,28 @@ const Workspace: React.FC = () => {
                           // Skip styles for deleted column (c === colIndex)
                       }
                       styles = newStyles;
+                      stepResult.success = true;
+                  } else {
+                      stepResult.error = 'Column index out of bounds';
                   }
+                  stepResults.push(stepResult);
               } catch (stepError: any) {
                   console.error(`Delete column step failed:`, stepError);
-                  addToast('warning', 'Step Failed', `Delete column step failed`);
+                  stepResult.error = stepError.message || 'Unknown error';
+                  stepResults.push(stepResult);
+                  addToast('error', 'Step Failed', `Delete column step failed: ${stepResult.error}`);
               }
           }
 
           // Execute delete_row steps in reverse order (highest index first) to avoid index shifting
-          for (const step of deleteRowSteps) {
+          for (let stepIdx = 0; stepIdx < deleteRowSteps.length; stepIdx++) {
+              const step = deleteRowSteps[stepIdx];
+              const stepResult: StepResult = {
+                step,
+                success: false,
+                index: otherSteps.length + deleteColSteps.length + stepIdx,
+              };
+              
               try {
                   const { rowIndex } = step.params;
                   if (rowIndex >= 0 && rowIndex < data.length) {
@@ -416,11 +490,25 @@ const Workspace: React.FC = () => {
                           // Skip styles for deleted row (r === rowIndex)
                       }
                       styles = newStyles;
+                      stepResult.success = true;
+                  } else {
+                      stepResult.error = 'Row index out of bounds';
                   }
+                  stepResults.push(stepResult);
               } catch (stepError: any) {
                   console.error(`Delete row step failed:`, stepError);
-                  addToast('warning', 'Step Failed', `Delete row step failed`);
+                  stepResult.error = stepError.message || 'Unknown error';
+                  stepResults.push(stepResult);
+                  addToast('error', 'Step Failed', `Delete row step failed: ${stepResult.error}`);
               }
+          }
+          
+          // Summary of execution
+          const successCount = stepResults.filter(r => r.success).length;
+          const failureCount = stepResults.filter(r => !r.success).length;
+          
+          if (failureCount > 0) {
+              console.warn(`Workflow execution completed with ${failureCount} failure(s) out of ${stepResults.length} steps`);
           }
 
           // Update the file
@@ -433,15 +521,39 @@ const Workspace: React.FC = () => {
           await db.upsertWorkflow(updatedWorkflow);
           setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
 
-          addToast('success', 'Workflow Completed', 'Changes applied successfully.');
+          // Show completion message with summary
+          if (failureCount === 0) {
+              addToast('success', 'Workflow Completed', `All ${successCount} step(s) executed successfully.`);
+          } else {
+              addToast('warning', 'Workflow Partially Completed', 
+                `${successCount} step(s) succeeded, ${failureCount} step(s) failed.`);
+          }
           
           return updatedFile;
       } catch (error: any) {
           console.error('Workflow execution failed:', error);
+          
+          // Rollback: restore original file state
+          try {
+              const rolledBackFile = { 
+                  ...targetFile, 
+                  data: originalData, 
+                  columns: originalColumns, 
+                  styles: originalStyles,
+                  lastModified: Date.now()
+              };
+              setFiles(prev => prev.map(f => f.id === targetFile.id ? rolledBackFile : f));
+              await db.upsertFile(rolledBackFile);
+              addToast('info', 'Workflow Rolled Back', 'Changes have been reverted due to critical error.');
+          } catch (rollbackError) {
+              console.error('Failed to rollback workflow:', rollbackError);
+              addToast('error', 'Rollback Failed', 'Failed to restore original file. Please reload the page.');
+          }
+          
           const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'failed' as const };
           await db.upsertWorkflow(updatedWorkflow);
           setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
-          addToast('error', 'Workflow Failed', `Workflow execution failed: ${error.message || 'Unknown error'}`);
+          addToast('error', 'Workflow Failed', `Workflow execution failed: ${error.message || 'Unknown error'}. Changes have been rolled back.`);
           throw error; // Re-throw so caller knows it failed
       }
   };
@@ -557,11 +669,30 @@ const Workspace: React.FC = () => {
     const fileList = event.target.files;
     if (!fileList) return;
 
-    Array.from(fileList).forEach((file: File) => {
+    const files = Array.from(fileList);
+    
+    // Validate files
+    const validationResult = validateFiles(files, {
+        maxSize: 50 * 1024 * 1024, // 50MB for spreadsheets
+        allowedExtensions: ['csv', 'xlsx', 'xls'],
+    });
+    
+    // Show errors for invalid files
+    if (validationResult.invalid.length > 0) {
+        validationResult.invalid.forEach(({ file, error }) => {
+            addToast('error', 'Invalid File', error);
+        });
+    }
+    
+    // Process valid files
+    validationResult.valid.forEach((file: File) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const ab = e.target?.result as ArrayBuffer;
-            if (!ab) return;
+            if (!ab) {
+                addToast('error', 'File Error', `Failed to read ${file.name}`);
+                return;
+            }
             try {
                 let data: any[][] = [];
                 const lowerName = file.name.toLowerCase();
@@ -584,6 +715,12 @@ const Workspace: React.FC = () => {
                     }
                 }
                 
+                // Validate parsed data
+                if (!data || data.length === 0) {
+                    addToast('error', 'File Error', `${file.name} appears to be empty or corrupted.`);
+                    return;
+                }
+                
                 const fileId = crypto.randomUUID();
                 const columns = data[0]?.map(String) || [];
                 const newFile: ExcelFile = {
@@ -604,14 +741,24 @@ const Workspace: React.FC = () => {
                 await db.upsertJob(newJob);
                 await db.upsertFile(newFile);
                 handleJobCreated(newJob, newFile);
+                addToast('success', 'File Uploaded', `${file.name} loaded successfully.`);
 
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
-                addToast('error', 'File Error', 'Failed to parse file.');
+                const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+                addToast('error', 'File Error', `Failed to parse ${file.name}: ${errorMsg}`);
             }
         };
+        
+        reader.onerror = () => {
+            addToast('error', 'File Error', `Failed to read ${file.name}`);
+        };
+        
         reader.readAsArrayBuffer(file);
     });
+    
+    // Reset input
+    event.target.value = '';
   };
 
   return (
@@ -622,7 +769,7 @@ const Workspace: React.FC = () => {
         id="hidden-csv-upload" 
         className="hidden" 
         multiple 
-        accept=".xlsx, .xls, .csv" 
+        accept=".xlsx,.xls,.csv" 
         onChange={handleCSVUpload} 
       />
 

@@ -15,6 +15,8 @@ import { api } from '../lib/api';
 import Sidebar from './Sidebar';
 import { WorkspaceContextType } from './Workspace';
 import ExcelJS from 'exceljs';
+import { validateSpreadsheetData, validateFormula, normalizeData } from '../lib/spreadsheet-validation';
+import { trackEvent } from '../lib/analytics';
 import { Button } from './ui/button';
 import {
   DropdownMenu,
@@ -125,6 +127,7 @@ const SpreadsheetView: React.FC = () => {
       }, 500);
   };
   useEffect(() => {
+      trackEvent('page_view', { page: 'spreadsheet', jobId: id });
       return () => {
           if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
       };
@@ -152,10 +155,26 @@ const SpreadsheetView: React.FC = () => {
                 addToast('error', 'Error', 'File data not found.');
                 return;
             }
+            // Validate loaded file data
+            if (fileData && fileData.data) {
+              const validation = validateSpreadsheetData(fileData.data);
+              if (!validation.valid) {
+                addToast('error', 'Data Validation Error', validation.error || 'Invalid spreadsheet data');
+                // Normalize data to make it valid
+                fileData.data = normalizeData(fileData.data);
+              }
+              if (validation.warnings) {
+                validation.warnings.forEach(warning => {
+                  addToast('warning', 'Performance Warning', warning);
+                });
+              }
+            }
+            
             setFile(fileData);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error loading sheet:", e);
-            addToast('error', 'Error', 'Failed to load sheet.');
+            const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+            addToast('error', 'Error', `Failed to load sheet: ${errorMsg}`);
         } finally {
             setLoading(false);
         }
@@ -189,6 +208,29 @@ const SpreadsheetView: React.FC = () => {
   const handleFileChange = (changes: Partial<ExcelFile>) => {
       if (!file) return;
 
+      // Validate data if it's being changed
+      if (changes.data) {
+        // Normalize data first
+        const normalizedData = normalizeData(changes.data);
+        
+        // Validate normalized data
+        const validation = validateSpreadsheetData(normalizedData);
+        if (!validation.valid) {
+          addToast('error', 'Validation Error', validation.error || 'Invalid spreadsheet data');
+          return;
+        }
+        
+        // Show warnings if any
+        if (validation.warnings && validation.warnings.length > 0) {
+          validation.warnings.forEach(warning => {
+            addToast('warning', 'Performance Warning', warning);
+          });
+        }
+        
+        // Use normalized data
+        changes.data = normalizedData;
+      }
+
       // Ensure we always have a baseline history snapshot
       const baseHistory = (Array.isArray(file.history) && file.history.length > 0)
           ? file.history
@@ -203,7 +245,7 @@ const SpreadsheetView: React.FC = () => {
 
       const updatedFile = { ...file, ...changes, lastModified: Date.now() };
       
-      // Manage History Stack
+      // Manage History Stack (limit to 30 snapshots to prevent memory issues)
       const newSnapshot: FileSnapshot = { 
           data: updatedFile.data, 
           styles: updatedFile.styles,
@@ -213,7 +255,10 @@ const SpreadsheetView: React.FC = () => {
       const historyPast = baseHistory.slice(0, baseIndex + 1);
       const newHistory = [...historyPast, newSnapshot];
       
-      if (newHistory.length > 30) newHistory.shift();
+      // Keep only last 30 snapshots
+      if (newHistory.length > 30) {
+        newHistory.shift();
+      }
 
       updatedFile.history = newHistory;
       updatedFile.currentHistoryIndex = newHistory.length - 1;
@@ -840,15 +885,23 @@ const SpreadsheetView: React.FC = () => {
       if (!newData[activeCell.r]) newData[activeCell.r] = [];
       
       let valToSave: any = editValue;
-      const isFormula = editValue.startsWith('=');
-      if (!isNaN(parseFloat(editValue)) && isFinite(Number(editValue))) {
+      const isFormula = editValue.trim().startsWith('=');
+      
+      // Validate formula if it's a formula
+      if (isFormula) {
+        const formulaValidation = validateFormula(editValue.trim());
+        if (!formulaValidation.valid) {
+          addToast('error', 'Invalid Formula', formulaValidation.error || 'Formula validation failed');
+          return;
+        }
+        valToSave = editValue.trim();
+      } else if (!isNaN(parseFloat(editValue)) && isFinite(Number(editValue))) {
           if (editValue.startsWith('0') && editValue.length > 1 && editValue[1] !== '.') {
              valToSave = editValue;
           } else {
              valToSave = Number(editValue);
           }
       }
-      if (isFormula) valToSave = editValue;
       
       newData[activeCell.r][activeCell.c] = valToSave;
       handleFileChange({ data: newData });

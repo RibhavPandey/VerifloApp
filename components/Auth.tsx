@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { supabase } from "../lib/supabase"
+import { trackEvent } from "../lib/analytics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,9 +17,71 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
   const [name, setName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Validation states
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
+  
+  // Email validation
+  const validateEmail = (value: string): string | null => {
+    if (!value) return 'Email is required'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(value)) return 'Please enter a valid email address'
+    return null
+  }
+  
+  // Password validation
+  const validatePassword = (value: string, isSignUp: boolean): string | null => {
+    if (!value) return 'Password is required'
+    if (isSignUp) {
+      if (value.length < 6) return 'Password must be at least 6 characters'
+      if (value.length > 128) return 'Password is too long (max 128 characters)'
+    }
+    return null
+  }
+  
+  // Name validation
+  const validateName = (value: string): string | null => {
+    if (!isLogin && !value.trim()) return 'Name is required'
+    if (value.length > 100) return 'Name is too long (max 100 characters)'
+    return null
+  }
+  
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    setEmailError(validateEmail(value))
+  }
+  
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setPassword(value)
+    setPasswordError(validatePassword(value, !isLogin))
+  }
+  
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setName(value)
+    setNameError(validateName(value))
+  }
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate all fields
+    const emailErr = validateEmail(email)
+    const passwordErr = validatePassword(password, !isLogin)
+    const nameErr = !isLogin ? validateName(name) : null
+    
+    setEmailError(emailErr)
+    setPasswordError(passwordErr)
+    setNameError(nameErr)
+    
+    if (emailErr || passwordErr || nameErr) {
+      return
+    }
+    
     setIsLoading(true)
     setError(null)
 
@@ -29,6 +92,7 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
           password,
         })
         if (error) throw error
+        trackEvent('user_login', { method: 'email' });
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -41,6 +105,26 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
           }
         })
         if (error) throw error
+        trackEvent('user_signup', { method: 'email' });
+        
+        // Send welcome email (non-blocking)
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            fetch(`${apiUrl}/api/auth/welcome-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ name })
+            }).catch(err => console.error('Failed to send welcome email:', err));
+          }
+        } catch (emailErr) {
+          // Don't block signup if email fails
+          console.error('Welcome email error:', emailErr);
+        }
       }
 
       onSuccess()
@@ -63,8 +147,32 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         }
       })
       if (error) throw error
+      trackEvent('user_login', { method: 'google' });
     } catch (err: any) {
       setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email || !email.includes('@')) {
+      setError('Please enter your email address first')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      if (error) throw error
+      setError(null)
+      alert('Password reset email sent! Please check your inbox.')
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email')
     } finally {
       setIsLoading(false)
     }
@@ -148,10 +256,11 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     type="text"
                     placeholder="John Doe"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={handleNameChange}
                     required={!isLogin}
-                    className="h-12 border-4 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    className={`h-12 border-4 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${nameError ? 'border-red-500' : ''}`}
                   />
+                  {nameError && <p className="text-xs text-red-600 mt-1">{nameError}</p>}
                 </div>
               )}
 
@@ -164,10 +273,11 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   required
-                  className="h-12 border-4 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  className={`h-12 border-4 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${emailError ? 'border-red-500' : ''}`}
                 />
+                {emailError && <p className="text-xs text-red-600 mt-1">{emailError}</p>}
               </div>
 
               <div className="space-y-2">
@@ -179,15 +289,23 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                   type="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   required
-                  className="h-12 border-4 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  className={`h-12 border-4 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all ${passwordError ? 'border-red-500' : ''}`}
                 />
+                {passwordError && <p className="text-xs text-red-600 mt-1">{passwordError}</p>}
+                {!isLogin && password && !passwordError && (
+                  <p className="text-xs text-gray-500 mt-1">Password strength: {password.length >= 8 ? 'Strong' : password.length >= 6 ? 'Medium' : 'Weak'}</p>
+                )}
               </div>
 
               {isLogin && (
                 <div className="text-right">
-                  <button type="button" className="text-sm font-bold text-primary hover:underline">
+                  <button 
+                    type="button" 
+                    onClick={handleForgotPassword}
+                    className="text-sm font-bold text-primary hover:underline"
+                  >
                     Forgot password?
                   </button>
                 </div>
@@ -214,6 +332,9 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     setEmail("")
                     setPassword("")
                     setError(null)
+                    setEmailError(null)
+                    setPasswordError(null)
+                    setNameError(null)
                   }}
                   className="ml-2 text-primary hover:underline font-black uppercase"
                 >
