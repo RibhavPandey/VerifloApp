@@ -94,10 +94,12 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         if (error) throw error
         trackEvent('user_login', { method: 'email' });
       } else {
+        const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: `${siteUrl}/auth`,
             data: {
               full_name: name,
               name: name
@@ -140,10 +142,11 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
     setError(null)
 
     try {
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: `${siteUrl}/auth`,
         }
       })
       if (error) throw error
@@ -165,8 +168,9 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
     setError(null)
 
     try {
+      const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${siteUrl}/reset-password`,
       })
       if (error) throw error
       setError(null)
