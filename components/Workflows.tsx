@@ -188,16 +188,19 @@ const Workflows: React.FC = () => {
                     }
                     if (step.type === 'format') {
                          const { styleKey, value, r1, r2, c1, c2 } = step.params;
-                         if (r1 >= 0 && r2 < data.length && c1 >= 0 && c2 < (data[0]?.length || 0)) {
-                             for (let r = r1; r <= r2; r++) {
-                                 for (let c = c1; c <= c2; c++) {
+                         if (styleKey == null || value == null) continue;
+                         const rowCount = data.length;
+                         const colCount = rowCount > 0 ? Math.max(...data.map(r => r?.length || 0), 1) : 0;
+                         const safeR1 = Math.max(0, r1 ?? 0);
+                         const safeR2 = Math.min(rowCount - 1, r2 ?? 0);
+                         const safeC1 = Math.max(0, c1 ?? 0);
+                         const safeC2 = Math.min(colCount - 1, c2 ?? 0);
+                         if (safeR1 <= safeR2 && safeC1 <= safeC2) {
+                             for (let r = safeR1; r <= safeR2; r++) {
+                                 for (let c = safeC1; c <= safeC2; c++) {
                                      const key = `${r},${c}`;
                                      const current = styles[key] || {};
-                                     if (styleKey === 'align') {
-                                         styles[key] = { ...current, [styleKey]: value };
-                                     } else {
-                                         styles[key] = { ...current, [styleKey]: value };
-                                     }
+                                     styles[key] = { ...current, [styleKey]: value };
                                  }
                              }
                          }

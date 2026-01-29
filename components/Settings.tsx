@@ -233,7 +233,8 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="container mx-auto p-6 max-w-4xl">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -365,6 +366,7 @@ const Settings: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
