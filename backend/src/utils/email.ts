@@ -1,12 +1,22 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resendApiKey = process.env.RESEND_API_KEY;
-let resend: Resend | null = null;
+const host = process.env.ZOHO_SMTP_HOST;
+const port = parseInt(process.env.ZOHO_SMTP_PORT || '465', 10);
+const user = process.env.ZOHO_SMTP_USER;
+const pass = process.env.ZOHO_SMTP_PASS;
+const senderEmail = process.env.ZOHO_SENDER_EMAIL || 'noreply@verifloapp.com';
 
-if (resendApiKey) {
-  resend = new Resend(resendApiKey);
+let transporter: nodemailer.Transporter | null = null;
+
+if (host && user && pass) {
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
 } else {
-  console.warn('RESEND_API_KEY not set. Email functionality will be disabled.');
+  console.warn('ZOHO_SMTP_* env vars not set. Email functionality will be disabled.');
 }
 
 export interface EmailOptions {
@@ -17,24 +27,18 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  if (!resend) {
+  if (!transporter) {
     console.warn('Email service not configured. Skipping email send.');
     return false;
   }
 
   try {
-    const { error } = await resend.emails.send({
-      from: options.from || 'Veriflo <noreply@verifloapp.com>',
+    await transporter.sendMail({
+      from: options.from || `Veriflo <${senderEmail}>`,
       to: options.to,
       subject: options.subject,
       html: options.html,
     });
-
-    if (error) {
-      console.error('Failed to send email:', error);
-      return false;
-    }
-
     return true;
   } catch (error) {
     console.error('Email send error:', error);
