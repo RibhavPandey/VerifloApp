@@ -7,7 +7,8 @@ const apiDomain = process.env.ZOHO_MAIL_DOMAIN || 'in'; // 'in' for India, 'com'
 let client: SendMailClient | null = null;
 
 if (rawToken) {
-  const token = rawToken.startsWith('zoho-enczapikey') ? rawToken : `zoho-enczapikey ${rawToken}`;
+  const trimmed = (rawToken || '').trim();
+  const token = trimmed.toLowerCase().startsWith('zoho-enczapikey') ? trimmed : `zoho-enczapikey ${trimmed}`;
   client = new SendMailClient({
     url: '',
     token,
@@ -42,14 +43,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       to: [{ email_address: { address: options.to, name: '' } }],
       subject: options.subject,
       htmlbody: options.html,
-      bounce_address: { address: fromAddr, name: fromName },
-    } as any);
+    });
     return true;
   } catch (error: any) {
     const err = error?.error || error;
     const code = err?.code;
     const details = err?.details;
-    console.error('Email send error:', code || err?.message || error, details ? JSON.stringify(details) : '');
+    const msg = err?.message;
+    console.error('[email] Send failed:', code || msg || 'unknown', JSON.stringify(details || err || {}));
     return false;
   }
 }
