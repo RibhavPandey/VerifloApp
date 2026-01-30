@@ -119,7 +119,7 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         
         // Send welcome email (no session when confirm email is ON, so use public endpoint)
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
           const userEmail = data?.user?.email || email;
           fetch(`${apiUrl}/api/auth/signup-welcome-email`, {
             method: 'POST',
@@ -129,7 +129,13 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         } catch (emailErr) {
           console.error('Welcome email error:', emailErr);
         }
-        sessionStorage.setItem('pendingEmailConfirmation', 'true')
+        
+        // When confirm email is ON: no session until user clicks link. Stay on auth page.
+        if (!data?.session) {
+          sessionStorage.setItem('pendingEmailConfirmation', 'true')
+          setShowConfirmMessage(true)
+          return
+        }
       }
 
       onSuccess()

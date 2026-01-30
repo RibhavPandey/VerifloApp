@@ -175,6 +175,41 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 - Check Supabase RLS policies are set up
 - Verify SUPABASE_URL and SUPABASE_ANON_KEY are correct
 
+## 📧 Email Setup (Confirmation + Welcome)
+
+For confirmation and welcome emails to work:
+
+### Supabase (Confirmation Email)
+1. Supabase Dashboard → **Authentication** → **SMTP Settings**
+2. Enable **Custom SMTP**, use Zoho ZeptoMail:
+   - Host: `smtp.zeptomail.in`
+   - Port: `465` (SSL)
+   - Sender: `support@verifloapp.com` (or your verified domain)
+   - Username: `emailapikey`
+   - Password: Your ZeptoMail API token
+
+### Railway (Backend - Welcome Email)
+Add these env vars:
+```
+ZOHO_SMTP_HOST=smtp.zeptomail.in
+ZOHO_SMTP_PORT=465
+ZOHO_SMTP_USER=emailapikey
+ZOHO_SMTP_PASS=your_zeptomail_token
+ZOHO_SENDER_EMAIL=support@verifloapp.com
+FRONTEND_URL=https://verifloapp.com
+```
+
+### Vercel (Frontend)
+**Critical:** Set `VITE_API_URL` to your Railway backend URL:
+```
+VITE_API_URL=https://your-backend.up.railway.app
+```
+Without this, the welcome email request goes to localhost and fails in production.
+
+### Supabase Auth Settings
+- **Confirm email**: ON (Authentication → Providers → Email)
+- **Redirect URLs**: Add `https://verifloapp.com/auth`
+
 ## 📝 Notes
 
 - **Backend folder**: Railway deploys from `backend/` subdirectory
