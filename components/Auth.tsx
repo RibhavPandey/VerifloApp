@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { supabase } from "../lib/supabase"
 import { trackEvent } from "../lib/analytics"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,14 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
   const [emailError, setEmailError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | null>(null)
+  const [showConfirmMessage, setShowConfirmMessage] = useState(false)
+  
+  useEffect(() => {
+    if (sessionStorage.getItem('pendingEmailConfirmation')) {
+      sessionStorage.removeItem('pendingEmailConfirmation')
+      setShowConfirmMessage(true)
+    }
+  }, [])
   
   // Email validation
   const validateEmail = (value: string): string | null => {
@@ -127,6 +135,7 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
           // Don't block signup if email fails
           console.error('Welcome email error:', emailErr);
         }
+        sessionStorage.setItem('pendingEmailConfirmation', 'true')
       }
 
       onSuccess()
@@ -202,6 +211,12 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
               </h1>
               <p className="text-muted-foreground font-bold">{isLogin ? "Welcome back!" : "Create your account"}</p>
             </div>
+
+            {showConfirmMessage && (
+              <div className="p-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg">
+                Check your mail to confirm your account.
+              </div>
+            )}
 
             {error && (
               <div className="p-3 bg-red-100 border-2 border-red-500 text-red-700 text-sm font-bold rounded">

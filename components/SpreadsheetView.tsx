@@ -1521,7 +1521,7 @@ const SpreadsheetView: React.FC = () => {
                            <ChevronDown size={12} className={cn("transition-transform", showTransformMenu && "rotate-180")} />
                          </Button>
                        </DropdownMenuTrigger>
-                       <DropdownMenuContent align="center" className="w-48">
+                       <DropdownMenuContent align="center" className="w-48 z-[300]">
                          <DropdownMenuItem onClick={() => { handleDataAction('trim'); setShowTransformMenu(false); }} className="gap-2">
                            <Scissors size={14} className="text-muted-foreground" />
                            Trim whitespace
@@ -1602,7 +1602,7 @@ const SpreadsheetView: React.FC = () => {
       )}
 
       {enrichmentTargetCol !== null && enrichmentPrompt !== null && !isProcessingAI && (
-        <div className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center backdrop-blur-sm">
+        <div className="fixed inset-0 z-[250] bg-black/40 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
               <Globe className="text-blue-500" /> Enrich Data
