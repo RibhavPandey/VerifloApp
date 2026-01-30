@@ -55,8 +55,24 @@ const App: React.FC = () => {
         setSession(session);
       } else if (event === 'SIGNED_OUT') {
         setSession(null);
-      } else if (event === 'SIGNED_IN') {
+      } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         setSession(session);
+        // Welcome email for new Google/OAuth signups (no confirmation email for OAuth)
+        if (session?.user?.email) {
+          const created = new Date(session.user.created_at).getTime();
+          const isNewUser = Date.now() - created < 120000;
+          const sentKey = `welcome_sent_${session.user.id}`;
+          if (isNewUser && !sessionStorage.getItem(sentKey)) {
+            sessionStorage.setItem(sentKey, '1');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+            const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User';
+            fetch(`${apiUrl}/api/auth/signup-welcome-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: session.user.email, name })
+            }).catch(() => {});
+          }
+        }
       } else if (event === 'USER_UPDATED') {
         setSession(session);
       } else {
