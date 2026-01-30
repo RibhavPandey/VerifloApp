@@ -103,7 +103,7 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         trackEvent('user_login', { method: 'email' });
       } else {
         const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -117,22 +117,16 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         if (error) throw error
         trackEvent('user_signup', { method: 'email' });
         
-        // Send welcome email (non-blocking)
+        // Send welcome email (no session when confirm email is ON, so use public endpoint)
         try {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            fetch(`${apiUrl}/api/auth/welcome-email`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({ name })
-            }).catch(err => console.error('Failed to send welcome email:', err));
-          }
+          const userEmail = data?.user?.email || email;
+          fetch(`${apiUrl}/api/auth/signup-welcome-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail, name })
+          }).catch(err => console.error('Failed to send welcome email:', err));
         } catch (emailErr) {
-          // Don't block signup if email fails
           console.error('Welcome email error:', emailErr);
         }
         sessionStorage.setItem('pendingEmailConfirmation', 'true')

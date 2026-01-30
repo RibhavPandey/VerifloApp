@@ -117,6 +117,23 @@ const [{ default: extractRoutes }, { default: analyzeRoutes }, { default: enrich
     import('./routes/admin.js'),
   ]);
 
+// Public: signup welcome email (no auth - user has no session until email confirmed)
+const { sendWelcomeEmail } = await import('./utils/email.js');
+app.post('/api/auth/signup-welcome-email', rateLimit({ keyPrefix: 'signup-email', windowMs: 60_000, max: 5 }), async (req, res) => {
+  try {
+    const { email, name } = req.body || {};
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Valid email required' });
+    }
+    const success = await sendWelcomeEmail(email.trim(), (name && typeof name === 'string' ? name : 'User').trim() || 'User');
+    if (success) return res.json({ message: 'Welcome email sent' });
+    return res.status(500).json({ error: 'Failed to send welcome email' });
+  } catch (err: any) {
+    console.error('Signup welcome email error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to send' });
+  }
+});
+
 // Routes (all protected with authentication)
 app.use('/api/extract', authenticate, rateLimit({ keyPrefix: 'extract', windowMs: 60_000, max: 10 }), extractRoutes);
 app.use('/api/analyze', authenticate, rateLimit({ keyPrefix: 'analyze', windowMs: 60_000, max: 20 }), analyzeRoutes);
