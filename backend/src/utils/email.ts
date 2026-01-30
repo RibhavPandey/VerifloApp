@@ -1,14 +1,17 @@
 import { SendMailClient } from 'zeptomail';
 
-const token = process.env.ZOHO_MAIL_TOKEN || process.env.ZOHO_SMTP_PASS;
+const rawToken = process.env.ZOHO_MAIL_TOKEN || process.env.ZOHO_SMTP_PASS;
 const senderEmail = process.env.ZOHO_SENDER_EMAIL || 'noreply@verifloapp.com';
+const apiDomain = process.env.ZOHO_MAIL_DOMAIN || 'in'; // 'in' for India, 'com' for global
 
 let client: SendMailClient | null = null;
 
-if (token) {
+if (rawToken) {
+  const token = rawToken.startsWith('zoho-enczapikey') ? rawToken : `zoho-enczapikey ${rawToken}`;
   client = new SendMailClient({
-    url: 'api.zeptomail.com/',
+    url: '',
     token,
+    domain: apiDomain,
   });
   console.log('[email] ZeptoMail API configured, from:', senderEmail);
 } else {
@@ -39,10 +42,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       to: [{ email_address: { address: options.to, name: '' } }],
       subject: options.subject,
       htmlbody: options.html,
-    });
+      bounce_address: { address: fromAddr, name: fromName },
+    } as any);
     return true;
-  } catch (error) {
-    console.error('Email send error:', error);
+  } catch (error: any) {
+    const err = error?.error || error;
+    const code = err?.code;
+    const details = err?.details;
+    console.error('Email send error:', code || err?.message || error, details ? JSON.stringify(details) : '');
     return false;
   }
 }
