@@ -1,22 +1,18 @@
-import nodemailer from 'nodemailer';
+import { SendMailClient } from 'zeptomail';
 
-const host = process.env.ZOHO_SMTP_HOST;
-const port = parseInt(process.env.ZOHO_SMTP_PORT || '465', 10);
-const user = process.env.ZOHO_SMTP_USER;
-const pass = process.env.ZOHO_SMTP_PASS;
+const token = process.env.ZOHO_MAIL_TOKEN || process.env.ZOHO_SMTP_PASS;
 const senderEmail = process.env.ZOHO_SENDER_EMAIL || 'noreply@verifloapp.com';
 
-let transporter: nodemailer.Transporter | null = null;
+let client: SendMailClient | null = null;
 
-if (host && user && pass) {
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
+if (token) {
+  client = new SendMailClient({
+    url: 'api.zeptomail.com/',
+    token,
   });
+  console.log('[email] ZeptoMail API configured, from:', senderEmail);
 } else {
-  console.warn('ZOHO_SMTP_* env vars not set. Email functionality will be disabled.');
+  console.warn('[email] ZOHO_MAIL_TOKEN or ZOHO_SMTP_PASS not set. Email disabled.');
 }
 
 export interface EmailOptions {
@@ -27,17 +23,22 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  if (!transporter) {
+  if (!client) {
     console.warn('Email service not configured. Skipping email send.');
     return false;
   }
 
   try {
-    await transporter.sendMail({
-      from: options.from || `Veriflo <${senderEmail}>`,
-      to: options.to,
+    const fromStr = options.from || `Veriflo <${senderEmail}>`;
+    const match = fromStr.match(/^(.+?)\s*<([^>]+)>$/);
+    const fromName = match ? match[1].trim() : 'Veriflo';
+    const fromAddr = match ? match[2].trim() : senderEmail;
+
+    await client.sendMail({
+      from: { address: fromAddr, name: fromName },
+      to: [{ email_address: { address: options.to, name: '' } }],
       subject: options.subject,
-      html: options.html,
+      htmlbody: options.html,
     });
     return true;
   } catch (error) {

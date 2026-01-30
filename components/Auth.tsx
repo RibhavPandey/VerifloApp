@@ -125,7 +125,9 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: userEmail, name })
-          }).catch(err => console.error('Failed to send welcome email:', err));
+          })
+            .then(r => { if (!r.ok) console.error('Welcome email failed:', r.status, r.statusText); })
+            .catch(err => console.error('Welcome email request failed:', err));
         } catch (emailErr) {
           console.error('Welcome email error:', emailErr);
         }

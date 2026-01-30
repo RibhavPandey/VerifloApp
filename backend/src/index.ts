@@ -125,11 +125,17 @@ app.post('/api/auth/signup-welcome-email', rateLimit({ keyPrefix: 'signup-email'
     if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Valid email required' });
     }
-    const success = await sendWelcomeEmail(email.trim(), (name && typeof name === 'string' ? name : 'User').trim() || 'User');
-    if (success) return res.json({ message: 'Welcome email sent' });
+    const displayName = (name && typeof name === 'string' ? name : 'User').trim() || 'User';
+    console.log('[signup-welcome-email] Sending to:', email);
+    const success = await sendWelcomeEmail(email.trim(), displayName);
+    if (success) {
+      console.log('[signup-welcome-email] Sent successfully to:', email);
+      return res.json({ message: 'Welcome email sent' });
+    }
+    console.error('[signup-welcome-email] Failed to send to:', email);
     return res.status(500).json({ error: 'Failed to send welcome email' });
   } catch (err: any) {
-    console.error('Signup welcome email error:', err);
+    console.error('[signup-welcome-email] Error:', err);
     return res.status(500).json({ error: err.message || 'Failed to send' });
   }
 });

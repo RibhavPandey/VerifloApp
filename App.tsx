@@ -70,7 +70,9 @@ const App: React.FC = () => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: session.user.email, name })
-            }).catch(() => {});
+            })
+              .then(r => { if (!r.ok) console.error('Welcome email failed:', r.status); })
+              .catch(err => console.error('Welcome email request failed:', err));
           }
         }
       } else if (event === 'USER_UPDATED') {
