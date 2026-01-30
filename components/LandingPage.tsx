@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import Navbar from './Navbar';
+import VerifloLogo from './VerifloLogo';
 import {
   ArrowRight,
   Sparkles,
@@ -168,7 +169,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               See It In Action
             </h2>
             <p className="text-lg text-muted-foreground">
-              Watch how ExcelAI Pro transforms your workflow in under 2 minutes
+              Watch how Veriflo transforms your workflow in under 2 minutes
             </p>
           </div>
           
@@ -324,7 +325,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               Loved by Finance & Data Teams
             </h2>
             <p className="text-lg text-muted-foreground">
-              See what professionals are saying about ExcelAI Pro
+              See what professionals are saying about Veriflo
             </p>
           </div>
 
@@ -339,7 +340,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               {
                 name: "Michael Rodriguez",
                 role: "Data Analyst, FinanceCo",
-                content: "The multi-file processing feature is incredible. We process 50+ spreadsheets monthly and ExcelAI Pro handles everything automatically. Highly recommend.",
+                content: "The multi-file processing feature is incredible. We process 50+ spreadsheets monthly and Veriflo handles everything automatically. Highly recommend.",
                 rating: 5,
               },
               {
@@ -424,7 +425,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
                 The Problem With Spreadsheets? They Don't Think.
               </h2>
               <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
-                Most Excel tools just move data around. ExcelAI Pro understands your data, finds patterns, suggests improvements, and automates repetitive work. You get insights, not just spreadsheets. You get time back, not more busywork.
+                Most Excel tools just move data around. Veriflo understands your data, finds patterns, suggests improvements, and automates repetitive work. You get insights, not just spreadsheets. You get time back, not more busywork.
               </p>
 
               <div className="space-y-4">
@@ -535,9 +536,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             <div>
               <div className="mb-4 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center border-4 border-black bg-primary">
-                  <FileSpreadsheet className="h-5 w-5 text-primary-foreground" />
+                  <VerifloLogo size={20} />
                 </div>
-                <span className="font-mono text-lg font-bold">ExcelAI Pro</span>
+                <span className="font-mono text-lg font-bold">Veriflo</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 AI-powered Excel automation for finance, operations, and data teams.
@@ -567,7 +568,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           <div className="mt-12 pt-8 border-t border-border">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
               <div>
-                © 2025 ExcelAI Pro. All rights reserved.
+                © 2025 Veriflo. All rights reserved.
               </div>
               <div className="flex gap-6">
                 <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>

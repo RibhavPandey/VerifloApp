@@ -1,6 +1,6 @@
-# ExcelAI Backend API
+# Veriflo Backend API
 
-Backend API server for ExcelAI Pro application.
+Backend API server for Veriflo application.
 
 ## Setup
 

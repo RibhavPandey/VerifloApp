@@ -1,14 +1,20 @@
-import { Resend } from 'resend';
+import { SendMailClient } from 'zeptomail';
 
-const apiKey = (process.env.RESEND_API_KEY || '').trim();
-const senderEmail = process.env.RESEND_SENDER_EMAIL || 'onboarding@resend.dev';
+// ZeptoMail India (zeptomail.zoho.in) - domain must be 'in'
+const rawToken = (process.env.ZOHO_MAIL_TOKEN || process.env.ZOHO_SMTP_PASS || '').trim();
+const senderEmail = process.env.ZOHO_SENDER_EMAIL || 'support@verifloapp.com';
+const domain = 'in'; // India - zeptomail.zoho.in
 
-let resend: Resend | null = null;
-if (apiKey) {
-  resend = new Resend(apiKey);
-  console.log('[email] Resend configured, from:', senderEmail);
+let client: SendMailClient | null = null;
+
+if (rawToken) {
+  // Remove quotes/newlines if pasted with them
+  const cleaned = rawToken.replace(/^["']|["']$/g, '').replace(/\r?\n/g, '').trim();
+  const token = cleaned.toLowerCase().startsWith('zoho-enczapikey') ? cleaned : `Zoho-enczapikey ${cleaned}`;
+  client = new SendMailClient({ url: '', token, domain });
+  console.log('[email] ZeptoMail India configured, from:', senderEmail);
 } else {
-  console.warn('[email] RESEND_API_KEY not set. Email disabled.');
+  console.warn('[email] ZOHO_MAIL_TOKEN not set. Email disabled.');
 }
 
 export interface EmailOptions {
@@ -19,26 +25,28 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  if (!resend) {
+  if (!client) {
     console.warn('Email service not configured. Skipping email send.');
     return false;
   }
 
   try {
     const fromStr = options.from || `Veriflo <${senderEmail}>`;
-    const { data, error } = await resend.emails.send({
-      from: fromStr,
-      to: options.to,
+    const match = fromStr.match(/^(.+?)\s*<([^>]+)>$/);
+    const fromName = match ? match[1].trim() : 'Veriflo';
+    const fromAddr = match ? match[2].trim() : senderEmail;
+
+    await client.sendMail({
+      from: { address: fromAddr, name: fromName },
+      to: [{ email_address: { address: options.to, name: '' } }],
       subject: options.subject,
-      html: options.html,
+      htmlbody: options.html,
     });
-    if (error) {
-      console.error('[email] Send failed:', error.message, JSON.stringify(error));
-      return false;
-    }
-    return !!data?.id;
+    return true;
   } catch (error: any) {
-    console.error('[email] Send failed:', error?.message || error);
+    const err = error?.error || error;
+    const details = err?.details || err;
+    console.error('[email] Send failed:', err?.code || err?.message, JSON.stringify(details));
     return false;
   }
 }
@@ -50,15 +58,15 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<boo
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to ExcelAI Pro</title>
+        <title>Welcome to Veriflo</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">Welcome to ExcelAI Pro!</h1>
+          <h1 style="color: white; margin: 0;">Welcome to Veriflo!</h1>
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
           <p>Hi ${name || 'there'},</p>
-          <p>Thank you for signing up for ExcelAI Pro! We're excited to have you on board.</p>
+          <p>Thank you for signing up for Veriflo! We're excited to have you on board.</p>
           <p>Get started by:</p>
           <ul>
             <li>Uploading your first spreadsheet</li>
@@ -81,7 +89,7 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<boo
 
   return sendEmail({
     to: email,
-    subject: 'Welcome to ExcelAI Pro!',
+    subject: 'Welcome to Veriflo!',
     html,
   });
 }
@@ -102,7 +110,7 @@ export async function sendCreditLowWarning(email: string, name: string, credits:
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
           <p>Hi ${name || 'there'},</p>
           <p>Your account is running low on credits. You currently have <strong>${credits} credits</strong> remaining.</p>
-          <p>To continue using ExcelAI Pro, please consider upgrading your plan or purchasing additional credits.</p>
+          <p>To continue using Veriflo, please consider upgrading your plan or purchasing additional credits.</p>
           <p style="margin-top: 30px;">
             <a href="${process.env.FRONTEND_URL || 'https://verifloapp.com'}/pricing" 
                style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
@@ -119,7 +127,7 @@ export async function sendCreditLowWarning(email: string, name: string, credits:
 
   return sendEmail({
     to: email,
-    subject: 'Low Credits Warning - ExcelAI Pro',
+    subject: 'Low Credits Warning - Veriflo',
     html,
   });
 }
@@ -139,7 +147,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string): P
         </div>
         <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
           <p>Hi there,</p>
-          <p>We received a request to reset your password for your ExcelAI Pro account.</p>
+          <p>We received a request to reset your password for your Veriflo account.</p>
           <p>Click the button below to reset your password:</p>
           <p style="margin-top: 30px; text-align: center;">
             <a href="${resetUrl}" 
@@ -161,7 +169,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string): P
 
   return sendEmail({
     to: email,
-    subject: 'Reset Your Password - ExcelAI Pro',
+    subject: 'Reset Your Password - Veriflo',
     html,
   });
 }

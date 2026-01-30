@@ -66,7 +66,7 @@ git commit -m "Initial commit"
 2. **Create GitHub repository**:
    - Go to github.com
    - Click "New Repository"
-   - Name it (e.g., "excelai-pro")
+   - Name it (e.g., "veriflo")
    - **DON'T** initialize with README
    - Click "Create repository"
 
@@ -189,13 +189,13 @@ For confirmation and welcome emails to work:
    - Password: Your ZeptoMail API token
 
 ### Railway (Backend - Welcome Email)
-Uses Resend HTTP API. Add:
+Uses ZeptoMail India (zeptomail.zoho.in). Add:
 ```
-RESEND_API_KEY=re_xxxxxxxxx
-RESEND_SENDER_EMAIL=onboarding@resend.dev
+ZOHO_MAIL_TOKEN=your_send_mail_token_from_api_tab
+ZOHO_SENDER_EMAIL=support@verifloapp.com
 FRONTEND_URL=https://verifloapp.com
 ```
-Get API key from https://resend.com → API Keys. Use `onboarding@resend.dev` for testing (no domain verification). For production, add and verify your domain in Resend, then set `RESEND_SENDER_EMAIL=support@verifloapp.com`.
+See **ZEPTOMAIL_SETUP.md** for step-by-step instructions to get the token.
 
 ### Vercel (Frontend)
 **Critical:** Set `VITE_API_URL` to your Railway backend URL:

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet } from "lucide-react";
+import VerifloLogo from "./VerifloLogo";
 
 const Navbar = () => {
     const { pathname } = useLocation();
@@ -12,7 +12,7 @@ const Navbar = () => {
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2">
                     <div className="flex h-10 w-10 items-center justify-center border-4 border-black bg-primary shadow-2xs">
-                        <FileSpreadsheet className="h-6 w-6 text-primary-foreground" />
+                        <VerifloLogo size={24} />
                     </div>
                     <span className="font-mono text-xl font-bold">Veriflo</span>
                 </Link>

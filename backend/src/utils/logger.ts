@@ -14,7 +14,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { service: 'excelai-backend' },
+  defaultMeta: { service: 'veriflo-backend' },
   transports: [
     // Write all logs to console
     new winston.transports.Console({
