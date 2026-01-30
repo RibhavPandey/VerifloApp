@@ -189,13 +189,13 @@ For confirmation and welcome emails to work:
    - Password: Your ZeptoMail API token
 
 ### Railway (Backend - Welcome Email)
-Uses ZeptoMail HTTP API (not SMTP - Railway blocks outbound SMTP ports). Add:
+Uses Resend HTTP API. Add:
 ```
-ZOHO_SMTP_PASS=your_zeptomail_send_mail_token
-ZOHO_SENDER_EMAIL=support@verifloapp.com
+RESEND_API_KEY=re_xxxxxxxxx
+RESEND_SENDER_EMAIL=onboarding@resend.dev
 FRONTEND_URL=https://verifloapp.com
 ```
-Or use `ZOHO_MAIL_TOKEN` instead of `ZOHO_SMTP_PASS`. Token from ZeptoMail: Agents > SMTP/API > Send Mail Token.
+Get API key from https://resend.com → API Keys. Use `onboarding@resend.dev` for testing (no domain verification). For production, add and verify your domain in Resend, then set `RESEND_SENDER_EMAIL=support@verifloapp.com`.
 
 ### Vercel (Frontend)
 **Critical:** Set `VITE_API_URL` to your Railway backend URL:

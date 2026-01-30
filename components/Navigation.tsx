@@ -212,7 +212,11 @@ const Navigation: React.FC<NavigationProps> = ({
                 </div>
                 <div className="p-1">
                   <button
-                    onClick={() => navigate('/settings')}
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      setIsHovered(false);
+                      navigate('/settings');
+                    }}
                     className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#444] hover:bg-[#f5f5f5] rounded-lg transition-colors"
                   >
                     <Settings size={15} className="text-[#666]" />
