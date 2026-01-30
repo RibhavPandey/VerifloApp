@@ -52,6 +52,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 export async function sendWelcomeEmail(email: string, name: string): Promise<boolean> {
+  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://verifloapp.com'}/dashboard`;
   const html = `
     <!DOCTYPE html>
     <html>
@@ -60,28 +61,14 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<boo
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Welcome to Veriflo</title>
       </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0;">Welcome to Veriflo!</h1>
-        </div>
-        <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-          <p>Hi ${name || 'there'},</p>
-          <p>Thank you for signing up for Veriflo! We're excited to have you on board.</p>
-          <p>Get started by:</p>
-          <ul>
-            <li>Uploading your first spreadsheet</li>
-            <li>Extracting data from documents</li>
-            <li>Creating automated workflows</li>
-          </ul>
-          <p style="margin-top: 30px;">
-            <a href="${process.env.FRONTEND_URL || 'https://verifloapp.com'}/dashboard" 
-               style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Go to Dashboard
-            </a>
-          </p>
-          <p style="margin-top: 30px; font-size: 14px; color: #666;">
-            If you have any questions, feel free to reach out to our support team.
-          </p>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Arial, sans-serif; color: #111;">
+        <div style="max-width: 520px; margin: 48px auto; padding: 40px; background: #ffffff; border-radius: 16px;">
+          <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Welcome to Veriflo</p>
+          <h1 style="margin: 0 0 16px; font-size: 28px; font-weight: 600; letter-spacing: -0.4px;">Stop fighting your data.</h1>
+          <p style="margin: 0 0 28px; font-size: 16px; color: #444; line-height: 1.6;">If you've ever spent hours fixing spreadsheets or cleaning files just to get usable data — you're not alone. Veriflo automates that work for you.</p>
+          <p style="margin: 0 0 32px; font-size: 15px; color: #555;">Upload a file and see clean, structured data in seconds.</p>
+          <a href="${dashboardUrl}" style="display: inline-block; padding: 14px 30px; background: #111; color: #ffffff; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600;">Upload your first file →</a>
+          <p style="margin-top: 36px; font-size: 13px; color: #888; line-height: 1.5;">If you didn't create a Veriflo account, you can safely ignore this email.</p>
         </div>
       </body>
     </html>
