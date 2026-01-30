@@ -68,9 +68,8 @@ router.post('/users/:userId/suspend', async (req: AuthenticatedRequest, res) => 
     const { userId } = req.params;
     const { suspended } = req.body;
 
-    // For now, we'll use a metadata field. In production, add a 'suspended' column to profiles
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      ban_expires_at: suspended ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : null
+      ban_duration: suspended ? '365d' : 'none'
     });
 
     if (error) throw error;
