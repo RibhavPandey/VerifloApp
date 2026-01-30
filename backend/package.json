@@ -19,7 +19,7 @@
     "helmet": "^8.1.0",
     "multer": "^1.4.5-lts.1",
     "posthog-js": "^1.335.2",
-    "zeptomail": "^7.0.0",
+    "resend": "^4.0.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {

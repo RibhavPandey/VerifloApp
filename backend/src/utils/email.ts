@@ -1,23 +1,14 @@
-import { SendMailClient } from 'zeptomail';
+import { Resend } from 'resend';
 
-const rawToken = process.env.ZOHO_MAIL_TOKEN || process.env.ZOHO_SMTP_PASS;
-const senderEmail = process.env.ZOHO_SENDER_EMAIL || 'noreply@verifloapp.com';
-const apiDomain = (process.env.ZOHO_MAIL_DOMAIN || 'com').toLowerCase(); // 'com' global, 'in' India
+const apiKey = (process.env.RESEND_API_KEY || '').trim();
+const senderEmail = process.env.RESEND_SENDER_EMAIL || 'onboarding@resend.dev';
 
-let client: SendMailClient | null = null;
-
-if (rawToken) {
-  // Trim quotes, newlines, spaces (Railway/env can add these)
-  let trimmed = (rawToken || '').replace(/^["']|["']$/g, '').replace(/\r?\n/g, '').trim();
-  const token = trimmed.toLowerCase().startsWith('zoho-enczapikey') ? trimmed : `Zoho-enczapikey ${trimmed}`;
-  client = new SendMailClient({
-    url: '',
-    token,
-    domain: apiDomain,
-  });
-  console.log('[email] ZeptoMail API configured, from:', senderEmail, 'domain:', apiDomain);
+let resend: Resend | null = null;
+if (apiKey) {
+  resend = new Resend(apiKey);
+  console.log('[email] Resend configured, from:', senderEmail);
 } else {
-  console.warn('[email] ZOHO_MAIL_TOKEN or ZOHO_SMTP_PASS not set. Email disabled.');
+  console.warn('[email] RESEND_API_KEY not set. Email disabled.');
 }
 
 export interface EmailOptions {
@@ -28,30 +19,26 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  if (!client) {
+  if (!resend) {
     console.warn('Email service not configured. Skipping email send.');
     return false;
   }
 
   try {
     const fromStr = options.from || `Veriflo <${senderEmail}>`;
-    const match = fromStr.match(/^(.+?)\s*<([^>]+)>$/);
-    const fromName = match ? match[1].trim() : 'Veriflo';
-    const fromAddr = match ? match[2].trim() : senderEmail;
-
-    await client.sendMail({
-      from: { address: fromAddr, name: fromName },
-      to: [{ email_address: { address: options.to, name: '' } }],
+    const { data, error } = await resend.emails.send({
+      from: fromStr,
+      to: options.to,
       subject: options.subject,
-      htmlbody: options.html,
+      html: options.html,
     });
-    return true;
+    if (error) {
+      console.error('[email] Send failed:', error.message, JSON.stringify(error));
+      return false;
+    }
+    return !!data?.id;
   } catch (error: any) {
-    const err = error?.error || error;
-    const code = err?.code;
-    const details = err?.details;
-    const msg = err?.message;
-    console.error('[email] Send failed:', code || msg || 'unknown', JSON.stringify(details || err || {}));
+    console.error('[email] Send failed:', error?.message || error);
     return false;
   }
 }
