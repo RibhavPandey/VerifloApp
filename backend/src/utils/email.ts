@@ -2,19 +2,20 @@ import { SendMailClient } from 'zeptomail';
 
 const rawToken = process.env.ZOHO_MAIL_TOKEN || process.env.ZOHO_SMTP_PASS;
 const senderEmail = process.env.ZOHO_SENDER_EMAIL || 'noreply@verifloapp.com';
-const apiDomain = process.env.ZOHO_MAIL_DOMAIN || 'in'; // 'in' for India, 'com' for global
+const apiDomain = (process.env.ZOHO_MAIL_DOMAIN || 'com').toLowerCase(); // 'com' global, 'in' India
 
 let client: SendMailClient | null = null;
 
 if (rawToken) {
-  const trimmed = (rawToken || '').trim();
-  const token = trimmed.toLowerCase().startsWith('zoho-enczapikey') ? trimmed : `zoho-enczapikey ${trimmed}`;
+  // Trim quotes, newlines, spaces (Railway/env can add these)
+  let trimmed = (rawToken || '').replace(/^["']|["']$/g, '').replace(/\r?\n/g, '').trim();
+  const token = trimmed.toLowerCase().startsWith('zoho-enczapikey') ? trimmed : `Zoho-enczapikey ${trimmed}`;
   client = new SendMailClient({
     url: '',
     token,
     domain: apiDomain,
   });
-  console.log('[email] ZeptoMail API configured, from:', senderEmail);
+  console.log('[email] ZeptoMail API configured, from:', senderEmail, 'domain:', apiDomain);
 } else {
   console.warn('[email] ZOHO_MAIL_TOKEN or ZOHO_SMTP_PASS not set. Email disabled.');
 }
