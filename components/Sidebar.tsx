@@ -164,6 +164,14 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
     }, [history, historySearchQuery]);
 
+    // Auto-expand textarea with content (up to ~6 lines), no scrollbar
+    useEffect(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }, [prompt]);
+
     // --- CHAT LOGIC ---
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const val = e.target.value;
@@ -517,13 +525,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                                             : 'bg-slate-100 text-slate-800 border-slate-200 font-medium'
                                         }`}>
                                         {m.role === 'assistant' && (
-                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10">
                                                 <button onClick={() => handleCopyMessage(m)} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600" title="Copy"><Copy size={12} /></button>
                                                 <button onClick={() => handleRegenerate(m)} disabled={isLoading} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 disabled:opacity-50" title={messageHadExecutionError(m) ? "Regenerate (free retry)" : "Regenerate"}><RefreshCw size={12} /></button>
                                             </div>
                                         )}
                                         {m.role === 'assistant' ? (
-                                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-slate-900 [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-slate-800 [&>pre]:text-white [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto">
+                                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-slate-900 [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-slate-800 [&>pre]:text-white [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto pr-12">
                                                 {m.content ? <ReactMarkdown>{m.followUps?.length ? stripFollowUpSection(m.content) : m.content}</ReactMarkdown> : null}
                                                 {isLoading && history.length > 0 && m.id === history[history.length - 1].id && (
                                                     <span className="inline-flex items-center gap-1 text-slate-500 text-sm mt-1">
@@ -694,8 +702,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     return files.length >= 2 ? "Type @ to mention a file" : base;
                                 })() : "Upload files to start chat"}
                                 disabled={isLoading}
-                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none max-h-32 placeholder-slate-400 leading-relaxed"
-                                style={{ minHeight: '40px' }}
+                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none overflow-hidden placeholder-slate-400 leading-relaxed"
+                                style={{ minHeight: '40px', maxHeight: '160px' }}
                             />
                         </form>
                     </div>

@@ -14,6 +14,8 @@ interface ChartRendererProps {
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
+const CHART_CAP = 8; // Top N items + "Other" for bar/pie charts
+
 // --- MATH & FORMATTING HELPERS ---
 
 // Calculates a "nice" step size (1, 2, 5, 10...)
@@ -110,6 +112,17 @@ const processData = (rawData: any[]): ChartDataPoint[] => {
   })).filter(d => !isNaN(d.value));
 };
 
+function capData(data: ChartDataPoint[], type: 'bar' | 'line' | 'pie' | 'area'): { chartData: ChartDataPoint[]; fullData: ChartDataPoint[]; wasCapped: boolean } {
+  if (type !== 'bar' && type !== 'pie') return { chartData: data, fullData: data, wasCapped: false };
+  if (data.length <= CHART_CAP) return { chartData: data, fullData: data, wasCapped: false };
+  const sorted = [...data].sort((a, b) => b.value - a.value);
+  const top = sorted.slice(0, CHART_CAP);
+  const rest = sorted.slice(CHART_CAP);
+  const otherSum = rest.reduce((s, d) => s + d.value, 0);
+  const chartData = [...top, { name: 'Other', value: otherSum }];
+  return { chartData, fullData: sorted, wasCapped: true };
+}
+
 export const ChartRenderer: React.FC<ChartRendererProps> = ({ type, data, title, isThumbnail = false, onExpand }) => {
   const [showModal, setShowModal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,6 +143,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ type, data, title,
   }, []);
 
   const processedData = useMemo(() => processData(data), [data]);
+  const { chartData, fullData, wasCapped } = useMemo(() => capData(processedData, type), [processedData, type]);
 
   const handleExpand = () => {
     if (onExpand) onExpand();
@@ -139,7 +153,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ type, data, title,
   const chartContent = (
     <ChartEngine
       type={type}
-      data={processedData}
+      data={chartData}
       width={dimensions.width}
       height={dimensions.height}
       isThumbnail={isThumbnail}
@@ -166,7 +180,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ type, data, title,
       {showModal && (
         <ChartModal
           type={type}
-          data={processedData}
+          data={data}
           title={title}
           onClose={() => setShowModal(false)}
         />
@@ -489,6 +503,8 @@ export const ChartModal: React.FC<{
   onClose: () => void;
 }> = ({ type, data, title, onClose }) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const processedData = useMemo(() => processData(data), [data]);
+  const { chartData, fullData, wasCapped } = useMemo(() => capData(processedData, type), [processedData, type]);
 
   const handleDownload = () => {
     const svg = chartRef.current?.querySelector('svg');
@@ -518,7 +534,7 @@ export const ChartModal: React.FC<{
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.value)) : 0;
+  const maxValue = fullData.length > 0 ? Math.max(...fullData.map(d => d.value)) : 0;
 
   // Render via Portal to break out of any z-index or overflow constraints
   return createPortal(
@@ -540,19 +556,73 @@ export const ChartModal: React.FC<{
         </div>
 
         <div ref={chartRef} className="flex-1 p-8 bg-white overflow-hidden relative">
-          <ChartRenderer type={type} data={data} title={title} isThumbnail={false} />
+          <ChartRenderer type={type} data={chartData} title={title} isThumbnail={false} />
         </div>
 
+        {/* Full data table when capped */}
+        {wasCapped && fullData.length > 0 && (
+          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Full data ({fullData.length} rows)</span>
+              <button
+                onClick={() => {
+                  const header = 'Name,Value\n';
+                  const rows = fullData.map(d => `"${String(d.name).replace(/"/g, '""')}",${d.value}`).join('\n');
+                  navigator.clipboard.writeText(header + rows);
+                }}
+                className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600"
+              >
+                Copy CSV
+              </button>
+            </div>
+            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left py-2 px-3 font-medium text-gray-600">Name</th>
+                    <th className="text-right py-2 px-3 font-medium text-gray-600">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fullData.map((d, i) => (
+                    <tr key={i} className="border-b border-gray-100 last:border-0">
+                      <td className="py-1.5 px-3 text-gray-700">{d.name}</td>
+                      <td className="py-1.5 px-3 text-right text-gray-700">{formatTooltipValue(d.value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Footer Stats */}
-        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex gap-6 text-sm">
-          <div>
-            <span className="text-gray-500 mr-2">Data Points:</span>
-            <span className="font-bold text-gray-700">{data.length}</span>
+        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm">
+          <div className="flex gap-6">
+            <div>
+              <span className="text-gray-500 mr-2">Data Points:</span>
+              <span className="font-bold text-gray-700">{fullData.length}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 mr-2">Max Value:</span>
+              <span className="font-bold text-gray-700">{formatAxisValue(maxValue, maxValue)}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-gray-500 mr-2">Max Value:</span>
-            <span className="font-bold text-gray-700">{formatAxisValue(maxValue, maxValue)}</span>
-          </div>
+          <button
+            onClick={() => {
+              const header = 'Name,Value\n';
+              const rows = fullData.map(d => `"${String(d.name).replace(/"/g, '""')}",${d.value}`).join('\n');
+              const blob = new Blob([header + rows], { type: 'text/csv' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = `${title.replace(/\s+/g, '_')}_data.csv`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }}
+            className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600"
+          >
+            Export CSV
+          </button>
         </div>
 
       </div>
