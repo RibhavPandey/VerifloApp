@@ -52,6 +52,20 @@ const parseFollowUps = (content: string): string[] => {
     return [];
 };
 
+// Strip follow-up section from content so it only appears as buttons (no duplication)
+const stripFollowUpSection = (content: string): string => {
+    const patterns = [
+        /\n\nWant me to:?\s*[\s\S]*$/i,
+        /\n\n(?:You could (?:also )?ask|Next steps?|Follow-up questions?):?\s*[\s\S]*$/i,
+        /\n\n(?:Try asking|Suggested questions?):?\s*[\s\S]*$/i,
+    ];
+    let out = content;
+    for (const p of patterns) {
+        out = out.replace(p, '').trim();
+    }
+    return out;
+};
+
 // Fallback follow-ups when parsing returns empty (uses validated columns)
 const getFallbackFollowUps = (content: string, file?: ExcelFile): string[] => {
     const hasChart = content.includes('chart') || content.includes('Chart');
@@ -494,13 +508,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                         {displayedHistory.map((m) => (
                             <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-slate-800' : 'bg-slate-100 text-slate-500'}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-slate-500' : 'bg-slate-100 text-slate-500'}`}>
                                     {m.role === 'user' ? <User size={14} className="text-white" /> : <Sparkles size={14} />}
                                 </div>
                                 <div className="flex flex-col max-w-[85%] group/msg">
                                     <div className={`p-3 rounded-xl text-[13px] leading-relaxed shadow-sm border relative ${m.role === 'assistant'
                                             ? 'bg-white text-slate-700 border-slate-100'
-                                            : 'bg-slate-800 text-white border-slate-700 font-medium'
+                                            : 'bg-slate-100 text-slate-800 border-slate-200 font-medium'
                                         }`}>
                                         {m.role === 'assistant' && (
                                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
@@ -510,23 +524,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         )}
                                         {m.role === 'assistant' ? (
                                             <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-slate-900 [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-slate-800 [&>pre]:text-white [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto">
-                                                {m.content ? <ReactMarkdown>{m.content}</ReactMarkdown> : null}
+                                                {m.content ? <ReactMarkdown>{m.followUps?.length ? stripFollowUpSection(m.content) : m.content}</ReactMarkdown> : null}
                                                 {isLoading && history.length > 0 && m.id === history[history.length - 1].id && (
-                                                    <>
-                                                        <span className="inline-flex items-center gap-1 text-slate-500 text-sm mt-1">
-                                                            Analyzing
-                                                            <span className="inline-flex gap-0.5">
-                                                                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                                                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                                                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                                                            </span>
+                                                    <span className="inline-flex items-center gap-1 text-slate-500 text-sm mt-1">
+                                                        Analyzing
+                                                        <span className="inline-flex gap-0.5">
+                                                            <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                                            <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                                            <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                                                         </span>
-                                                        {files.length > 0 && !m.parts?.some(p => p.type === 'chart' || p.type === 'table') && (
-                                                            <div className="mt-4 p-3 bg-slate-50/50 border border-slate-100 rounded-xl h-48 flex items-center justify-center">
-                                                                <span className="text-slate-400 text-sm">Calculating...</span>
-                                                            </div>
-                                                        )}
-                                                    </>
+                                                    </span>
                                                 )}
                                             </div>
                                         ) : (
@@ -684,7 +691,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     const { numericCol } = file ? getValidColumnsForPrompts(file) : { numericCol: null };
                                     const col = numericCol || file?.columns?.[0];
                                     const base = col ? `e.g. What's the sum of ${col}?` : "e.g. What's the sum? Create a chart";
-                                    return files.length >= 2 ? `${base} Type @ to mention a file` : base;
+                                    return files.length >= 2 ? "Type @ to mention a file" : base;
                                 })() : "Upload files to start chat"}
                                 disabled={isLoading}
                                 className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none max-h-32 placeholder-slate-400 leading-relaxed"
@@ -695,7 +702,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                         onClick={(e) => handleAISubmit(e as any)}
                         disabled={isLoading || !prompt.trim()}
-                        className="p-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-50 disabled:bg-slate-300 transition-all shadow-sm"
+                        className="p-2 bg-slate-800 text-white rounded-full hover:bg-slate-900 disabled:opacity-50 disabled:bg-slate-300 transition-all shadow-sm"
                     >
                         <Send size={16} />
                     </button>
