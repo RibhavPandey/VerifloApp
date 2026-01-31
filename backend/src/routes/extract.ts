@@ -7,43 +7,56 @@ import { randomUUID } from 'node:crypto';
 import { createLogger } from '../utils/logger.js';
 
 const router = express.Router();
-// Note: genAI instance will be created per request to ensure fresh API key
+
+// Normalize box2d to 0-1000 scale (model may return pixels or 0-1)
+function normalizeBox2d(box: number[] | undefined, imgWidth?: number, imgHeight?: number): number[] | undefined {
+  if (!box || box.length !== 4) return undefined;
+  const [ymin, xmin, ymax, xmax] = box;
+  const maxVal = Math.max(ymin, xmin, ymax, xmax);
+  if (maxVal <= 1) return [ymin * 1000, xmin * 1000, ymax * 1000, xmax * 1000];
+  if (imgWidth && imgHeight && maxVal > 1) {
+    return [
+      (ymin / imgHeight) * 1000,
+      (xmin / imgWidth) * 1000,
+      (ymax / imgHeight) * 1000,
+      (xmax / imgWidth) * 1000,
+    ];
+  }
+  return box;
+}
+
+// Validate and normalize numeric string
+function normalizeNumeric(val: string): string {
+  if (val == null || val === '') return '';
+  const s = String(val).replace(/[^\d.-]/g, '').trim();
+  return s || '';
+}
+
+// Validate date; return confidence 0.5 and flagged if invalid
+function validateDate(val: string): { value: string; confidence: number; flagged: boolean } {
+  if (val == null || val === '') return { value: '', confidence: 0, flagged: true };
+  const s = String(val).trim();
+  const parsed = new Date(s);
+  if (isNaN(parsed.getTime())) return { value: s, confidence: 0.5, flagged: true };
+  return { value: s, confidence: 1, flagged: false };
+}
 
 router.post('/', async (req: AuthenticatedRequest, res) => {
   const logger = createLogger((req as any).requestId);
   try {
-    const { file, fields, fileType, fileName } = req.body;
-    logger.info('Extract request received', { userId: req.user?.id, fileType, fileName });
+    const { file, fields, fileType, fileName, includeLineItems } = req.body;
+    logger.info('Extract request received', { userId: req.user?.id, fileType, fileName, includeLineItems });
 
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    // Check if API key is set
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.trim() === '') {
       logger.error('GEMINI_API_KEY is not set or is empty');
       return res.status(500).json({ 
         error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' 
       });
-    }
-
-    // Charge credits (Extraction is expensive; 100 credits per document)
-    // Note: Credits are charged upfront. If extraction fails after this point,
-    // credits are not refunded (by design - prevents abuse of retries).
-    let creditsCharged = false;
-    try {
-      await chargeCredits(req.user.id, 100);
-      creditsCharged = true;
-    } catch (error: any) {
-      if (error instanceof InsufficientCreditsError) {
-        return res.status(402).json({
-          error: 'Insufficient credits',
-          required: error.required,
-          available: error.available,
-        });
-      }
-      throw error;
     }
 
     // Store original document in Supabase Storage (avoid DB bloat)
@@ -111,12 +124,30 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       return res.status(400).json({ error: 'File too large (max 10MB)' });
     }
 
-    // Add timeout wrapper
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Request timeout')), 60000)
     );
 
-    const prompt = `Extract only these fields: ${fields.join(', ')}. Return JSON array of objects { key, value, confidence, box2d: [ymin, xmin, ymax, xmax] }.`;
+    const fieldRules = [
+      'Date: Use ISO 8601 (YYYY-MM-DD) or keep original if ambiguous.',
+      'Total Amount, Tax Amount: Numeric only, no currency symbols; use . for decimals.',
+      'Invoice Number, PO Number: Exact string as shown.',
+      'Vendor Name: Full business name.',
+      'For missing fields: use empty string and confidence 0. Do not guess.',
+      'box2d: Normalized 0-1000 coordinates [ymin, xmin, ymax, xmax] as fraction of image dimensions.',
+    ].join(' ');
+
+    const basePrompt = `You are extracting data from an invoice or receipt document.
+Extract only these header fields: ${fields.join(', ')}.
+Rules: ${fieldRules}
+Return strict JSON only, no markdown or explanation.`;
+
+    const fullPrompt = includeLineItems
+      ? `${basePrompt}
+Also extract line items as array. Each line: description, quantity, unitPrice, lineTotal (numbers where possible).
+Return JSON: { "fields": [ { "key", "value", "confidence", "box2d" } ], "lineItems": [ { "description", "quantity", "unitPrice", "lineTotal", "confidence" } ] }`
+      : `${basePrompt}
+Return JSON array: [ { "key", "value", "confidence", "box2d": [ymin, xmin, ymax, xmax] } ]`;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
@@ -127,29 +158,87 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
           data: file
         }
       },
-      prompt
+      fullPrompt
     ]);
 
     const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
     const response = await result.response;
-    const text = response.text() || "[]";
+    const text = response.text() || (includeLineItems ? '{}' : '[]');
     
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    const jsonStr = jsonMatch ? jsonMatch[0] : "[]";
+    let extractedFields: any[] = [];
+    let lineItems: any[] = [];
     
-    let extractedFields = [];
     try {
-      extractedFields = JSON.parse(jsonStr).map((f: any) => ({
-        ...f,
-        confidence: f.confidence || 0.9,
-        flagged: false
-      }));
+      if (includeLineItems) {
+        const objMatch = text.match(/\{[\s\S]*\}/);
+        const objStr = objMatch ? objMatch[0] : '{}';
+        const obj = JSON.parse(objStr);
+        extractedFields = Array.isArray(obj.fields) ? obj.fields : [];
+        lineItems = Array.isArray(obj.lineItems) ? obj.lineItems : [];
+      } else {
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : '[]';
+        extractedFields = JSON.parse(jsonStr);
+      }
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      extractedFields = [];
+      return res.status(500).json({ error: 'Extraction failed: invalid response from AI.' });
+    }
+
+    const numericKeys = ['Total Amount', 'Tax Amount', 'total', 'tax', 'amount'];
+    const dateKeys = ['Date', 'Invoice Date', 'Transaction Date', 'date'];
+
+    extractedFields = extractedFields.map((f: any) => {
+      let value = f.value ?? '';
+      let confidence = typeof f.confidence === 'number' ? f.confidence : 0.9;
+      let flagged = !!f.flagged;
+      const key = (f.key || '').trim();
+
+      if (numericKeys.some(n => key.toLowerCase().includes(n.toLowerCase()))) {
+        value = normalizeNumeric(value);
+      }
+      if (dateKeys.some(d => key.toLowerCase().includes(d.toLowerCase()))) {
+        const vd = validateDate(value);
+        value = vd.value;
+        if (vd.flagged) { confidence = vd.confidence; flagged = true; }
+      }
+      const box2d = normalizeBox2d(f.box2d);
+      return {
+        ...f,
+        key: key || f.key,
+        value,
+        confidence,
+        flagged,
+        box2d
+      };
+    });
+
+    lineItems = lineItems.map((li: any) => ({
+      description: String(li.description ?? '').trim(),
+      quantity: typeof li.quantity === 'number' ? li.quantity : normalizeNumeric(String(li.quantity ?? '')) || 0,
+      unitPrice: typeof li.unitPrice === 'number' ? li.unitPrice : normalizeNumeric(String(li.unitPrice ?? '')) || 0,
+      lineTotal: typeof li.lineTotal === 'number' ? li.lineTotal : normalizeNumeric(String(li.lineTotal ?? '')) || 0,
+      confidence: typeof li.confidence === 'number' ? li.confidence : 0.9,
+    }));
+
+    try {
+      await chargeCredits(req.user.id, 100);
+    } catch (error: any) {
+      if (error instanceof InsufficientCreditsError) {
+        return res.status(402).json({
+          error: 'Insufficient credits',
+          required: error.required,
+          available: error.available,
+        });
+      }
+      throw error;
     }
     
-    res.json({ fields: extractedFields, fileRef: `storage:${bucket}/${objectPath}` });
+    res.json({ 
+      fields: extractedFields, 
+      lineItems: includeLineItems ? lineItems : undefined,
+      fileRef: `storage:${bucket}/${objectPath}` 
+    });
   } catch (error: any) {
     console.error('Extraction error:', error);
 

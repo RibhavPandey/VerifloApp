@@ -496,7 +496,8 @@ export const db = {
             ...d,
             fileName: d.file_name,
             mimeType: d.mime_type,
-            fileData: d.file_data
+            fileData: d.file_data,
+            lineItems: d.line_items ?? d.lineItems
         })) as VerificationDocument[];
       } catch (error: any) {
         const dbError = parseDbError(error);
@@ -517,6 +518,7 @@ export const db = {
               mime_type: doc.mimeType,
               file_data: doc.fileData,
               fields: doc.fields,
+              line_items: doc.lineItems,
               status: doc.status
           });
           if (result.error && !isTransientError(result.error)) {

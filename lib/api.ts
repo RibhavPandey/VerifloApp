@@ -60,7 +60,7 @@ const handleApiError = async (response: Response, defaultMessage: string): Promi
 };
 
 export const api = {
-  extract: async (file: string, fields: string[], fileType: string, fileName?: string) => {
+  extract: async (file: string, fields: string[], fileType: string, fileName?: string, includeLineItems?: boolean) => {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');
 
@@ -72,7 +72,7 @@ export const api = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ file, fields, fileType, fileName })
+        body: JSON.stringify({ file, fields, fileType, fileName, includeLineItems: !!includeLineItems })
       },
       { maxRetries: 2, retryDelay: 2000 } // Extract is expensive, fewer retries
     );

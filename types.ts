@@ -143,12 +143,21 @@ export interface FieldChange {
   oldConfidence: number;
 }
 
+export interface LineItem {
+  description: string;
+  quantity: string | number;
+  unitPrice: string | number;
+  lineTotal: string | number;
+  confidence?: number;
+}
+
 export interface VerificationDocument {
   id: string;
   fileName: string;
   mimeType: string;
   fileData: string; // Base64
   fields: ExtractedField[];
+  lineItems?: LineItem[];
   status: 'pending' | 'reviewed';
   auditTrail?: FieldChange[]; // Track all changes made during review
 }
@@ -167,6 +176,7 @@ export interface Job {
   config?: {
     template: 'invoice' | 'receipt' | 'custom';
     fields: string[];
+    includeLineItems?: boolean;
   };
   chatHistory?: ChatMessage[];
 }

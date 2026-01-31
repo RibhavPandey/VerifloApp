@@ -45,12 +45,14 @@ const VerificationPage: React.FC = () => {
             // Save all docs
             await Promise.all(updatedDocs.map(d => db.upsertVerificationDoc(d)));
             
-            // Update job stats
             if (job) {
-                 let riskyCount = 0;
-                 updatedDocs.forEach(d => { d.fields.forEach(f => { if(f.confidence < 0.8 || f.flagged) riskyCount++; }); });
-                 const updatedJob = { ...job, riskyCount, updatedAt: Date.now() };
-                 await db.upsertJob(updatedJob);
+                let riskyCount = 0;
+                updatedDocs.forEach(d => {
+                    d.fields.forEach(f => { if (f.confidence < 0.8 || f.flagged) riskyCount++; });
+                    d.lineItems?.forEach(li => { if ((li.confidence ?? 0.9) < 0.8) riskyCount++; });
+                });
+                const updatedJob = { ...job, riskyCount, updatedAt: Date.now() };
+                await db.upsertJob(updatedJob);
             }
             addToast('success', 'Progress Saved');
         } catch (e) {
@@ -64,37 +66,52 @@ const VerificationPage: React.FC = () => {
         try {
             await Promise.all(updatedDocs.map(d => db.upsertVerificationDoc(d)));
             
-            // Convert extracted data to Excel File
             const flattenedData: any[][] = [];
-            
-            // Collect all unique headers
             const allKeys = new Set<string>();
             updatedDocs.forEach(d => d.fields.forEach(f => allKeys.add(f.key)));
             const headers = Array.from(allKeys);
-            
-            // Build Grid: Header Row
-            flattenedData.push(['Source File', ...headers]);
+            const hasLineItems = updatedDocs.some(d => d.lineItems && d.lineItems.length > 0);
 
-            // Build Grid: Data Rows
-            updatedDocs.forEach(d => {
-                const row = [d.fileName];
-                headers.forEach(h => {
-                    const field = d.fields.find(f => f.key === h);
-                    row.push(field ? field.value : '');
+            if (hasLineItems) {
+                flattenedData.push(['Source File', ...headers, 'Description', 'Qty', 'Unit Price', 'Line Total']);
+                updatedDocs.forEach(d => {
+                    const headerVals: Record<string, string> = {};
+                    d.fields.forEach(f => { headerVals[f.key] = String(f.value ?? ''); });
+                    if (d.lineItems && d.lineItems.length > 0) {
+                        d.lineItems.forEach(li => {
+                            flattenedData.push([
+                                d.fileName,
+                                ...headers.map(h => headerVals[h] ?? ''),
+                                String(li.description ?? ''),
+                                String(li.quantity ?? ''),
+                                String(li.unitPrice ?? ''),
+                                String(li.lineTotal ?? '')
+                            ]);
+                        });
+                    } else {
+                        flattenedData.push([d.fileName, ...headers.map(h => headerVals[h] ?? ''), '', '', '', '']);
+                    }
                 });
-                flattenedData.push(row);
-            });
+            } else {
+                flattenedData.push(['Source File', ...headers]);
+                updatedDocs.forEach(d => {
+                    flattenedData.push([
+                        d.fileName,
+                        ...headers.map(h => d.fields.find(f => f.key === h)?.value ?? '')
+                    ]);
+                });
+            }
 
-            // Create new Excel File entry
+            const columns = hasLineItems ? ['Source File', ...headers, 'Description', 'Qty', 'Unit Price', 'Line Total'] : ['Source File', ...headers];
             const newFileId = crypto.randomUUID();
             const newFile: ExcelFile = {
                 id: newFileId,
                 name: `${job.title} (Extracted)`,
                 data: flattenedData,
-                columns: ['Source File', ...headers],
+                columns,
                 styles: {},
                 lastModified: Date.now(),
-                history: [{ data: flattenedData, styles: {}, columns: ['Source File', ...headers] }],
+                history: [{ data: flattenedData, styles: {}, columns }],
                 currentHistoryIndex: 0
             };
             await db.upsertFile(newFile);
