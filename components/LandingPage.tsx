@@ -6,23 +6,11 @@ import Navbar from './Navbar';
 import VerifloLogo from './VerifloLogo';
 import {
   ArrowRight,
-  Sparkles,
-  FileSpreadsheet,
-  Database,
-  Zap,
+  FileText,
   CheckCircle2,
-  Brain,
-  FileStack,
-  Shield,
-  Clock,
-  Eye,
-  Download,
   Play,
-  AlertCircle,
-  Workflow,
-  Star,
-  Users,
-  Quote
+  MessageSquare,
+  Workflow
 } from "lucide-react";
 
 interface LandingPageProps {
@@ -75,20 +63,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       <section className="relative overflow-hidden py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-6 inline-flex animate-fade-in-up items-center gap-2 border-4 border-black bg-secondary px-4 py-2 font-mono text-sm font-bold shadow-md">
-              <Sparkles className="h-4 w-4" />
-              <span>TRUSTED BY PROFESSIONALS WORLDWIDE</span>
-            </div>
-
             <h1 className="mb-6 animate-fade-in-up text-balance font-mono text-5xl font-bold leading-tight text-foreground animation-delay-100 md:text-7xl">
-              Hours of Excel Work.{" "}
+              Hours of Manual Work.{" "}
               <span className="relative inline-block border-4 border-black bg-primary px-4 py-2 text-primary-foreground shadow-lg">
-                Done in Minutes
+                Done in Seconds
               </span>
             </h1>
 
             <p className="mb-10 animate-fade-in-up text-pretty text-lg leading-relaxed text-muted-foreground animation-delay-200 md:text-xl">
-              AI handles data cleaning, formula generation, multi-file analysis, and workflow automation. Process thousands of rows in seconds. Export to any format. No manual entry. No errors.
+              Invoice automation, workflow automation, and AI chat—built to save you time. Stop manual data entry. Let automation handle the repetitive work.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 animate-fade-in-up animation-delay-300 sm:flex-row">
@@ -131,33 +114,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         </div>
       </section>
 
-      {/* Trust Indicators Bar */}
-      <section 
-        data-section-id="trust-indicators"
-        className={`py-8 transition-opacity duration-700 ${visibleSections.has('trust-indicators') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <span className="font-mono font-bold text-lg">Growing Community</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FileStack className="h-5 w-5 text-primary" />
-              <span className="font-mono font-bold text-lg">Trusted Platform</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-primary fill-primary" />
-              <span className="font-mono font-bold text-lg">Highly Rated</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <span className="font-mono font-bold text-lg">Secure & Reliable</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Demo Video Section */}
       <section 
         data-section-id="demo-video"
@@ -169,7 +125,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               See It In Action
             </h2>
             <p className="text-lg text-muted-foreground">
-              Watch how Veriflo transforms your workflow in under 2 minutes
+              See invoice automation, workflows, and AI chat in action
             </p>
           </div>
           
@@ -199,49 +155,31 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         <div className="container mx-auto px-4">
           <div className="mb-16 text-center">
             <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-              Smart Automation. Full Control. Zero Manual Work.
+              Built for Speed
             </h2>
             <p className="text-lg text-muted-foreground">
-              The only Excel tool that thinks like you do
+              Three core features that save you time
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {[
               {
-                icon: Brain,
-                title: "AI Formula Generator",
-                description: "Describe what you want in plain English. Get complex formulas, pivot tables, and calculations instantly. No coding required.",
-                color: "bg-primary",
-              },
-              {
-                icon: Database,
-                title: "Smart Data Cleaning",
-                description: "Automatically detect and fix errors, duplicates, formatting issues, and inconsistencies across thousands of rows in seconds.",
-                color: "bg-accent",
-              },
-              {
-                icon: Eye,
-                title: "Full File Analysis",
-                description: "Get instant insights, summaries, trend analysis, and recommendations from your entire spreadsheet. Understand your data at a glance.",
-                color: "bg-secondary text-black",
-              },
-              {
-                icon: FileStack,
-                title: "Multi-File Processing",
-                description: "Merge, compare, and analyze multiple spreadsheets simultaneously. Handle complex data relationships across files effortlessly.",
+                icon: FileText,
+                title: "Invoice Automation",
+                description: "Extract, process, and organize invoices automatically. No manual data entry. Get clean, structured data ready for your books.",
                 color: "bg-primary",
               },
               {
                 icon: Workflow,
-                title: "Automated Workflows",
-                description: "Record your actions once, run them automatically on any file. Save hours on repetitive tasks with reusable workflows.",
+                title: "Workflow Automation",
+                description: "Record your steps once, run them on any file. Monthly reports, data transforms, bulk processing—all automated.",
                 color: "bg-accent",
               },
               {
-                icon: Download,
-                title: "Export Anywhere",
-                description: "Export to Excel, CSV, or any ERP format. Perfect formatting for QuickBooks, SAP, NetSuite, and custom integrations.",
+                icon: MessageSquare,
+                title: "AI Chat",
+                description: "Ask questions about your data in plain English. Get answers, insights, and actions without writing formulas or code.",
                 color: "bg-secondary text-black",
               },
             ].map((feature, index) => (
@@ -275,7 +213,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               How It Works
             </h2>
             <p className="text-lg text-muted-foreground">
-              From messy spreadsheets to clean, analyzed data in four simple steps
+              Save time and stay efficient—here's how
             </p>
           </div>
 
@@ -283,23 +221,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             {[
               {
                 step: "01",
-                title: "Upload Your Files",
-                description: "Drag and drop your Excel files, CSVs, or spreadsheets. Supports .xlsx, .xls, .csv formats.",
+                title: "Connect Your Data",
+                description: "Upload invoices or spreadsheets. One-time setup. Your data stays in one place.",
               },
               {
                 step: "02",
-                title: "AI Analyzes & Cleans",
-                description: "Our AI reads your data, identifies issues, suggests fixes, and prepares everything for analysis.",
+                title: "Let Automation Run",
+                description: "Invoice automation extracts and organizes. Workflows run on schedule. No babysitting.",
               },
               {
                 step: "03",
-                title: "Automate & Transform",
-                description: "Generate formulas, create workflows, merge files, or ask questions in natural language.",
+                title: "Ask AI When You Need It",
+                description: "Chat with your data. Get answers, run analysis, or trigger actions—no formulas or code.",
               },
               {
                 step: "04",
-                title: "Export & Integrate",
-                description: "Download clean, structured data ready for your accounting system, ERP, or reporting tools.",
+                title: "Focus on What Matters",
+                description: "Time back for real work. Automation handles the repetitive stuff so you don't have to.",
               },
             ].map((item, index) => (
               <div key={index} className="relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
@@ -314,136 +252,69 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Comparison Section */}
       <section 
-        data-section-id="testimonials"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        id="comparison" 
+        data-section-id="comparison"
+        className={`py-20 transition-opacity duration-700 ${visibleSections.has('comparison') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
         <div className="container mx-auto px-4">
           <div className="mb-16 text-center">
             <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-              Loved by Finance & Data Teams
+              Why Veriflo Saves You Time
             </h2>
             <p className="text-lg text-muted-foreground">
-              See what professionals are saying about Veriflo
+              Built for invoice automation, workflows, and AI—all in one place
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="mx-auto max-w-4xl space-y-10">
             {[
-              {
-                name: "Sarah Chen",
-                role: "CFO, TechCorp",
-                content: "We've cut our monthly reporting time from 40 hours to 8 hours. The AI formula generator alone saves us 15+ hours per week. Game changer.",
-                rating: 5,
+              { 
+                feature: "Invoice automation", 
+                otherCons: ["Separate tools for extraction vs accounting", "Manual entry = errors and wasted hours", "No single place for invoices + data"], 
+                veriflo: "Built-in extraction and processing. One place. No manual entry."
               },
-              {
-                name: "Michael Rodriguez",
-                role: "Data Analyst, FinanceCo",
-                content: "The multi-file processing feature is incredible. We process 50+ spreadsheets monthly and Veriflo handles everything automatically. Highly recommend.",
-                rating: 5,
+              { 
+                feature: "Workflow automation", 
+                otherCons: ["Complex setup, often requires coding", "Steep learning curve", "Different tool for each task"], 
+                veriflo: "Record once, run on any file. No code. Same workflow for everything."
               },
-              {
-                name: "Emily Watson",
-                role: "Operations Manager, Growth Inc",
-                content: "Best investment we've made this year. The workflow automation has eliminated so much manual work. Our team can finally focus on strategy instead of data entry.",
-                rating: 5,
+              { 
+                feature: "AI chat with your data", 
+                otherCons: ["Copy-paste to ChatGPT—data leaves your workspace", "No connection to your files", "Context lost between sessions"], 
+                veriflo: "Chat directly in your workspace. Data stays put. Full context."
               },
-            ].map((testimonial, index) => (
-              <Card
-                key={index}
-                className={`border-4 border-black p-6 shadow-md ${visibleSections.has('testimonials') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-                style={{ transitionDelay: `${index * 150}ms`, transitionDuration: '700ms' }}
-              >
-                <div className="mb-4 flex items-center gap-1">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 text-primary fill-primary" />
-                  ))}
-                </div>
-                <Quote className="h-8 w-8 text-primary/30 mb-4" />
-                <p className="mb-6 text-muted-foreground italic leading-relaxed">
-                  "{testimonial.content}"
-                </p>
-                <div>
-                  <div className="font-mono font-bold">{testimonial.name}</div>
-                  <div className="text-sm text-muted-foreground">{testimonial.role}</div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section 
-        id="benefits" 
-        data-section-id="benefits"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('benefits') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-      >
-        <div className="container mx-auto px-4">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div className="relative order-2 lg:order-1">
-              <div className="relative rounded-none border-4 border-black bg-card p-8 shadow-xl">
-                <div className="mb-6 flex items-center gap-3 border-b-4 border-black pb-4">
-                  <FileSpreadsheet className="h-8 w-8 text-primary" />
-                  <span className="font-mono text-lg font-bold">sales_data_q1.xlsx</span>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { label: "Total Revenue", value: "$1,245,000", verified: true },
-                    { label: "Growth Rate", value: "+23.5%", verified: true },
-                    { label: "Top Product", value: "Product A", verified: true },
-                    { label: "Anomaly Detected", value: "Q3 spike", verified: false },
-                  ].map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex animate-fade-in items-center justify-between border-2 border-black bg-background p-3"
-                      style={{ animationDelay: `${i * 150}ms` }}
-                    >
-                      <div>
-                        <div className="text-xs text-muted-foreground">{item.label}</div>
-                        <div className="font-mono font-bold">{item.value}</div>
-                      </div>
-                      {item.verified ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-accent" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="absolute -right-4 -top-4 h-20 w-20 animate-spin-slow border-4 border-black bg-secondary shadow-lg" />
-              <div className="absolute -bottom-4 -left-4 h-16 w-16 animate-bounce border-4 border-black bg-accent shadow-lg" />
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <div className="mb-4 inline-flex items-center gap-2 border-4 border-black bg-accent px-3 py-1 font-mono text-sm font-bold text-accent-foreground shadow-xs">
-                INTELLIGENT AUTOMATION
-              </div>
-              <h2 className="mb-6 font-mono text-4xl font-bold leading-tight md:text-5xl">
-                The Problem With Spreadsheets? They Don't Think.
-              </h2>
-              <p className="mb-8 text-lg leading-relaxed text-muted-foreground">
-                Most Excel tools just move data around. Veriflo understands your data, finds patterns, suggests improvements, and automates repetitive work. You get insights, not just spreadsheets. You get time back, not more busywork.
-              </p>
-
-              <div className="space-y-4">
-                {[
-                  { icon: Clock, text: "Save 20+ hours per week on spreadsheet tasks" },
-                  { icon: Shield, text: "Reduce data entry errors by 95%" },
-                  { icon: CheckCircle2, text: "Audit-ready data with full change history" },
-                  { icon: Zap, text: "Process files with 10,000+ rows instantly" },
-                ].map((benefit, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center border-2 border-black bg-primary">
-                      <benefit.icon className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    <span className="text-lg">{benefit.text}</span>
+              { 
+                feature: "Time to first result", 
+                otherCons: ["Hours of setup and learning", "Multiple subscriptions to manage", "Integration headaches"], 
+                veriflo: "Minutes to automate. One app. Start in seconds."
+              },
+            ].map((row, i) => (
+              <div key={i} className="pl-6 border-l-2 border-muted-foreground/20">
+                <p className="font-mono font-bold text-foreground mb-3">{row.feature}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Other apps</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {row.otherCons.map((con, j) => (
+                        <li key={j} className="flex gap-2">
+                          <span className="text-destructive/80">×</span>
+                          {con}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-2">Veriflo</p>
+                    <p className="flex items-center gap-2 text-foreground font-medium">
+                      <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                      {row.veriflo}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -457,29 +328,29 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         <div className="container mx-auto px-4">
           <div className="mb-16 text-center">
             <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-              Built for Finance, Operations & Data Teams
+              Built for Ecommerce & Finance
             </h2>
             <p className="text-lg text-muted-foreground">
-              Real workflows for real professionals
+              Invoice automation, workflows, and AI—together
             </p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
             {[
               {
-                title: "Financial Analysis & Reporting",
-                description: "Automate monthly close processes, generate financial reports, and analyze revenue trends. Extract insights from complex financial data without manual calculations.",
-                examples: ["Revenue analysis", "Expense categorization", "Budget vs actual reports"],
-              },
-              {
-                title: "Data Cleaning & Preparation",
-                description: "Clean messy data from multiple sources. Remove duplicates, fix formatting, standardize values, and prepare data for analysis or import into other systems.",
-                examples: ["Customer data cleanup", "Product catalog standardization", "Transaction reconciliation"],
+                title: "Invoice Automation",
+                description: "Extract data from invoices automatically. No manual entry. Get line items, totals, and vendor info ready for your books.",
+                examples: ["PDF invoice extraction", "Bulk processing", "Export to accounting"],
               },
               {
                 title: "Workflow Automation",
-                description: "Record repetitive Excel tasks once, then run them automatically on any file. Perfect for monthly reports, data transformations, and routine data processing.",
-                examples: ["Monthly report generation", "Data transformation pipelines", "Bulk file processing"],
+                description: "Record your steps once, run on any file. Monthly reports, data transforms, and bulk processing—all on autopilot.",
+                examples: ["Monthly report generation", "Data transformation", "Bulk file processing"],
+              },
+              {
+                title: "AI Chat",
+                description: "Ask questions about your data in plain English. Get answers, run analysis, or trigger actions without formulas or code.",
+                examples: ["Data insights", "Quick analysis", "Natural language queries"],
               },
             ].map((useCase, index) => (
               <Card
@@ -510,10 +381,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       >
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-            Process Your First Spreadsheet Free
+            Automate Invoices, Workflows & AI—Free
           </h2>
           <p className="mb-8 text-xl text-primary-foreground/90">
-            No credit card. No setup time. See results in minutes.
+            No credit card. Start automating in minutes.
           </p>
           <Button
             onClick={onStart}
@@ -541,7 +412,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
                 <span className="font-mono text-lg font-bold">Veriflo</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                AI-powered Excel automation for finance, operations, and data teams.
+                Invoice automation, workflow automation, and AI chat for ecommerce and finance.
               </p>
             </div>
 

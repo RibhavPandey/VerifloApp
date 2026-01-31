@@ -134,7 +134,7 @@ export const api = {
     return result;
   },
 
-  chat: async function* (prompt: string, fileContext: string, history: any[], isDataMode: boolean) {
+  chat: async function* (prompt: string, fileContext: string, history: any[], isDataMode: boolean, retryOnError?: boolean) {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');
 
@@ -148,7 +148,7 @@ export const api = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ prompt, fileContext, history, isDataMode })
+          body: JSON.stringify({ prompt, fileContext, history, isDataMode, retryOnError: !!retryOnError })
         },
         { maxRetries: 2 } // Streaming has fewer retries
       );

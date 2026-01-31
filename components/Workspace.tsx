@@ -738,7 +738,7 @@ const Workspace: React.FC = () => {
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                     fileIds: [fileId],
-                    chatHistory: [{ id: '1', role: 'assistant', content: "Hello! I'm your AI data analyst." }]
+                    chatHistory: [{ id: '1', role: 'assistant', content: "Ask anything about your data—sums, charts, comparisons. Upload a file to get started, or try the suggestions below." }]
                 };
 
                 await db.upsertJob(newJob);

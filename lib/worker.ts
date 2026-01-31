@@ -81,14 +81,16 @@ function executeUserCode(code, datasets, primaryData) {
     const headers = primaryData[0] || [];
     const rows = primaryData || []; 
 
-    // Helper: Fuzzy Column Finder
+    // Helper: Fuzzy Column Finder - exact match first, then shortest includes match (avoids "Amount" matching "Total Amount")
     const findCol = (name, fileData = primaryData) => {
         const h = fileData[0] || [];
         if (!name) return -1;
         const n = String(name).toLowerCase().trim();
         let idx = h.findIndex(c => String(c).toLowerCase().trim() === n);
-        if (idx === -1) idx = h.findIndex(c => String(c).toLowerCase().trim().includes(n));
-        return idx;
+        if (idx !== -1) return idx;
+        const matches = h.map((c, i) => ({ i, s: String(c).toLowerCase().trim() })).filter(({ s }) => s.includes(n));
+        if (matches.length === 0) return -1;
+        return matches.reduce((best, cur) => (cur.s.length < best.s.length ? cur : best)).i;
     };
 
     // Helper: Number Cleaner

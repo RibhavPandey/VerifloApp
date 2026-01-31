@@ -4,17 +4,17 @@ import { ArrowRight, ArrowDown, ArrowUp, ShieldCheck, AlertTriangle, Sparkles } 
 import { AnalysisResult, BucketItem, SanityData } from '../types';
 
 export const SummaryCard = ({ metrics }: { metrics: AnalysisResult['metrics'] }) => (
-  <div className="flex items-center justify-center gap-4 md:gap-8 mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm w-full">
+  <div className="flex items-center justify-center gap-4 md:gap-8 mb-6 p-4 bg-white rounded-xl border border-slate-100 shadow-sm w-full">
       <div className="text-center min-w-0 flex-1">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 truncate">{metrics.oldLabel}</div>
-          <div className="text-xl font-bold text-gray-500 truncate" title={metrics.oldValue}>{metrics.oldValue}</div>
+          <div className="text-xs font-medium text-slate-500 mb-1 truncate">{metrics.oldLabel}</div>
+          <div className="text-xl font-bold text-slate-600 truncate" title={metrics.oldValue}>{metrics.oldValue}</div>
       </div>
       <div className="flex flex-col items-center flex-shrink-0">
-          <ArrowRight className="text-gray-300 mb-1" size={16} />
+          <ArrowRight className="text-slate-300 mb-1" size={16} />
       </div>
       <div className="text-center min-w-0 flex-1">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 truncate">{metrics.newLabel}</div>
-          <div className="text-2xl font-bold text-gray-800 truncate" title={metrics.newValue}>{metrics.newValue}</div>
+          <div className="text-xs font-medium text-slate-500 mb-1 truncate">{metrics.newLabel}</div>
+          <div className="text-2xl font-bold text-slate-800 truncate" title={metrics.newValue}>{metrics.newValue}</div>
       </div>
       <div className={`ml-2 md:ml-4 flex flex-col items-center justify-center px-3 py-1 rounded-lg text-sm font-bold flex-shrink-0 ${metrics.isNegative ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
           <span className="flex items-center gap-1 whitespace-nowrap">{metrics.isNegative ? <ArrowDown size={14} /> : <ArrowUp size={14} />} {metrics.percent}</span>
@@ -33,7 +33,7 @@ export const BucketCard = ({ buckets }: { buckets: BucketItem[] }) => (
           };
           return (
               <div key={i} className={`p-3 rounded-xl border ${colors[b.color] || colors.yellow} flex flex-col items-center text-center min-w-0`}>
-                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 mb-1 truncate w-full">{b.label}</span>
+                  <span className="text-xs font-medium opacity-70 mb-1 truncate w-full">{b.label}</span>
                   <span className="text-lg font-bold mb-1 truncate w-full" title={b.impact}>{b.impact}</span>
                   <span className="text-xs font-medium opacity-80 whitespace-nowrap">{b.count} rows</span>
               </div>
@@ -45,14 +45,14 @@ export const BucketCard = ({ buckets }: { buckets: BucketItem[] }) => (
 export const ContributionCard = ({ drivers }: { drivers: AnalysisResult['drivers'] }) => (
   <div className="mb-6 w-full">
       <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Top Drivers of Change</h4>
+          <h4 className="text-xs font-medium text-slate-500">Top Drivers of Change</h4>
       </div>
       <div className="space-y-2">
           {drivers.slice(0, 5).map((d, i) => (
-              <div key={i} className="flex items-center justify-between p-2 bg-gray-50 border border-gray-100 rounded-lg hover:bg-white transition-colors w-full">
+              <div key={i} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:bg-white transition-colors w-full">
                   <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                      <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-white border border-gray-200 rounded-full text-[10px] font-bold text-gray-500">{i + 1}</span>
-                      <span className="text-sm font-medium text-gray-700 truncate block" title={d.name}>{d.name}</span>
+                      <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-500">{i + 1}</span>
+                      <span className="text-sm font-medium text-slate-700 truncate block" title={d.name}>{d.name}</span>
                   </div>
                   <span className={`text-sm font-bold flex-shrink-0 ${d.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                       {d.value}
@@ -61,7 +61,7 @@ export const ContributionCard = ({ drivers }: { drivers: AnalysisResult['drivers
           ))}
           {drivers.length > 5 && (
               <div className="text-center pt-2">
-                  <button className="text-xs font-bold text-blue-600 hover:text-blue-700">View All {drivers.length} Drivers</button>
+                  <button className="text-xs font-medium text-slate-600 hover:text-slate-700">View All {drivers.length} Drivers</button>
               </div>
           )}
       </div>
@@ -75,7 +75,7 @@ export const SanityCard = ({ sanity }: { sanity: SanityData }) => {
           <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
                   <ShieldCheck className={scoreColor} size={20} />
-                  <span className="font-bold text-gray-700">Trust Score</span>
+                  <span className="font-bold text-slate-700">Trust Score</span>
               </div>
               <div className="flex items-center gap-3">
                   <span className={`text-2xl font-black ${scoreColor}`}>{sanity.score}</span>
@@ -87,7 +87,7 @@ export const SanityCard = ({ sanity }: { sanity: SanityData }) => {
           
           <ul className="space-y-2 mb-4">
               {sanity.warnings.map((w, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-gray-600 break-words">
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 break-words">
                       <AlertTriangle size={12} className="text-orange-500 mt-0.5 shrink-0" />
                       <span className="break-words">{w}</span>
                   </li>
@@ -95,7 +95,7 @@ export const SanityCard = ({ sanity }: { sanity: SanityData }) => {
           </ul>
 
           {sanity.suggestion && (
-              <div className="bg-blue-50 text-blue-700 p-2 rounded-lg text-xs font-medium flex gap-2">
+              <div className="bg-slate-100 text-slate-700 p-2 rounded-lg text-xs font-medium flex gap-2">
                   <Sparkles size={12} className="mt-0.5 shrink-0" />
                   <span className="break-words">{sanity.suggestion}</span>
               </div>

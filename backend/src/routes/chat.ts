@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post('/stream', async (req: AuthenticatedRequest, res) => {
   try {
-    const { prompt, fileContext, history, isDataMode } = req.body;
+    const { prompt, fileContext, history, isDataMode, retryOnError } = req.body;
 
     if (!req.user?.id) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -32,13 +32,13 @@ router.post('/stream', async (req: AuthenticatedRequest, res) => {
     }
 
     // Charge credits before streaming starts (5 credits per chat message)
-    // Note: Credits are charged upfront. If the request fails after this point,
-    // credits are not refunded (by design - prevents abuse of retries).
-    // For expensive operations, consider charging after successful completion.
+    // Skip charge when retryOnError: user is retrying after a code execution failure
     let creditsCharged = false;
     try {
-      await chargeCredits(req.user.id, 5);
-      creditsCharged = true;
+      if (!retryOnError) {
+        await chargeCredits(req.user.id, 5);
+        creditsCharged = true;
+      }
     } catch (error: any) {
       if (error instanceof InsufficientCreditsError) {
         return res.status(402).json({
@@ -82,7 +82,25 @@ router.post('/stream', async (req: AuthenticatedRequest, res) => {
                 9. FORMULAS: Return { data: <calc_result>, suggestedFormula: "=SUM(A:A)" }
                 
                 REMEMBER: Your response MUST include a \`\`\`javascript code block with executable code that returns the actual result.
-            ` : "You are a helpful data assistant.";
+                
+                RESPONSE STYLE: Include impact when relevant (e.g. "That's $X extra cost" or "You could save $Y by..."). End with "Want me to:" and 2-3 follow-up questions as bullet points.
+            ` : `You are a data analyst assistant. Users have spreadsheet/invoice data. Answer in plain English.
+
+RESPONSE FORMAT:
+1. Direct answer (1-2 sentences)
+2. Impact when relevant: "That's $X extra cost" or "You could save $Y by..."
+3. Action: "Want me to [specific next step]?"
+4. End with "Want me to:" and 2-3 follow-up questions as bullet points
+
+Be concise. No jargon. Always suggest next steps.
+
+CRITICAL: End every response with exactly this format for follow-ups:
+Want me to:
+- [Question 1]
+- [Question 2]
+- [Question 3]
+
+Use 2-3 relevant follow-up questions based on the user's data and question.`;
 
     // Set up Server-Sent Events for streaming
     res.setHeader('Content-Type', 'text/event-stream');
@@ -105,7 +123,7 @@ router.post('/stream', async (req: AuthenticatedRequest, res) => {
       // Filter and map history, ensuring it starts with a 'user' message
       let mappedHistory = (history || [])
         .filter((msg: any) => msg.content && msg.content.trim()) // Remove empty messages
-        .slice(-6) // Take last 6 messages
+        .slice(-10) // Take last 10 messages
         .map((msg: any) => ({
           role: msg.role === 'user' ? 'user' : 'model',
           parts: [{ text: msg.content || '' }]

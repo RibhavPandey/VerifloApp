@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Send, ChartBar, Pin, TrendingUp, User, Calculator, PieChart, Download, FileText, ArrowRight, Split, ShieldCheck, Layers, Copy, FunctionSquare, Play, Save, Workflow as WorkflowIcon, Trash2, Plus, ChevronDown, MessageSquare, BarChart2, Check, Search, X, RotateCcw } from 'lucide-react';
+import { Sparkles, Send, ChartBar, Pin, TrendingUp, User, Calculator, PieChart, Download, FileText, ShieldCheck, Layers, Copy, FunctionSquare, Search, X, RotateCcw, RefreshCw, Undo2 } from 'lucide-react';
 import { ExcelFile, ChatMessage, DashboardItem, AnalysisResult, Workflow, AutomationStep } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../lib/api';
@@ -8,6 +8,7 @@ import { ChartRenderer, ChartModal } from './ChartRenderer';
 import { AnalysisContent } from './AnalysisCards';
 import html2canvas from 'html2canvas';
 import { worker } from '../lib/worker';
+import { buildFileContext, getValidColumnsForPrompts, getValueColumnForMultiFile } from '../lib/fileContext';
 import { useToast } from './ui/toast';
 
 interface SidebarProps {
@@ -20,12 +21,98 @@ interface SidebarProps {
     onUseCredit: (amount: number) => void;
 }
 
+// Detect if query is analysis-style (variance, compare, etc.)
+const isAnalysisQuery = (query: string): boolean => {
+    const q = query.toLowerCase().trim();
+    const keywords = [
+        'variance', 'compare', 'what changed', 'cost analysis', 'revenue', 'sanity check', 'regional', 'dimension',
+        'explain by', 'who caused', 'difference', ' vs ', 'between', 'month over month', 'changes', 'drivers',
+        'breakdown', 'trust', 'data quality', 'anomaly', 'trend', 'shift', 'increase', 'decrease'
+    ];
+    return keywords.some(kw => q.includes(kw));
+};
+
+// Parse follow-ups from AI response - multiple format patterns
+const parseFollowUps = (content: string): string[] => {
+    const patterns = [
+        /Want me to:?\s*([\s\S]*?)(?=\n\n|$)/i,
+        /(?:You could (?:also )?ask|Next steps?|Follow-up questions?):?\s*([\s\S]*?)(?=\n\n|$)/i,
+        /(?:Try asking|Suggested questions?):?\s*([\s\S]*?)(?=\n\n|$)/i,
+    ];
+    for (const pattern of patterns) {
+        const match = content.match(pattern);
+        if (match) {
+            const section = match[1].trim();
+            const lines = section.split(/\n|[\u2022\u2023\u25E6\•]|[-*]\s+/)
+                .map(s => s.replace(/^\s*[-*•]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+                .filter(s => s.length > 5 && s.length < 80);
+            if (lines.length > 0) return lines.slice(0, 3);
+        }
+    }
+    return [];
+};
+
+// Fallback follow-ups when parsing returns empty (uses validated columns)
+const getFallbackFollowUps = (content: string, file?: ExcelFile): string[] => {
+    const hasChart = content.includes('chart') || content.includes('Chart');
+    const hasTable = content.includes('table') || content.includes('Table');
+    const { numericCol, categoryCol } = file ? getValidColumnsForPrompts(file) : { numericCol: null, categoryCol: null };
+    const chartCol = categoryCol || numericCol || 'this column';
+    const fallbacks: string[] = [];
+    if (!hasChart) fallbacks.push(`Create a chart of ${chartCol}`);
+    if (!hasTable) fallbacks.push('Show me the raw data');
+    fallbacks.push('Explain in more detail');
+    return fallbacks.slice(0, 3);
+};
+
+// Detect if assistant message had a code execution error (for free retry)
+const messageHadExecutionError = (m: ChatMessage): boolean => {
+    const c = (m.content || '').toLowerCase();
+    return c.includes('available columns:') || c.includes('could not calculate') || c.includes('try rephrasing or click regenerate');
+};
+
+// Map code execution errors to user-friendly messages
+const mapExecutionError = (error: string, columns: string[]): string => {
+    const err = String(error).toLowerCase();
+    if (err.includes('findcol') || err.includes('column') || err.includes('not found') || err.includes('-1')) {
+        const colList = columns.length > 0 ? columns.join(', ') : 'none';
+        return `Column not found. Available columns: ${colList}. Try asking for a specific column, e.g. "What's the sum of [column name]?"`;
+    }
+    if (err.includes('undefined') || err.includes('null') || err.includes('cannot read') || err.includes('of undefined') || err.includes('reduce')) {
+        return `Could not calculate. Try asking more specifically, e.g. "What's the total of [column]?"`;
+    }
+    if (err.includes('is not a function') || err.includes('is not defined')) {
+        return `Something went wrong. Try rephrasing or click Regenerate.`;
+    }
+    return `Something went wrong. Try rephrasing or click Regenerate.`;
+};
+
+// Get suggested prompts using validated column names (only columns that exist and pass numeric/category test)
+const getSuggestedPrompts = (files: ExcelFile[], activeFile?: ExcelFile): string[] => {
+    const file = activeFile || files[0];
+    if (!file || files.length === 0) return [];
+    if (files.length >= 2) {
+        const valueCol = getValueColumnForMultiFile(files);
+        const prompts: string[] = ['What changed between files?'];
+        if (valueCol) prompts.push(`Compare variance of ${valueCol}`, `${valueCol} analysis`);
+        return prompts.slice(0, 3);
+    }
+    const { numericCol, categoryCol } = getValidColumnsForPrompts(file);
+    const cols = file.columns || [];
+    if (cols.length === 0) return ['Summarize this data', 'What does this data show?', 'Analyze the data'];
+    const prompts: string[] = ['Summarize this data'];
+    if (numericCol) prompts.push(`What's the total of ${numericCol}?`);
+    if (categoryCol) {
+        prompts.push(`Create a bar chart of ${categoryCol}`);
+        if (numericCol) prompts.push(`Top 5 ${numericCol} by ${categoryCol}`);
+    }
+    return prompts.slice(0, 4);
+};
+
 const Sidebar: React.FC<SidebarProps> = ({
     activeFile, files, history, onUpdateHistory, onPinToDashboard, credits, onUseCredit
 }) => {
     const { addToast } = useToast();
-    const [activeTab, setActiveTab] = useState<'chat' | 'analysis'>('chat');
-    const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
     const [showHistorySearch, setShowHistorySearch] = useState(false);
     const [historySearchQuery, setHistorySearchQuery] = useState('');
 
@@ -43,14 +130,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [cursorIndex, setCursorIndex] = useState(0);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    // --- ANALYSIS STATE ---
-    const [joinKey, setJoinKey] = useState<string | null>(null);
-    const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([]);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisInput, setAnalysisInput] = useState('');
-    const [needsColumnSelection, setNeedsColumnSelection] = useState(false);
-    const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
-
     // Filter history for search
     const displayedHistory = useMemo(() => {
         if (!historySearchQuery.trim()) return history;
@@ -66,35 +145,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, [history, historySearchQuery]);
 
     useEffect(() => {
-        if (activeTab === 'analysis' && files.length >= 2 && !joinKey) {
-            const f1 = files[0];
-            const f2 = files[1];
-            const common = f1.columns.filter(c => f2.columns.includes(c));
-
-            if (common.length === 1) {
-                setJoinKey(common[0]);
-                setNeedsColumnSelection(false);
-            } else if (common.length > 1) {
-                const preferred = common.find(c => /id|code|email|date/i.test(c));
-                if (preferred && common.length < 3) {
-                    setJoinKey(preferred);
-                    setNeedsColumnSelection(false);
-                } else {
-                    setDetectedColumns(common.slice(0, 5));
-                    setNeedsColumnSelection(true);
-                }
-            } else {
-                setDetectedColumns(f1.columns.slice(0, 5));
-                setNeedsColumnSelection(true);
-            }
-        }
-    }, [activeTab, files, joinKey]);
-
-    useEffect(() => {
-        if (activeTab === 'chat' && scrollRef.current && !historySearchQuery) {
+        if (scrollRef.current && !historySearchQuery) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [history, activeTab, historySearchQuery]);
+    }, [history, historySearchQuery]);
 
     // --- CHAT LOGIC ---
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -145,293 +199,178 @@ const Sidebar: React.FC<SidebarProps> = ({
             onUpdateHistoryRef.current([{
                 id: Date.now().toString(),
                 role: 'assistant',
-                content: "Hello! I'm your AI data analyst. I've cleared our previous conversation. What would you like to analyze next?"
+                content: "Conversation cleared. Ask anything about your data—sums, charts, comparisons. Try the suggestions below to get started."
             }]);
         }
     };
 
-    const handleAISubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!prompt.trim()) return;
+    const handleUndo = () => {
+        if (history.length < 3) return;
+        const last = history[history.length - 1];
+        const prev = history[history.length - 2];
+        if (last.role !== 'assistant' || prev.role !== 'user') return;
+        onUpdateHistoryRef.current(history.slice(0, -2));
+    };
 
-        if (credits < 5) {
-            addToast('error', "Insufficient Credits", "You need 5 credits to send a message.");
-            return;
+    const canUndo = history.length >= 3 && history[history.length - 1].role === 'assistant' && history[history.length - 2].role === 'user';
+
+    const handleCopyMessage = async (m: ChatMessage) => {
+        const text = m.content || '';
+        try {
+            await navigator.clipboard.writeText(text);
+            addToast('success', 'Copied', 'Message copied to clipboard.');
+        } catch {
+            addToast('error', 'Copy failed', 'Could not copy to clipboard.');
         }
+    };
 
+    const runMessageFlow = (textToSend: string, assistantId: string, recentHistoryForApi: ChatMessage[], retryOnError?: boolean) => {
         const mentionRegex = /@([^\s]+)/g;
-        const matches = [...prompt.matchAll(mentionRegex)];
+        const matches = [...textToSend.matchAll(mentionRegex)];
         const mentionedFileNames = matches.map(m => m[1]);
         const referencedFiles = files.filter(f => mentionedFileNames.includes(f.name));
-        if (referencedFiles.length === 0 && activeFile) referencedFiles.push(activeFile);
-
-        const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: prompt };
-        const assistantId = (Date.now() + 1).toString();
-        const assistantMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '' };
-
-        onUpdateHistoryRef.current([...history, userMsg, assistantMsg]);
-        const currentPrompt = prompt;
-        setPrompt('');
-        setIsLoading(true);
-        // Credits are enforced server-side; UI will refresh via profile sync.
+        const refFiles = referencedFiles.length > 0 ? referencedFiles : (activeFile ? [activeFile] : []);
+        const useAnalysis = files.length >= 2 && isAnalysisQuery(textToSend);
 
         setTimeout(async () => {
             try {
-                const fileContext = referencedFiles.map(f => {
-                    const sample = f.data.slice(0, 5);
-                    return `File: "${f.name}"
-Columns: ${f.columns.join(', ')}
-Sample Data (Top 5 rows): ${JSON.stringify(sample)}
-`;
-                }).join('\n\n');
-
-                const datasets: Record<string, any[][]> = {};
-                referencedFiles.forEach(f => { datasets[f.name] = f.data || []; });
-                const primaryFile = referencedFiles[0];
-                const primaryData = primaryFile ? primaryFile.data : [];
-                const isDataMode = referencedFiles.length > 0;
-
-                const recentHistory = history.slice(-6);
-
-                let accumulatedText = '';
-                let executionResult: any = null;
-                let hasExecuted = false;
-
-                try {
-                    const responseStream = api.chat(currentPrompt, fileContext, recentHistory, isDataMode);
-
-                    for await (const text of responseStream) {
-                        accumulatedText += text;
-
-                    if (isDataMode && !hasExecuted) {
-                        // Try to find complete code block - look for closing ```
-                        const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)```/i;
-                        let codeMatch = accumulatedText.match(codeBlockRegex);
-                        
-                        // If no complete block found yet, check if we have an opening ```
-                        if (!codeMatch) {
-                            const openBlock = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*)$/i);
-                            if (openBlock) {
-                                // Wait for more text - don't execute yet
-                                continue;
-                            }
-                        }
-                        
-                        if (codeMatch) {
-                            const codeToExecute = codeMatch[1].trim();
-                            console.log('Executing code block (length:', codeToExecute.length, '):', codeToExecute.substring(0, 300));
-                            
-                            // Check if code has a return statement
-                            if (!codeToExecute.includes('return')) {
-                                console.warn('Code block does not contain return statement');
-                            }
-                            
-                            try {
-                                executionResult = await worker.executeCode(codeToExecute, datasets, primaryData);
-                                console.log('Code execution result:', executionResult);
-                                console.log('Result type:', typeof executionResult);
-                                console.log('Has chartType?', executionResult?.chartType);
-                                console.log('Has data?', Array.isArray(executionResult?.data));
-                                if (executionResult !== undefined && executionResult !== null) {
-                                    const resultStr = JSON.stringify(executionResult);
-                                    console.log('Full result:', resultStr.length > 500 ? resultStr.substring(0, 500) : resultStr);
-                                } else {
-                                    console.log('Full result: undefined or null');
+                if (useAnalysis) {
+                    const fileContext = buildFileContext(files);
+                    const json = await api.analyze(textToSend, fileContext);
+                    const result: AnalysisResult = { id: assistantId, query: textToSend, ...json };
+                    onUpdateHistoryRef.current(prev => prev.map(m => m.id === assistantId ? { ...m, content: result.explanation, parts: [{ type: 'analysis_card', data: [result], title: result.title }], followUps: result.followUps || [] } : m));
+                } else {
+                    const fileContext = refFiles.length > 0 ? buildFileContext(refFiles) : '';
+                    const datasets: Record<string, any[][]> = {};
+                    refFiles.forEach(f => { datasets[f.name] = f.data || []; });
+                    const primaryFile = refFiles[0];
+                    const primaryData = primaryFile ? primaryFile.data : [];
+                    const isDataMode = refFiles.length > 0;
+                    const recentHistory = recentHistoryForApi.slice(-10);
+                    let accumulatedText = '';
+                    let executionResult: any = null;
+                    let hasExecuted = false;
+                    try {
+                        const responseStream = api.chat(textToSend, fileContext, recentHistory, isDataMode, retryOnError);
+                        for await (const text of responseStream) {
+                            accumulatedText += text;
+                            if (isDataMode && !hasExecuted) {
+                                const codeBlockRegex = /```(?:javascript|js)?\s*([\s\S]*?)```/i;
+                                let codeMatch = accumulatedText.match(codeBlockRegex);
+                                if (!codeMatch) {
+                                    const openBlock = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*)$/i);
+                                    if (openBlock) continue;
                                 }
-                                hasExecuted = true;
-                            } catch (execError: any) {
-                                console.error('Code execution error:', execError);
-                                executionResult = { error: execError.message };
-                                hasExecuted = true;
+                                if (codeMatch) {
+                                    try {
+                                        executionResult = await worker.executeCode(codeMatch[1].trim(), datasets, primaryData);
+                                        hasExecuted = true;
+                                    } catch (execError: any) {
+                                        executionResult = { error: execError.message };
+                                        hasExecuted = true;
+                                    }
+                                }
                             }
-                        }
-                    }
-
-                    let visibleText = accumulatedText;
-                    if (isDataMode && hasExecuted) {
-                        visibleText = accumulatedText.replace(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/i, '').trim();
-                    }
-
-                        onUpdateHistoryRef.current(prev => prev.map(m => {
-                            if (m.id === assistantId) {
+                            let visibleText = isDataMode && hasExecuted ? accumulatedText.replace(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/i, '').trim() : accumulatedText;
+                            onUpdateHistoryRef.current(prev => prev.map(m => {
+                                if (m.id !== assistantId) return m;
                                 const updated = { ...m, content: visibleText };
-                                const resultTitle = executionResult?.title || 'Analysis Result';
-                                const isResultAdded = updated.parts?.some(p => p.title === resultTitle || p.title === 'Analysis Result');
-
-                                if (executionResult !== null && !isResultAdded) {
+                                if (executionResult !== null && !updated.parts?.some(p => p.title === (executionResult?.title || 'Analysis Result'))) {
                                     if (!updated.parts) updated.parts = [];
-
-                                    // Check for errors first
                                     if (executionResult?.error) {
-                                        console.error('Execution error:', executionResult.error);
-                                        if (!updated.content.includes('Error:')) {
-                                            updated.content += `\n\n⚠️ Code execution error: ${executionResult.error}`;
+                                        const friendly = mapExecutionError(executionResult.error, primaryFile?.columns || []);
+                                        updated.content += `\n\n${friendly}`;
+                                        if (friendly.includes('Available columns') && !updated.followUps?.length) {
+                                            const { numericCol } = primaryFile ? getValidColumnsForPrompts(primaryFile) : { numericCol: null };
+                                            updated.followUps = numericCol ? [`Try: What's the sum of ${numericCol}?`] : ['Try rephrasing your question'];
                                         }
                                     }
-                                    // Check for chart data (highest priority)
-                                    else if (typeof executionResult === 'object' && executionResult?.chartType && Array.isArray(executionResult.data)) {
-                                        // Always add chart part if chartType is present, even if data is empty
-                                        // This allows the ChartRenderer to show a "No data" message or we can debug why data is empty
-                                        console.log('Adding chart to parts:', {
-                                            chartType: executionResult.chartType,
-                                            dataLength: executionResult.data.length,
-                                            title: executionResult.title
-                                        });
-                                        
-                                        updated.parts.push({
-                                            type: 'chart',
-                                            title: executionResult.title || 'Chart',
-                                            data: executionResult.data,
-                                            chartType: executionResult.chartType
-                                        });
-                                    }
-                                    // Check for formula
-                                    else if (typeof executionResult === 'object' && executionResult?.suggestedFormula) {
-                                        if (!updated.parts.some(p => p.type === 'formula')) {
-                                            updated.parts.push({
-                                                type: 'formula',
-                                                title: 'Suggested Formula',
-                                                content: executionResult.suggestedFormula
-                                            });
-                                        }
-                                    }
-                                    else if (typeof executionResult === 'object' && 'data' in executionResult && !executionResult.chartType) {
-                                        const d = executionResult.data;
-                                        if (Array.isArray(d) && d.length > 0) {
-                                            updated.parts.push({ type: 'table', title: executionResult.title || 'Analysis Result', data: d });
-                                        } else if (typeof d === 'object' && d !== null) {
-                                            updated.parts.push({ type: 'table', title: 'Analysis Result', data: [d] });
-                                        } else {
-                                            const resultStr = "\n\n**Result:** " + String(d);
-                                            if (!updated.content.includes(resultStr.trim())) {
-                                                updated.content = (updated.content + resultStr).trim();
-                                            }
-                                        }
-                                    }
-                                    else if (typeof executionResult !== 'object' && executionResult !== undefined && executionResult !== null) {
-                                        const resultStr = "\n\n**Result:** " + String(executionResult);
-                                        if (!updated.content.includes(resultStr.trim())) {
-                                            updated.content = (updated.content + resultStr).trim();
-                                        }
-                                    }
+                                    else if (executionResult?.chartType && Array.isArray(executionResult?.data)) updated.parts.push({ type: 'chart', title: executionResult.title || 'Chart', data: executionResult.data, chartType: executionResult.chartType });
+                                    else if (executionResult?.suggestedFormula) updated.parts.push({ type: 'formula', title: 'Suggested Formula', content: executionResult.suggestedFormula });
+                                    else if (executionResult?.data && !executionResult?.chartType) updated.parts.push({ type: 'table', title: executionResult.title || 'Analysis Result', data: Array.isArray(executionResult.data) ? executionResult.data : [executionResult.data] });
+                                    else if (typeof executionResult === 'number' || typeof executionResult === 'string') updated.content += `\n\n**Result:** ${executionResult}`;
                                 }
                                 return updated;
-                            }
-                            return m;
-                        }));
-                    }
-                    
-                    // Final check after stream completes - re-execute code if result was undefined or incomplete
-                    if (isDataMode) {
-                        const finalCodeMatch = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
-                        if (finalCodeMatch) {
-                            const finalCode = finalCodeMatch[1].trim();
-                            
-                            // Re-execute if we didn't execute before, or if result was undefined
-                            if (!hasExecuted || !executionResult || executionResult === undefined) {
-                                console.log('Re-executing code block after stream completion');
+                            }));
+                        }
+                        if (isDataMode) {
+                            const finalCodeMatch = accumulatedText.match(/```(?:javascript|js)?\s*([\s\S]*?)```/i);
+                            if (finalCodeMatch && (!hasExecuted || !executionResult)) {
                                 try {
-                                    executionResult = await worker.executeCode(finalCode, datasets, primaryData);
-                                    console.log('Final execution result:', executionResult);
-                                    console.log('Final result type:', typeof executionResult);
-                                    
-                                    // Update with final result
-                                    if (executionResult && typeof executionResult === 'object') {
-                                        onUpdateHistoryRef.current(prev => prev.map(m => {
-                                            if (m.id === assistantId) {
-                                                const updated = { ...m };
-                                                if (!updated.parts) updated.parts = [];
-                                                
-                                // Check for chart
-                                if (executionResult.chartType && Array.isArray(executionResult.data)) {
-                                    const hasChart = updated.parts.some(p => p.type === 'chart');
-                                    if (!hasChart) {
-                                        console.log('Adding final chart:', executionResult);
-                                        updated.parts.push({
-                                            type: 'chart',
-                                            title: executionResult.title || 'Chart',
-                                            data: executionResult.data,
-                                            chartType: executionResult.chartType
-                                        });
+                                    executionResult = await worker.executeCode(finalCodeMatch[1].trim(), datasets, primaryData);
+                                    if (executionResult?.chartType && Array.isArray(executionResult?.data)) {
+                                        onUpdateHistoryRef.current(prev => prev.map(m => m.id === assistantId && !m.parts?.some(p => p.type === 'chart') ? { ...m, parts: [...(m.parts || []), { type: 'chart', title: executionResult.title || 'Chart', data: executionResult.data, chartType: executionResult.chartType }] } : m));
+                                    } else if (executionResult?.data && !executionResult?.chartType) {
+                                        onUpdateHistoryRef.current(prev => prev.map(m => m.id === assistantId && !m.parts?.some(p => p.type === 'table') ? { ...m, parts: [...(m.parts || []), { type: 'table', title: executionResult.title || 'Analysis Result', data: Array.isArray(executionResult.data) ? executionResult.data : [executionResult.data] }] } : m));
                                     }
-                                }
-                                                // Check for table
-                                                else if (executionResult.data && !executionResult.chartType) {
-                                                    const d = executionResult.data;
-                                                    if (Array.isArray(d) && d.length > 0) {
-                                                        const hasTable = updated.parts.some(p => p.type === 'table');
-                                                        if (!hasTable) {
-                                                            updated.parts.push({ 
-                                                                type: 'table', 
-                                                                title: executionResult.title || 'Analysis Result', 
-                                                                data: d 
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                                
-                                                return updated;
-                                            }
-                                            return m;
-                                        }));
-                                    }
-                                } catch (e) {
-                                    console.error('Final code execution failed:', e);
-                                }
+                                } catch {}
                             }
                         }
-                    }
-                } catch (streamErr: any) {
-                    throw streamErr;
+                        const parsedFollowUps = parseFollowUps(accumulatedText);
+                        const followUpsToUse = parsedFollowUps.length > 0 ? parsedFollowUps : getFallbackFollowUps(accumulatedText, primaryFile);
+                        if (followUpsToUse.length > 0) {
+                            onUpdateHistoryRef.current(prev => prev.map(m => {
+                                if (m.id !== assistantId) return m;
+                                return { ...m, followUps: m.followUps?.length ? m.followUps : followUpsToUse };
+                            }));
+                        }
+                    } catch (streamErr: any) { throw streamErr; }
                 }
             } catch (err: any) {
-                console.error(err);
-                onUpdateHistoryRef.current(prev => prev.map(m => {
-                    if (m.id === assistantId) {
-                        return { ...m, content: `⚠️ Error: ${err.message}` };
-                    }
-                    return m;
-                }));
+                onUpdateHistoryRef.current(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ Error: ${err.message}` } : m));
             } finally {
                 setIsLoading(false);
-                // Refresh credits after server-side charging
                 onUseCredit(0);
             }
         }, 10);
     };
 
-    // --- ANALYSIS LOGIC ---
-    const handleAnalysisSubmit = async (queryOverride?: string) => {
-        const query = queryOverride || analysisInput;
-        if (!query || files.length < 1) return;
+    const handleRegenerate = (assistantMsg: ChatMessage) => {
+        const idx = history.findIndex(h => h.id === assistantMsg.id);
+        if (idx <= 0) return;
+        const userMsg = history[idx - 1];
+        if (userMsg.role !== 'user') return;
+        const textToSend = userMsg.content.trim();
+        if (!textToSend) return;
+        const useAnalysis = files.length >= 2 && isAnalysisQuery(textToSend);
+        const retryOnError = !useAnalysis && messageHadExecutionError(assistantMsg);
+        const creditsNeeded = useAnalysis ? 20 : (retryOnError ? 0 : 5);
+        if (credits < creditsNeeded) {
+            addToast('error', "Insufficient Credits", creditsNeeded === 20 ? "Analysis requires 20 credits." : "You need 5 credits to regenerate.");
+            return;
+        }
+        const historyWithoutAssistant = history.filter(m => m.id !== assistantMsg.id);
+        const assistantId = (Date.now() + 1).toString();
+        onUpdateHistoryRef.current([...historyWithoutAssistant, { id: assistantId, role: 'assistant', content: '' }]);
+        setIsLoading(true);
+        runMessageFlow(textToSend, assistantId, historyWithoutAssistant, retryOnError);
+    };
 
-        if (credits < 20) {
-            addToast('error', "Insufficient Credits", "Analysis requires 20 credits.");
+    const handleAISubmit = async (e: React.FormEvent, promptOverride?: string) => {
+        e.preventDefault();
+        const textToSend = (promptOverride ?? prompt).trim();
+        if (!textToSend) return;
+
+        const creditsNeeded = files.length >= 2 && isAnalysisQuery(textToSend) ? 20 : 5;
+        if (credits < creditsNeeded) {
+            addToast('error', "Insufficient Credits", creditsNeeded === 20 ? "Analysis requires 20 credits." : "You need 5 credits to send a message.");
             return;
         }
 
-        setIsAnalyzing(true);
-        setAnalysisInput('');
-        // Credits are enforced server-side; UI will refresh via profile sync.
+        const mentionRegex = /@([^\s]+)/g;
+        const matches = [...textToSend.matchAll(mentionRegex)];
+        const mentionedFileNames = matches.map(m => m[1]);
+        const referencedFiles = files.filter(f => mentionedFileNames.includes(f.name));
+        if (referencedFiles.length === 0 && activeFile) referencedFiles.push(activeFile);
 
-        try {
-            const fileContext = files.map(f => {
-                const sample = f.data.slice(0, 5);
-                return `File: ${f.name}\nColumns: ${f.columns.join(', ')}\nSample Data: ${JSON.stringify(sample)}`;
-            }).join('\n\n');
+        const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: textToSend };
+        const assistantId = (Date.now() + 1).toString();
+        const assistantMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '' };
 
-            const json = await api.analyze(query, fileContext);
-
-            setAnalysisResults(prev => [{ id: Date.now().toString(), query, ...json }, ...prev]);
-
-        } catch (err: any) {
-            console.error("Analysis failed", err);
-            addToast('error', 'Analysis Failed', 'Could not generate insights.');
-        } finally {
-            setIsAnalyzing(false);
-            // Refresh credits after server-side charging
-            onUseCredit(0);
-        }
+        onUpdateHistoryRef.current([...history, userMsg, assistantMsg]);
+        if (!promptOverride) setPrompt('');
+        setIsLoading(true);
+        runMessageFlow(textToSend, assistantId, history);
     };
 
     const handleDownloadImage = async (id: string, title: string) => {
@@ -456,27 +395,71 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
         }
     };
 
+    const handleCopyChart = async (elementId: string) => {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        try {
+            const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2, logging: false });
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                try {
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                    addToast('success', 'Copied', 'Chart copied to clipboard.');
+                } catch {
+                    addToast('error', 'Copy failed', 'Copy to clipboard not supported. Use Download instead.');
+                }
+            });
+        } catch {
+            addToast('error', 'Copy failed', 'Could not copy chart.');
+        }
+    };
+
+    const handleCopyTable = (data: any[]) => {
+        if (!data?.length) return;
+        const first = data[0];
+        if (typeof first === 'object' && first !== null) {
+            const keys = Object.keys(first);
+            const header = keys.join('\t');
+            const rows = data.map(row => keys.map(k => {
+                const v = (row as Record<string, unknown>)[k];
+                return typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v ?? '');
+            }).join('\t'));
+            navigator.clipboard.writeText([header, ...rows].join('\n'));
+        } else {
+            navigator.clipboard.writeText(data.map(String).join('\n'));
+        }
+        addToast('success', 'Copied', 'Table copied to clipboard.');
+    };
+
     return (
         <div className="flex flex-col h-full bg-white relative">
 
-            {/* HEADER for Search and Title */}
-            {activeTab === 'chat' && (
-                <div className="h-12 border-b border-gray-100 flex items-center justify-between px-4 bg-white z-10">
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">AI Assistant</span>
+            {/* HEADER */}
+            <div className="h-12 border-b border-slate-100 flex items-center justify-between px-4 bg-white z-10">
+                    <span className="text-sm font-medium text-slate-600">AI Assistant</span>
                     <div className="flex items-center gap-2">
+                        {canUndo && (
+                            <button
+                                onClick={handleUndo}
+                                className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                                title="Undo last message"
+                            >
+                                <Undo2 size={16} />
+                            </button>
+                        )}
                         <button
                             onClick={handleResetChat}
-                            className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
                             title="Reset Chat History"
                         >
                             <RotateCcw size={16} />
                         </button>
                         {showHistorySearch ? (
-                            <div className="flex items-center bg-gray-100 rounded-md px-2 py-1 animate-in slide-in-from-right-2">
-                                <Search size={14} className="text-gray-400 mr-2" />
+                            <div className="flex items-center bg-slate-50 rounded-md px-2 py-1 animate-in slide-in-from-right-2">
+                                <Search size={14} className="text-slate-400 mr-2" />
                                 <input
                                     autoFocus
-                                    className="bg-transparent border-none outline-none text-xs w-28 text-gray-700"
+                                    className="bg-transparent border-none outline-none text-xs w-28 text-slate-700"
                                     placeholder="Search history..."
                                     value={historySearchQuery}
                                     onChange={(e) => setHistorySearchQuery(e.target.value)}
@@ -484,7 +467,7 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                 />
                                 <button
                                     onMouseDown={(e) => { e.preventDefault(); setHistorySearchQuery(''); setShowHistorySearch(false); }}
-                                    className="ml-1 text-gray-400 hover:text-gray-600"
+                                    className="ml-1 text-slate-400 hover:text-slate-600"
                                 >
                                     <X size={12} />
                                 </button>
@@ -492,7 +475,7 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                         ) : (
                             <button
                                 onClick={() => setShowHistorySearch(true)}
-                                className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"
+                                className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
                                 title="Search History"
                             >
                                 <Search size={16} />
@@ -500,32 +483,50 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                         )}
                     </div>
                 </div>
-            )}
 
-            {/* Unified Main Content Area */}
+            {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative flex flex-col">
-                {activeTab === 'chat' && (
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                         {displayedHistory.length === 0 && historySearchQuery && (
-                            <div className="text-center py-8 text-xs text-gray-400">
+                            <div className="text-center py-8 text-xs text-slate-500">
                                 No messages found matching "{historySearchQuery}"
                             </div>
                         )}
                         {displayedHistory.map((m) => (
                             <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-blue-600' : 'bg-gray-100 text-blue-500'}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-slate-800' : 'bg-slate-100 text-slate-500'}`}>
                                     {m.role === 'user' ? <User size={14} className="text-white" /> : <Sparkles size={14} />}
                                 </div>
-                                <div className="flex flex-col max-w-[85%]">
-                                    <div className={`p-3 rounded-2xl text-[13px] leading-relaxed shadow-sm border ${m.role === 'assistant'
-                                            ? 'bg-white text-gray-700 border-gray-100'
-                                            : 'bg-blue-50 text-blue-900 border-blue-100 font-medium'
+                                <div className="flex flex-col max-w-[85%] group/msg">
+                                    <div className={`p-3 rounded-xl text-[13px] leading-relaxed shadow-sm border relative ${m.role === 'assistant'
+                                            ? 'bg-white text-slate-700 border-slate-100'
+                                            : 'bg-slate-800 text-white border-slate-700 font-medium'
                                         }`}>
+                                        {m.role === 'assistant' && (
+                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                                                <button onClick={() => handleCopyMessage(m)} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600" title="Copy"><Copy size={12} /></button>
+                                                <button onClick={() => handleRegenerate(m)} disabled={isLoading} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 disabled:opacity-50" title={messageHadExecutionError(m) ? "Regenerate (free retry)" : "Regenerate"}><RefreshCw size={12} /></button>
+                                            </div>
+                                        )}
                                         {m.role === 'assistant' ? (
-                                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-gray-900 [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-gray-800 [&>pre]:text-white [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto">
-                                                <ReactMarkdown>{m.content}</ReactMarkdown>
-                                                {isLoading && m.id === history[history.length - 1].id && (
-                                                    <span className="inline-block w-1.5 h-3 bg-blue-400 ml-1 animate-pulse"></span>
+                                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-slate-900 [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-slate-800 [&>pre]:text-white [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto">
+                                                {m.content ? <ReactMarkdown>{m.content}</ReactMarkdown> : null}
+                                                {isLoading && history.length > 0 && m.id === history[history.length - 1].id && (
+                                                    <>
+                                                        <span className="inline-flex items-center gap-1 text-slate-500 text-sm mt-1">
+                                                            Analyzing
+                                                            <span className="inline-flex gap-0.5">
+                                                                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                                                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                                                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                                            </span>
+                                                        </span>
+                                                        {files.length > 0 && !m.parts?.some(p => p.type === 'chart' || p.type === 'table') && (
+                                                            <div className="mt-4 p-3 bg-slate-50/50 border border-slate-100 rounded-xl h-48 flex items-center justify-center">
+                                                                <span className="text-slate-400 text-sm">Calculating...</span>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         ) : (
@@ -533,32 +534,43 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                         )}
 
                                         {m.parts?.map((part, idx) => (
-                                            <div key={idx} className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                            <div key={idx} className="mt-4 p-3 bg-slate-50/50 border border-slate-100 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-500">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
                                                         {part.type === 'chart' ? (part.chartType === 'pie' ? <PieChart size={12} /> : <ChartBar size={12} />) :
                                                             part.type === 'table' ? <Calculator size={12} /> :
                                                                 part.type === 'formula' ? <FunctionSquare size={12} /> :
-                                                                    <TrendingUp size={12} />}
+                                                                    part.type === 'analysis_card' ? <ShieldCheck size={12} /> :
+                                                                        <TrendingUp size={12} />}
                                                         {part.title || 'Result'}
                                                     </span>
                                                     <div className="flex gap-1">
-                                                        {part.type !== 'formula' && <button onClick={() => onPinToDashboard({ title: part.title || 'Pinned Analysis', type: part.type, data: part.data || [], chartType: part.chartType })} className="p-1 hover:bg-white rounded transition-colors text-gray-400 hover:text-blue-500" title="Pin to Dashboard"><Pin size={12} /></button>}
+                                                        {part.type !== 'formula' && (
+                                                            <>
+                                                                {part.type === 'analysis_card' && part.data?.[0] && (
+                                                                    <button onClick={() => handleDownloadImage((part.data[0] as AnalysisResult).id, (part.data[0] as AnalysisResult).title)} className="p-1 hover:bg-white rounded transition-colors text-slate-400 hover:text-slate-600" title="Download Image"><Download size={12} /></button>
+                                                                )}
+                                                                {part.type === 'table' && (
+                                                                    <button onClick={() => handleCopyTable(part.data || [])} className="p-1 hover:bg-white rounded transition-colors text-slate-400 hover:text-slate-600" title="Copy table"><Copy size={12} /></button>
+                                                                )}
+                                                                <button onClick={() => onPinToDashboard({ title: part.title || 'Pinned Analysis', type: part.type, data: part.data || [], chartType: part.chartType })} className="p-1 hover:bg-white rounded transition-colors text-slate-400 hover:text-slate-600" title="Pin to Dashboard"><Pin size={12} /></button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
 
                                                 {/* FORMULA PART */}
                                                 {part.type === 'formula' && (
                                                     <div className="bg-green-50 border border-green-100 rounded-lg p-3 group relative">
-                                                        <div className="text-[10px] font-bold text-green-700 uppercase mb-1 flex items-center gap-1">
+                                                        <div className="text-xs font-medium text-green-700 mb-1 flex items-center gap-1">
                                                             <FunctionSquare size={12} /> Excel Formula
                                                         </div>
-                                                        <code className="text-sm font-mono text-gray-800 break-all">{part.content}</code>
+                                                        <code className="text-sm font-mono text-slate-800 break-all">{part.content}</code>
                                                         <button
                                                             onClick={() => {
                                                                 if (part.content) navigator.clipboard.writeText(part.content);
                                                             }}
-                                                            className="absolute top-2 right-2 p-1.5 bg-white text-gray-500 rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-blue-600"
+                                                            className="absolute top-2 right-2 p-1.5 bg-white text-slate-500 rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-slate-600"
                                                             title="Copy Formula"
                                                         >
                                                             <Copy size={14} />
@@ -567,8 +579,9 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                                 )}
 
                                                 {part.type === 'chart' && part.data && (
-                                                    <div className="h-64 w-full flex items-center justify-center bg-white rounded-lg border border-gray-100 p-2 overflow-hidden">
+                                                    <div id={`chart-${m.id}-${idx}`} className="relative h-64 w-full flex items-center justify-center bg-white rounded-lg border border-slate-100 p-2 overflow-hidden">
                                                         <ChartRenderer type={part.chartType || 'bar'} data={part.data} title={part.title || 'Chart'} isThumbnail={true} onExpand={() => setExpandedChart({ type: part.chartType || 'bar', data: part.data || [], title: part.title || 'Analysis Chart' })} />
+                                                        <button onClick={() => handleCopyChart(`chart-${m.id}-${idx}`)} className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded shadow-sm text-slate-500 hover:text-slate-700 transition-opacity opacity-0 group-hover/msg:opacity-100" title="Copy chart"><Copy size={12} /></button>
                                                     </div>
                                                 )}
                                                 {part.type === 'table' && (
@@ -576,159 +589,56 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                                         <table className="w-full text-xs">
                                                             <tbody>
                                                                 {part.data?.slice(0, 5).map((row: any, i: number) => (
-                                                                    <tr key={i} className="border-b border-gray-100 last:border-0">
+                                                                    <tr key={i} className="border-b border-slate-100 last:border-0">
                                                                         {typeof row === 'object' && row !== null ? (
                                                                             Object.entries(row).map(([k, val]: [string, any], j: number) => (
-                                                                                <td key={j} className="py-1 px-2 text-gray-600">
-                                                                                    <span className="font-semibold text-gray-400 mr-1">{k}:</span>
+                                                                                <td key={j} className="py-1 px-2 text-slate-600">
+                                                                                    <span className="font-semibold text-slate-400 mr-1">{k}:</span>
                                                                                     {typeof val === 'object' && val !== null ? JSON.stringify(val) : val}
                                                                                 </td>
                                                                             ))
                                                                         ) : (
-                                                                            <td className="py-1 px-2 text-gray-600">{row}</td>
+                                                                            <td className="py-1 px-2 text-slate-600">{row}</td>
                                                                         )}
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
                                                         </table>
-                                                        {part.data && part.data.length > 5 && <div className="text-[10px] text-gray-400 mt-1 italic">... {part.data.length - 5} more rows</div>}
+                                                        {part.data && part.data.length > 5 && <div className="text-xs text-slate-500 mt-1 italic">... {part.data.length - 5} more rows</div>}
+                                                    </div>
+                                                )}
+                                                {part.type === 'analysis_card' && part.data?.[0] && (
+                                                    <div id={`analysis-card-${(part.data[0] as AnalysisResult).id}`} className="bg-white rounded-xl border border-slate-100 p-3">
+                                                        <AnalysisContent result={part.data[0] as AnalysisResult} />
                                                     </div>
                                                 )}
                                             </div>
                                         ))}
+                                        {m.role === 'assistant' && m.followUps && m.followUps.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+                                                {m.followUps.map((q, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={(e) => handleAISubmit(e, q)}
+                                                        className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-200 transition-colors"
+                                                    >
+                                                        {q}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
-                )}
-
-                {activeTab === 'analysis' && (
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                        {needsColumnSelection && (
-                            <div className="p-4 bg-white border-b border-gray-200 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                                        <Split size={18} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-gray-800 text-sm mb-1">How should we match rows?</h4>
-                                        <p className="text-xs text-gray-500 mb-3">Select the unique identifier common to both files.</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {detectedColumns.map(col => (
-                                                <button
-                                                    key={col}
-                                                    onClick={() => { setJoinKey(col); setNeedsColumnSelection(false); }}
-                                                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-xs font-bold text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
-                                                >
-                                                    {col}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {files.length < 2 && analysisResults.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400 mt-12">
-                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                    <Split size={24} />
-                                </div>
-                                <h3 className="font-bold text-gray-700 mb-2">Multi-File Analysis</h3>
-                                <p className="text-sm">Please upload at least two files to enable deep comparison and variance analysis.</p>
-                            </div>
-                        ) : (
-                            <>
-                                {analysisResults.map((result) => (
-                                    <div key={result.id} id={`analysis-card-${result.id}`} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 group">
-                                        <div className="p-5 border-b border-gray-100 relative">
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <div className="p-1.5 bg-gray-100 rounded text-gray-500">
-                                                    {result.intent === 'SANITY_CHECK' ? <ShieldCheck size={16} /> :
-                                                        result.intent === 'DIMENSION_ANALYSIS' ? <Layers size={16} /> :
-                                                            <TrendingUp size={16} />}
-                                                </div>
-                                                <h3 className="font-bold text-gray-800 text-lg">{result.title}</h3>
-                                            </div>
-
-                                            <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" data-html2canvas-ignore="true">
-                                                <button
-                                                    onClick={() => handleDownloadImage(result.id, result.title)}
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Download Image"
-                                                >
-                                                    <Download size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => onPinToDashboard({ title: result.title, type: 'analysis_card', data: [result], chartType: 'bar' })}
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Pin Card to Dashboard"
-                                                >
-                                                    <Pin size={16} />
-                                                </button>
-                                            </div>
-
-                                            <AnalysisContent result={result} />
-                                        </div>
-
-                                        <div className="p-5 bg-gray-50/50">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Analysis Explanation</h4>
-                                            <p className="text-sm text-gray-700 leading-relaxed mb-4">{result.explanation}</p>
-                                        </div>
-
-                                        <div className="p-3 bg-white border-t border-gray-100 flex flex-wrap gap-2" data-html2canvas-ignore="true">
-                                            {result.followUps.map((q, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => handleAnalysisSubmit(q)}
-                                                    className="px-3 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg hover:bg-blue-100 transition-colors"
-                                                >
-                                                    {q}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {isAnalyzing && (
-                                    <div className="p-8 text-center">
-                                        <Sparkles className="animate-spin text-blue-500 mx-auto mb-3" size={32} />
-                                        <p className="text-sm font-bold text-gray-500">Analyzing Variance...</p>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                )}
             </div>
 
-            {/* Unified Bottom Input Section */}
-            <div className="p-3 border-t border-gray-200 bg-white relative z-20">
-                {isModeMenuOpen && (
-                    <div className="absolute bottom-full left-4 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-1 animate-in fade-in slide-in-from-bottom-2 overflow-hidden z-50">
-                        <button
-                            onClick={() => { setActiveTab('chat'); setIsModeMenuOpen(false); }}
-                            className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeTab === 'chat' ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}
-                        >
-                            <MessageSquare size={16} />
-                            <span className="font-medium text-sm">AI Chat</span>
-                            {activeTab === 'chat' && <Check size={14} className="ml-auto" />}
-                        </button>
-                        <button
-                            onClick={() => { setActiveTab('analysis'); setIsModeMenuOpen(false); }}
-                            className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${activeTab === 'analysis' ? 'bg-purple-50 text-purple-600' : 'text-gray-700'}`}
-                        >
-                            <BarChart2 size={16} />
-                            <span className="font-medium text-sm">Analysis & Charts</span>
-                            {activeTab === 'analysis' && <Check size={14} className="ml-auto" />}
-                        </button>
-                    </div>
-                )}
-
-                {activeTab === 'chat' && showMentionList && filteredFiles.length > 0 && (
-                    <div className="absolute bottom-full left-12 mb-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-30 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="bg-gray-50 px-3 py-2 border-b border-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            {/* Bottom Input Section */}
+            <div className="p-3 border-t border-slate-200 bg-slate-50/50 relative z-20">
+                {showMentionList && filteredFiles.length > 0 && (
+                    <div className="absolute bottom-full left-12 mb-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-30 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 text-xs font-medium text-slate-500">
                             Mention File
                         </div>
                         <div className="max-h-48 overflow-y-auto">
@@ -736,9 +646,9 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                                 <button
                                     key={f.id}
                                     onClick={() => insertMention(f.name)}
-                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm text-gray-700 flex items-center gap-2 transition-colors"
+                                    className="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-slate-700 flex items-center gap-2 transition-colors"
                                 >
-                                    <FileText size={14} className="text-blue-500" />
+                                    <FileText size={14} className="text-slate-500" />
                                     <span className="truncate">{f.name}</span>
                                 </button>
                             ))}
@@ -746,93 +656,66 @@ Sample Data (Top 5 rows): ${JSON.stringify(sample)}
                     </div>
                 )}
 
-                <div className="relative flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-2xl p-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:bg-white transition-all shadow-sm">
-
-                    <button
-                        onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
-                        className="flex items-center gap-2 pl-3 pr-2 py-2 rounded-xl hover:bg-white hover:shadow-sm text-gray-700 transition-all flex-shrink-0"
-                        title="Change Mode"
-                    >
-                        {activeTab === 'chat' && <Sparkles size={18} className="text-blue-600" />}
-                        {activeTab === 'analysis' && <Split size={18} className="text-purple-600" />}
-                        <ChevronDown size={14} className="text-gray-400" />
-                    </button>
-
-                    <div className="w-px h-6 bg-gray-200 mx-1"></div>
-
-                    <div className="flex-1 relative">
-                        {activeTab === 'chat' && (
-                            <form onSubmit={handleAISubmit} className="w-full">
-                                <textarea
-                                    ref={inputRef}
-                                    rows={1}
-                                    value={prompt}
-                                    onChange={handleInputChange}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            if (showMentionList && filteredFiles.length > 0) {
-                                                insertMention(filteredFiles[0].name);
-                                            } else {
-                                                handleAISubmit(e as any);
-                                            }
-                                        }
-                                        if (e.key === 'Escape') setShowMentionList(false);
-                                    }}
-                                    placeholder={files.length > 0 ? "Ask anything": "Upload files to start chat"}
-                                    disabled={isLoading}
-                                    className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none max-h-32 placeholder-gray-400 leading-relaxed"
-                                    style={{ minHeight: '40px' }}
-                                />
-                            </form>
-                        )}
-
-                        {activeTab === 'analysis' && (
-                            <form onSubmit={(e) => { e.preventDefault(); handleAnalysisSubmit(); }} className="w-full">
-                                <input
-                                    type="text"
-                                    className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 placeholder-gray-400 h-[40px]"
-                                    placeholder={analysisResults.length > 0 ? "Ask follow up... (20 credits)" : "Ask about changes (e.g. 'Revenue Variance')"}
-                                    value={analysisInput}
-                                    onChange={(e) => setAnalysisInput(e.target.value)}
-                                    disabled={isAnalyzing || needsColumnSelection}
-                                />
-                            </form>
-                        )}
+                <div className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-slate-300/30 focus-within:bg-white transition-all shadow-sm">
+                    <div className="flex items-center pl-3 pr-2 py-2 flex-shrink-0">
+                        <Sparkles size={16} className="text-slate-400" />
                     </div>
-
-                    {activeTab === 'chat' && (
-                        <button
-                            onClick={(e) => handleAISubmit(e as any)}
-                            disabled={isLoading || !prompt.trim()}
-                            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-sm"
-                        >
-                            <Send size={16} />
-                        </button>
-                    )}
-                    {activeTab === 'analysis' && (
-                        <button
-                            onClick={() => handleAnalysisSubmit()}
-                            disabled={isAnalyzing || !analysisInput.trim() || needsColumnSelection}
-                            className="p-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:bg-gray-300 transition-all shadow-sm"
-                        >
-                            <ArrowRight size={16} />
-                        </button>
-                    )}
+                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                    <div className="flex-1 relative">
+                        <form onSubmit={handleAISubmit} className="w-full">
+                            <textarea
+                                ref={inputRef}
+                                rows={1}
+                                value={prompt}
+                                onChange={handleInputChange}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        if (showMentionList && filteredFiles.length > 0) {
+                                            insertMention(filteredFiles[0].name);
+                                        } else {
+                                            handleAISubmit(e as any);
+                                        }
+                                    }
+                                    if (e.key === 'Escape') setShowMentionList(false);
+                                }}
+                                placeholder={files.length > 0 ? (() => {
+                                    const file = activeFile || files[0];
+                                    const { numericCol } = file ? getValidColumnsForPrompts(file) : { numericCol: null };
+                                    const col = numericCol || file?.columns?.[0];
+                                    const base = col ? `e.g. What's the sum of ${col}?` : "e.g. What's the sum? Create a chart";
+                                    return files.length >= 2 ? `${base} Type @ to mention a file` : base;
+                                })() : "Upload files to start chat"}
+                                disabled={isLoading}
+                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none max-h-32 placeholder-slate-400 leading-relaxed"
+                                style={{ minHeight: '40px' }}
+                            />
+                        </form>
+                    </div>
+                    <button
+                        onClick={(e) => handleAISubmit(e as any)}
+                        disabled={isLoading || !prompt.trim()}
+                        className="p-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-50 disabled:bg-slate-300 transition-all shadow-sm"
+                    >
+                        <Send size={16} />
+                    </button>
                 </div>
 
-                {activeTab === 'analysis' && analysisResults.length === 0 && !isAnalyzing && (
+                {displayedHistory.length <= 1 && !historySearchQuery && !isLoading && (
                     <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                        {["📉 Revenue Variance", "📦 Cost Analysis", "🌍 Regional Shift", "🛡️ Sanity Check"].map(q => (
-                            <button
-                                key={q}
-                                onClick={() => handleAnalysisSubmit(q)}
-                                className="whitespace-nowrap px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
-                                disabled={needsColumnSelection}
-                            >
-                                {q}
-                            </button>
-                        ))}
+                        {getSuggestedPrompts(files, activeFile).length > 0 ? (
+                            getSuggestedPrompts(files, activeFile).map(q => (
+                                <button
+                                    key={q}
+                                    onClick={(e) => handleAISubmit(e, q)}
+                                    className="whitespace-nowrap px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+                                >
+                                    {q}
+                                </button>
+                            ))
+                        ) : (
+                            <span className="text-xs text-slate-500 px-2 py-1.5">Upload files to get started</span>
+                        )}
                     </div>
                 )}
             </div>

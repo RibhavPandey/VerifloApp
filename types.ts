@@ -53,6 +53,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   parts?: AIResponsePart[];
+  followUps?: string[];
 }
 
 export interface DashboardItem {
