@@ -117,6 +117,7 @@ const ExtractionSetup: React.FC = () => {
         await db.upsertJob(newJob);
 
         const newDocs: VerificationDocument[] = [];
+        const rejectionReasons: string[] = [];
         const BATCH_SIZE = 3;
 
         const processFile = async (file: File): Promise<VerificationDocument | null> => {
@@ -169,6 +170,9 @@ const ExtractionSetup: React.FC = () => {
                     batchCompleted.push(file.name);
                 } else {
                     batchFailed.push(file.name);
+                    if (r.status === 'rejected' && r.reason?.message) {
+                        rejectionReasons.push(r.reason.message);
+                    }
                 }
             }
             setExtractionProgress(prev => ({
@@ -187,8 +191,20 @@ const ExtractionSetup: React.FC = () => {
             setExtractionProgress(null);
             const failedJob: Job = { ...newJob, status: 'processing', fileIds: [] };
             await db.upsertJob(failedJob);
-            const firstError = failedNames.length > 0 ? failedNames[0] : 'No documents could be extracted. Please check your API key and try again.';
-            addToast('error', 'Extraction Failed', firstError);
+            const isInsufficientCredits = rejectionReasons.some(msg =>
+                msg?.toLowerCase().includes('insufficient credits')
+            );
+            if (isInsufficientCredits) {
+                addToast(
+                    'error',
+                    'Insufficient Credits',
+                    'You need more credits to extract documents. Upgrade your plan to continue.',
+                    { label: 'View Pricing', onClick: () => navigate('/pricing') }
+                );
+            } else {
+                const firstError = failedNames.length > 0 ? failedNames[0] : 'No documents could be extracted. Please check your API key and try again.';
+                addToast('error', 'Extraction Failed', firstError);
+            }
             return;
         }
         

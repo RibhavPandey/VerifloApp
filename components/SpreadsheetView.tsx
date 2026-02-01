@@ -1584,7 +1584,7 @@ const SpreadsheetView: React.FC = () => {
                  />
                  
                  {/* FLOATING SELECTION TOOLBAR - Modern & Contextual */}
-                 {selection && activeCell && !isEditing && !isDragging && isGridFocused && (
+                 {selection && activeCell && !isEditing && !isDragging && (isGridFocused || showTransformMenu) && (
                    <div 
                      className="flex items-center gap-1.5 p-1.5 bg-background/95 backdrop-blur-xl rounded-xl shadow-lg border border-border animate-in fade-in slide-in-from-bottom-2 duration-200"
                      style={getFloatingToolbarStyle()}

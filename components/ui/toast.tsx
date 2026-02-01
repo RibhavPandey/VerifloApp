@@ -4,15 +4,21 @@ import { X, CheckCircle2, AlertTriangle, Info, AlertCircle } from 'lucide-react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   type: ToastType;
   title: string;
   message?: string;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
-  addToast: (type: ToastType, title: string, message?: string) => void;
+  addToast: (type: ToastType, title: string, message?: string, action?: ToastAction) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -20,9 +26,9 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = useCallback((type: ToastType, title: string, message?: string) => {
+  const addToast = useCallback((type: ToastType, title: string, message?: string, action?: ToastAction) => {
     const id = Math.random().toString(36).substring(7);
-    setToasts(prev => [...prev, { id, type, title, message }]);
+    setToasts(prev => [...prev, { id, type, title, message, action }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
@@ -36,7 +42,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ addToast }}>
       {children}
       <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
-        {toasts.map(toast => (
+        {(toasts ?? []).map(toast => (
           <div 
             key={toast.id}
             className={`pointer-events-auto min-w-[300px] max-w-sm rounded-xl shadow-lg border p-4 flex items-start gap-3 animate-in slide-in-from-right-full fade-in duration-300 ${
@@ -65,6 +71,19 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                  'text-gray-800'
               }`}>{toast.title}</h4>
               {toast.message && <p className="text-xs text-gray-500 mt-1">{toast.message}</p>}
+              {toast.action && (
+                <button
+                  onClick={() => { toast.action?.onClick(); removeToast(toast.id); }}
+                  className={`mt-2 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                    toast.type === 'error' ? 'bg-red-100 text-red-700 hover:bg-red-200' :
+                    toast.type === 'warning' ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
+                    toast.type === 'success' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
+                    'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  }`}
+                >
+                  {toast.action.label}
+                </button>
+              )}
             </div>
             <button onClick={() => removeToast(toast.id)} className="text-gray-400 hover:text-gray-600">
               <X size={14} />
