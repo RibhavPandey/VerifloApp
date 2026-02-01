@@ -63,15 +63,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       <section className="relative overflow-hidden py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center">
-            <h1 className="mb-6 animate-fade-in-up text-balance font-mono text-5xl font-bold leading-tight text-foreground animation-delay-100 md:text-7xl">
-              Hours of Manual Work.{" "}
+            <h1 className="mb-6 animate-fade-in-up text-balance font-mono text-4xl font-bold leading-tight text-foreground animation-delay-100 md:text-5xl">
+              From inbox to{" "}
               <span className="relative inline-block border-4 border-black bg-primary px-4 py-2 text-primary-foreground shadow-lg">
-                Done in Seconds
+                accounting—no detours
               </span>
             </h1>
 
             <p className="mb-10 animate-fade-in-up text-pretty text-lg leading-relaxed text-muted-foreground animation-delay-200 md:text-xl">
-              Invoice automation, workflow automation, and AI chat—built to save you time. Stop manual data entry. Let automation handle the repetitive work.
+              Extract invoices, run workflows, chat with your data—one workspace. Tally, QuickBooks, Zoho ready.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 animate-fade-in-up animation-delay-300 sm:flex-row">
@@ -94,7 +94,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             </div>
 
             <p className="mt-6 animate-fade-in-up text-sm text-muted-foreground animation-delay-400">
-              No credit card required • 14-day free trial • Process unlimited files • Cancel anytime
+              No credit card • 14-day free trial • Cancel anytime
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               See It In Action
             </h2>
             <p className="text-lg text-muted-foreground">
-              See invoice automation, workflows, and AI chat in action
+              Watch: Invoice upload → extraction → review → export to Tally in under 2 minutes.
             </p>
           </div>
           
@@ -155,10 +155,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         <div className="container mx-auto px-4">
           <div className="mb-16 text-center">
             <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-              Built for Speed
+              Why Veriflo Beats the Tools You Use Now
             </h2>
             <p className="text-lg text-muted-foreground">
-              Three core features that save you time
+              What you do now vs Veriflo
             </p>
           </div>
 
@@ -167,19 +167,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               {
                 icon: FileText,
                 title: "Invoice Automation",
-                description: "Extract, process, and organize invoices automatically. No manual data entry. Get clean, structured data ready for your books.",
+                description: "Nanonets/Rossum extract, then you export manually. Column mapping? You. Veriflo: Extract → Review risky fields → Export to Tally/QuickBooks/Zoho. One click.",
                 color: "bg-primary",
               },
               {
                 icon: Workflow,
                 title: "Workflow Automation",
-                description: "Record your steps once, run them on any file. Monthly reports, data transforms, bulk processing—all automated.",
+                description: "Zapier = per-app setup. Excel macros = code. Veriflo: Record your steps once. Run on any file. No code.",
                 color: "bg-accent",
               },
               {
                 icon: MessageSquare,
                 title: "AI Chat",
-                description: "Ask questions about your data in plain English. Get answers, insights, and actions without writing formulas or code.",
+                description: "Copy-paste to ChatGPT. Data leaves. Context lost next session. Veriflo: Chat in your workspace. Data stays. Full context.",
                 color: "bg-secondary text-black",
               },
             ].map((feature, index) => (
@@ -222,22 +222,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               {
                 step: "01",
                 title: "Connect Your Data",
-                description: "Upload invoices or spreadsheets. One-time setup. Your data stays in one place.",
+                description: "Upload invoices or spreadsheets. One place.",
               },
               {
                 step: "02",
-                title: "Let Automation Run",
-                description: "Invoice automation extracts and organizes. Workflows run on schedule. No babysitting.",
+                title: "Extract & Export",
+                description: "AI extracts. You review risky fields. Export to your accounting software.",
               },
               {
                 step: "03",
-                title: "Ask AI When You Need It",
-                description: "Chat with your data. Get answers, run analysis, or trigger actions—no formulas or code.",
+                title: "Ask AI",
+                description: "Ask questions. Get answers. Data stays in your workspace.",
               },
               {
                 step: "04",
-                title: "Focus on What Matters",
-                description: "Time back for real work. Automation handles the repetitive stuff so you don't have to.",
+                title: "Focus",
+                description: "Focus on decisions. Automation handles the rest.",
               },
             ].map((item, index) => (
               <div key={index} className="relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
@@ -261,41 +261,41 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         <div className="container mx-auto px-4">
           <div className="mb-16 text-center">
             <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-              Why Veriflo Saves You Time
+              The Veriflo Difference
             </h2>
             <p className="text-lg text-muted-foreground">
-              Built for invoice automation, workflows, and AI—all in one place
+              20 invoices → spreadsheet → accounting in under 5 minutes.
             </p>
           </div>
 
           <div className="mx-auto max-w-4xl space-y-10">
             {[
               { 
-                feature: "Invoice automation", 
-                otherCons: ["Separate tools for extraction vs accounting", "Manual entry = errors and wasted hours", "No single place for invoices + data"], 
-                veriflo: "Built-in extraction and processing. One place. No manual entry."
+                feature: "Invoice → accounting", 
+                otherCons: ["Nanonets + Excel + manual export"], 
+                veriflo: "Extract → Review → One-click Tally/QuickBooks/Zoho"
               },
               { 
-                feature: "Workflow automation", 
-                otherCons: ["Complex setup, often requires coding", "Steep learning curve", "Different tool for each task"], 
-                veriflo: "Record once, run on any file. No code. Same workflow for everything."
+                feature: "Repetitive spreadsheet tasks", 
+                otherCons: ["Zapier (complex) or Excel macros (code)"], 
+                veriflo: "Record once. Replay. No code."
               },
               { 
-                feature: "AI chat with your data", 
-                otherCons: ["Copy-paste to ChatGPT—data leaves your workspace", "No connection to your files", "Context lost between sessions"], 
-                veriflo: "Chat directly in your workspace. Data stays put. Full context."
+                feature: "Chat with data", 
+                otherCons: ["ChatGPT (copy-paste, data leaves)"], 
+                veriflo: "Chat in workspace. Data never leaves."
               },
               { 
-                feature: "Time to first result", 
-                otherCons: ["Hours of setup and learning", "Multiple subscriptions to manage", "Integration headaches"], 
-                veriflo: "Minutes to automate. One app. Start in seconds."
+                feature: "Tool sprawl", 
+                otherCons: ["3+ subscriptions, integration headaches"], 
+                veriflo: "One app. One subscription."
               },
             ].map((row, i) => (
               <div key={i} className="pl-6 border-l-2 border-muted-foreground/20">
                 <p className="font-mono font-bold text-foreground mb-3">{row.feature}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Other apps</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">What they use</p>
                     <ul className="text-sm text-muted-foreground space-y-1">
                       {row.otherCons.map((con, j) => (
                         <li key={j} className="flex gap-2">
@@ -328,28 +328,28 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         <div className="container mx-auto px-4">
           <div className="mb-16 text-center">
             <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-              Built for Ecommerce & Finance
+              Built for Finance Teams, E-commerce Teams, and Data Teams
             </h2>
             <p className="text-lg text-muted-foreground">
-              Invoice automation, workflows, and AI—together
+              One app. One workflow. One export.
             </p>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
             {[
               {
-                title: "Invoice Automation",
-                description: "Extract data from invoices automatically. No manual entry. Get line items, totals, and vendor info ready for your books.",
-                examples: ["PDF invoice extraction", "Bulk processing", "Export to accounting"],
+                title: "Invoice teams",
+                description: "Extract → Review → Export. Tally, QuickBooks, Zoho. No manual mapping.",
+                examples: ["PDF invoice extraction", "Bulk processing", "One-click accounting export"],
               },
               {
-                title: "Workflow Automation",
-                description: "Record your steps once, run on any file. Monthly reports, data transforms, and bulk processing—all on autopilot.",
+                title: "Monthly close",
+                description: "Record your report steps once. Run on next month's file. Same workflow.",
                 examples: ["Monthly report generation", "Data transformation", "Bulk file processing"],
               },
               {
-                title: "AI Chat",
-                description: "Ask questions about your data in plain English. Get answers, run analysis, or trigger actions without formulas or code.",
+                title: "Data questions",
+                description: "Ask 'What's the total by vendor?' in plain English. No formulas. No copy-paste.",
                 examples: ["Data insights", "Quick analysis", "Natural language queries"],
               },
             ].map((useCase, index) => (
@@ -381,10 +381,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       >
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
-            Automate Invoices, Workflows & AI—Free
+            One App. One Subscription. Replace 3 Tools.
           </h2>
           <p className="mb-8 text-xl text-primary-foreground/90">
-            No credit card. Start automating in minutes.
+            14 days free. No credit card. Full access. Cancel anytime.
           </p>
           <Button
             onClick={onStart}

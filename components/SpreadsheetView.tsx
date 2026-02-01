@@ -5,7 +5,7 @@ import {
   Bold, Italic, Underline, Check, X, 
   Scissors, CaseUpper, CaseLower, CaseSensitive, CopyMinus, Undo, Redo,
   Globe, Loader2, ChevronLeft, ChevronRight, Download, ChevronDown, FileText,
-  Wand2, Sparkles
+  Wand2, Sparkles, Filter
 } from 'lucide-react';
 import { ExcelFile, CellStyle, AutomationStep, Job, FileSnapshot, ChatMessage } from '../types';
 import { HyperFormula } from 'hyperformula';
@@ -92,6 +92,83 @@ const ERP_TEMPLATES: ERPTemplate[] = [
   },
 ];
 
+const FILTER_OPERATORS = [
+  { value: 'equals', label: 'equals' },
+  { value: 'contains', label: 'contains' },
+  { value: 'greater', label: 'greater than' },
+  { value: 'less', label: 'less than' },
+  { value: 'not_empty', label: 'is not empty' },
+  { value: 'empty', label: 'is empty' },
+] as const;
+
+const FilterStepModal: React.FC<{
+  columns: string[];
+  onApply: (colIndex: number, operator: string, value: string) => void;
+  onClose: () => void;
+}> = ({ columns, onApply, onClose }) => {
+  const [colIndex, setColIndex] = useState(0);
+  const [operator, setOperator] = useState('equals');
+  const [value, setValue] = useState('');
+  const needsValue = operator !== 'not_empty' && operator !== 'empty';
+  return (
+    <div className="fixed inset-0 z-[250] bg-black/40 flex items-center justify-center backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Filter className="text-purple-500" /> Filter Rows
+        </h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Column</label>
+            <select
+              value={colIndex}
+              onChange={(e) => setColIndex(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {columns.map((col, i) => (
+                <option key={i} value={i}>{col || `Column ${i + 1}`}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Condition</label>
+            <select
+              value={operator}
+              onChange={(e) => setOperator(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {FILTER_OPERATORS.map((op) => (
+                <option key={op.value} value={op.value}>{op.label}</option>
+              ))}
+            </select>
+          </div>
+          {needsValue && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Value</label>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="Enter value..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 mt-6">
+          <button onClick={onClose} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg">Cancel</button>
+          <button
+            onClick={() => onApply(colIndex, operator, value)}
+            disabled={needsValue && !value.trim()}
+            className="px-4 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+            Apply Filter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Utilities
 const getColumnLabel = (index: number): string => {
   let label = '';
@@ -106,7 +183,7 @@ const getColumnLabel = (index: number): string => {
 const SpreadsheetView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   // We extract 'files' from context so we can pass ALL files to Sidebar for multi-file analysis
-  const { credits, handleUseCredit, handleRecordAction, files: allFiles } = useOutletContext<WorkspaceContextType>();
+  const { credits, handleUseCredit, handleRecordAction, files: allFiles, isRecording } = useOutletContext<WorkspaceContextType>();
   const { addToast } = useToast();
   
   const [loading, setLoading] = useState(true);
@@ -319,6 +396,7 @@ const SpreadsheetView: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100%, range: 0.5 to 2.0
   const [showTransformMenu, setShowTransformMenu] = useState(false);
   const [isGridFocused, setIsGridFocused] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // HyperFormula
   const hfInstance = useRef<HyperFormula | null>(null);
@@ -615,7 +693,8 @@ const SpreadsheetView: React.FC = () => {
         }
 
         handleFileChange({ data: newData });
-        handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)} with "${enrichmentPrompt}"`, { prompt: enrichmentPrompt, colIndex: colIdx });
+        const colName = file.columns[colIdx];
+        handleRecordAction('enrich', `Enriched ${getColumnLabel(colIdx)} with "${enrichmentPrompt}"`, { prompt: enrichmentPrompt, colIndex: colIdx, columnName: colName });
         // Credits are enforced server-side; refresh UI credits.
         handleUseCredit(0);
         addToast('success', 'Enrichment Complete', `Data successfully added to your sheet (${allUniqueItems.length} unique items processed).`);
@@ -1008,7 +1087,8 @@ const SpreadsheetView: React.FC = () => {
               const newColumns = file.columns.filter((_, i) => i !== colIdx);
               
               handleFileChange({ data: newData, columns: newColumns });
-              handleRecordAction('delete_col', `Deleted column ${getColumnLabel(colIdx)}`, { colIndex: colIdx });
+              const colName = file.columns[colIdx];
+              handleRecordAction('delete_col', `Deleted column ${getColumnLabel(colIdx)}`, { colIndex: colIdx, columnName: colName });
               addToast('info', 'Column Deleted', `Removed ${getColumnLabel(colIdx)}`);
               setSelection(null);
               setActiveCell(null);
@@ -1151,6 +1231,30 @@ const SpreadsheetView: React.FC = () => {
     handleRecordAction('sort', `Transformed range to ${action}`, { action, r1, c1, r2, c2 });
   };
 
+  const handleApplyFilter = (colIndex: number, operator: string, value: string) => {
+    if (!file || colIndex < 0 || colIndex >= (file.data[0]?.length || 0)) return;
+    const headerRow = file.data[0];
+    const filteredData = [headerRow];
+    for (let r = 1; r < file.data.length; r++) {
+      if (!file.data[r]) continue;
+      const cellValue = file.data[r][colIndex];
+      let shouldInclude = false;
+      if (operator === 'equals') shouldInclude = String(cellValue) === String(value);
+      else if (operator === 'contains') shouldInclude = String(cellValue).toLowerCase().includes(String(value).toLowerCase());
+      else if (operator === 'greater') shouldInclude = Number(cellValue) > Number(value);
+      else if (operator === 'less') shouldInclude = Number(cellValue) < Number(value);
+      else if (operator === 'not_empty') shouldInclude = cellValue !== undefined && cellValue !== null && cellValue !== '';
+      else if (operator === 'empty') shouldInclude = cellValue === undefined || cellValue === null || cellValue === '';
+      if (shouldInclude) filteredData.push(file.data[r]);
+    }
+    handleFileChange({ data: filteredData });
+    const colName = file.columns[colIndex];
+    const desc = operator === 'not_empty' ? `Filtered ${colName} (not empty)` : operator === 'empty' ? `Filtered ${colName} (empty)` : `Filtered ${colName} ${operator} "${value}"`;
+    handleRecordAction('filter', desc, { colIndex, columnName: colName, operator, value });
+    setShowFilterModal(false);
+    addToast('success', 'Filter Applied', `${filteredData.length - 1} rows kept.`);
+  };
+
   const startRow = Math.max(0, Math.floor(scrollPos.top / scaledRowHeight) - BUFFER_ROWS);
   const endRow = Math.min(rowCount, Math.ceil((scrollPos.top + viewportSize.height) / scaledRowHeight) + BUFFER_ROWS);
   let startCol = 0; while(startCol < colCount && getScaledColLeft(startCol + 1) < scrollPos.left) startCol++;
@@ -1276,8 +1380,14 @@ const SpreadsheetView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Export + Zoom */}
+        {/* Right: Filter (when recording) + Export + Zoom */}
         <div className="flex items-center gap-2">
+          {isRecording && file && (
+            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50">
+              <Filter size={16} />
+              <span className="hidden sm:inline">Filter rows</span>
+            </Button>
+          )}
           {/* Export with ERP Format inside */}
           <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
             <DropdownMenuTrigger asChild>
@@ -1636,6 +1746,14 @@ const SpreadsheetView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showFilterModal && file && (
+        <FilterStepModal
+          columns={file.columns}
+          onApply={(colIndex, operator, value) => handleApplyFilter(colIndex, operator, value)}
+          onClose={() => setShowFilterModal(false)}
+        />
       )}
     </div>
       {/* SIDEBAR */}

@@ -24,6 +24,9 @@ const Navbar = () => {
                             <a href="#features" className="font-medium hover:text-primary">
                                 Features
                             </a>
+                            <a href="#comparison" className="font-medium hover:text-primary">
+                                Why Veriflo
+                            </a>
                             <a href="#how-it-works" className="font-medium hover:text-primary">
                                 How It Works
                             </a>
@@ -35,6 +38,9 @@ const Navbar = () => {
                         <>
                             <Link to="/#features" className="font-medium hover:text-primary">
                                 Features
+                            </Link>
+                            <Link to="/#comparison" className="font-medium hover:text-primary">
+                                Why Veriflo
                             </Link>
                             <Link to="/#how-it-works" className="font-medium hover:text-primary">
                                 How It Works

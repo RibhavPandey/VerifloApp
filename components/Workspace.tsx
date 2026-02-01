@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Bell, Cloud, Coins, Download, Loader2, Plus, 
-  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, ScanText
+  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet
 } from 'lucide-react';
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
 import MergeModal from './MergeModal';
 import { db } from '../lib/db'; 
+import { runWorkflow as runWorkflowEngine } from '../lib/workflow-runner';
 import { useToast } from './ui/toast';
 import { worker } from '../lib/worker';
 import ExcelJS from 'exceljs';
@@ -24,6 +25,7 @@ export interface WorkspaceContextType {
     onJobCreated: (job: Job, file?: ExcelFile) => void;
     handleCSVUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
     onCreateWorkflow: () => void;
+    isRecording: boolean;
 }
 
 const Workspace: React.FC = () => {
@@ -195,369 +197,28 @@ const Workspace: React.FC = () => {
       return files.find(f => f.id === job.fileIds[0]) || null;
   };
 
-  // Workflow execution engine
   const runWorkflow = async (workflow: Workflow, targetFile: ExcelFile): Promise<ExcelFile> => {
-      // Validation
-      if (!workflow.steps || workflow.steps.length === 0) {
-          addToast('error', 'Invalid Workflow', 'Workflow has no steps to execute.');
-          return targetFile; // Return original file if validation fails
-      }
-
-      addToast('info', 'Running Workflow', `Executing ${workflow.name}...`);
-      let data = targetFile.data.map(row => [...row]);
-      let columns = [...targetFile.columns];
-      let styles = { ...targetFile.styles }; // Preserve styles
-      
-      // Note: Enrich steps calculate and deduct their own cost based on unique items
-      // We don't deduct upfront to avoid double-deduction
-
-      // Separate steps by type for proper execution order
-      const deleteColSteps = workflow.steps.filter(s => s.type === 'delete_col').sort((a, b) => b.params.colIndex - a.params.colIndex);
-      const deleteRowSteps = workflow.steps.filter(s => s.type === 'delete_row').sort((a, b) => b.params.rowIndex - a.params.rowIndex);
-      const otherSteps = workflow.steps.filter(s => s.type !== 'delete_col' && s.type !== 'delete_row');
-
       try {
-          // Execute other steps first (sort, enrich, etc.)
-          for (let stepIdx = 0; stepIdx < otherSteps.length; stepIdx++) {
-              const step = otherSteps[stepIdx];
-              const stepResult: StepResult = {
-                step,
-                success: false,
-                index: stepIdx,
-              };
-              
-              try {
-                  if (step.type === 'sort') {
-                       const { action, r1, c1, r2, c2 } = step.params;
-                       // Bounds checking
-                       if (r1 < 0 || r2 >= data.length || c1 < 0 || c2 >= (data[0]?.length || 0)) {
-                           console.warn(`Step "${step.description}": Range out of bounds, skipping`);
-                           continue;
-                       }
-                       for(let r = r1; r <= r2; r++) {
-                           for(let c = c1; c <= c2; c++) {
-                               if (data[r] && data[r][c] !== undefined) {
-                                   let val = data[r][c];
-                                   if (typeof val === 'string') {
-                                       if (action === 'trim') val = val.trim();
-                                       if (action === 'upper') val = val.toUpperCase();
-                                       if (action === 'lower') val = val.toLowerCase();
-                                       if (action === 'title') {
-                                           val = val.toLowerCase().split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                                       }
-                                   }
-                                   data[r][c] = val;
-                               }
-                           }
-                       }
-                  }
-                  if (step.type === 'enrich') {
-                       const { prompt, colIndex } = step.params;
-                       // If colIndex not recorded, try to extract from description or use first column
-                       const targetCol = colIndex !== undefined ? colIndex : 0;
-                       if (targetCol >= 0 && targetCol < (data[0]?.length || 0) && prompt) {
-                           try {
-                               const sourceData = data.slice(1).map(r => r[targetCol]).filter(v => v !== undefined && v !== null && v !== '');
-                               const allUniqueItems = Array.from(new Set(sourceData.map(v => String(v).trim())));
-                               
-                               if (allUniqueItems.length > 0) {
-                                   const { api } = await import('../lib/api');
-                                   const BATCH_SIZE = 100; // Process 100 items per API call (backend limit)
-                                   const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
-                                   const batchCost = numBatches * 25; // 25 credits per batch
-                                   
-                                   // Check if user has enough credits for all batches
-                                   if (credits < batchCost) {
-                                       addToast('error', 'Insufficient Credits', `Enrichment requires ${batchCost} credits (${allUniqueItems.length} unique items in ${numBatches} batches). You have ${credits}.`);
-                                       continue; // Skip this enrich step
-                                   }
-                                   
-                                   // Credits are enforced server-side per API call; do not deduct client-side.
-                                   
-                                   const mergedResult: Record<string, any> = {};
-                                   
-                                   // Process in batches
-                                   for (let i = 0; i < allUniqueItems.length; i += BATCH_SIZE) {
-                                       const batch = allUniqueItems.slice(i, i + BATCH_SIZE);
-                                       try {
-                                           const response = await api.enrich(batch, prompt);
-                                           Object.assign(mergedResult, response.result);
-                                       } catch (batchError: any) {
-                                           console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, batchError);
-                                           // If credits run out mid-run, stop further batches
-                                           if (batchError?.message?.includes('Insufficient credits')) break;
-                                           // Continue with other batches even if one fails
-                                       }
-                                   }
-                                   
-                                   // Create normalized lookup map for flexible matching
-                                   const lookupMap = new Map<string, any>();
-                                   for (const [key, value] of Object.entries(mergedResult)) {
-                                       const normalizedKey = String(key).trim().toLowerCase();
-                                       lookupMap.set(normalizedKey, value);
-                                   }
-                                   
-                                   // Add enriched data to new column
-                                   const newColIdx = data[0].length;
-                                   data[0][newColIdx] = "Enriched Info";
-                                   columns.push("Enriched Info");
-                                   
-                                   // Match and populate enriched data for ALL rows
-                                   for(let r = 1; r < data.length; r++) {
-                                       if (!data[r]) data[r] = [];
-                                       const cellValue = data[r][targetCol];
-                                       
-                                       if (cellValue !== undefined && cellValue !== null && cellValue !== '') {
-                                           // Try exact match first (preserves original behavior)
-                                           let enrichedValue = mergedResult[cellValue] || mergedResult[String(cellValue)];
-                                           
-                                           // If no exact match, try normalized lookup (handles case/whitespace differences)
-                                           if (enrichedValue === undefined) {
-                                               const normalizedCellValue = String(cellValue).trim().toLowerCase();
-                                               enrichedValue = lookupMap.get(normalizedCellValue);
-                                           }
-                                           
-                                           if (enrichedValue !== undefined) {
-                                               data[r][newColIdx] = typeof enrichedValue === 'object' ? JSON.stringify(enrichedValue) : enrichedValue;
-                                           }
-                                       }
-                                   }
-                               }
-                           } catch (enrichError: any) {
-                               console.error('Enrichment step failed:', enrichError);
-                               addToast('warning', 'Enrichment Failed', `Step "${step.description}" failed: ${enrichError.message || 'Unknown error'}`);
-                           }
-                       }
-                  }
-                  if (step.type === 'formula') {
-                       const { formula, rowIndex, colIndex } = step.params;
-                       if (formula && rowIndex >= 0 && rowIndex < data.length && colIndex >= 0 && colIndex < (data[0]?.length || 0)) {
-                           if (!data[rowIndex]) data[rowIndex] = [];
-                           data[rowIndex][colIndex] = formula;
-                       }
-                  }
-                  if (step.type === 'filter') {
-                       const { colIndex, operator, value } = step.params;
-                       // Filter rows based on column criteria
-                       if (colIndex >= 0 && colIndex < (data[0]?.length || 0) && operator && value !== undefined) {
-                           const headerRow = data[0];
-                           const filteredData = [headerRow]; // Keep header
-                           
-                           for (let r = 1; r < data.length; r++) {
-                               if (!data[r]) continue;
-                               const cellValue = data[r][colIndex];
-                               let shouldInclude = false;
-                               
-                               if (operator === 'equals') {
-                                   shouldInclude = String(cellValue) === String(value);
-                               } else if (operator === 'contains') {
-                                   shouldInclude = String(cellValue).toLowerCase().includes(String(value).toLowerCase());
-                               } else if (operator === 'greater') {
-                                   shouldInclude = Number(cellValue) > Number(value);
-                               } else if (operator === 'less') {
-                                   shouldInclude = Number(cellValue) < Number(value);
-                               } else if (operator === 'not_empty') {
-                                   shouldInclude = cellValue !== undefined && cellValue !== null && cellValue !== '';
-                               } else if (operator === 'empty') {
-                                   shouldInclude = cellValue === undefined || cellValue === null || cellValue === '';
-                               }
-                               
-                               if (shouldInclude) {
-                                   filteredData.push(data[r]);
-                               }
-                           }
-                           
-                           data = filteredData;
-                       }
-                  }
-                  if (step.type === 'format') {
-                       const { styleKey, value, r1, r2, c1, c2 } = step.params;
-                       if (styleKey == null || value == null) continue;
-                       const rowCount = data.length;
-                       const colCount = rowCount > 0 ? Math.max(...data.map(r => r?.length || 0), 1) : 0;
-                       const safeR1 = Math.max(0, r1 ?? 0);
-                       const safeR2 = Math.min(rowCount - 1, r2 ?? 0);
-                       const safeC1 = Math.max(0, c1 ?? 0);
-                       const safeC2 = Math.min(colCount - 1, c2 ?? 0);
-                       if (safeR1 <= safeR2 && safeC1 <= safeC2) {
-                           for (let r = safeR1; r <= safeR2; r++) {
-                               for (let c = safeC1; c <= safeC2; c++) {
-                                   const key = `${r},${c}`;
-                                   const current = styles[key] || {};
-                                   styles[key] = { ...current, [styleKey]: value };
-                               }
-                           }
-                       }
-                  }
-                  if (step.type === 'extraction') {
-                       // Extraction steps are for PDF workflows, not spreadsheet workflows
-                       // This is a placeholder - actual extraction happens during PDF processing
-                       console.warn('Extraction step in spreadsheet workflow - skipping (extraction is for PDF workflows)');
-                  }
-                  
-                  // Mark step as successful
-                  stepResult.success = true;
-                  stepResults.push(stepResult);
-              } catch (stepError: any) {
-                  console.error(`Step "${step.description}" failed:`, stepError);
-                  stepResult.error = stepError.message || 'Unknown error';
-                  stepResult.success = false;
-                  stepResults.push(stepResult);
-                  failedStepIndex = stepIdx;
-                  
-                  // Show detailed error
-                  addToast('error', 'Step Failed', `Step ${stepIdx + 1}: "${step.description}" failed: ${stepResult.error}`);
-                  
-                  // Ask user if they want to continue or rollback
-                  // For now, we'll continue but mark the failure
-                  // In a more advanced version, we could show a dialog here
-              }
-          }
-          
-          // If critical steps failed, consider rollback
-          const criticalFailures = stepResults.filter(r => !r.success && 
-            (r.step.type === 'enrich' || r.step.type === 'filter'));
-          
-          if (criticalFailures.length > 0 && failedStepIndex !== null) {
-              // Show summary of failures
-              const failureSummary = criticalFailures.map(f => 
-                `Step ${f.index + 1}: ${f.step.description}`
-              ).join(', ');
-              addToast('warning', 'Workflow Partially Failed', 
-                `${criticalFailures.length} critical step(s) failed: ${failureSummary}. Some changes may be incomplete.`);
-          }
-
-          // Execute delete_col steps in reverse order (highest index first) to avoid index shifting
-          for (let stepIdx = 0; stepIdx < deleteColSteps.length; stepIdx++) {
-              const step = deleteColSteps[stepIdx];
-              const stepResult: StepResult = {
-                step,
-                success: false,
-                index: otherSteps.length + stepIdx,
-              };
-              
-              try {
-                  const { colIndex } = step.params;
-                  if (colIndex >= 0 && colIndex < (data[0]?.length || 0)) {
-                      data = data.map(row => row.filter((_, i) => i !== colIndex));
-                      if (columns && columns.length > colIndex) {
-                          columns = columns.filter((_, i) => i !== colIndex);
-                      }
-                      // Remove styles for deleted column and shift remaining column styles
-                      const newStyles: Record<string, any> = {};
-                      for (const [key, style] of Object.entries(styles)) {
-                          const [r, c] = key.split(',').map(Number);
-                          if (c < colIndex) {
-                              newStyles[key] = style; // Keep styles before deleted column
-                          } else if (c > colIndex) {
-                              newStyles[`${r},${c - 1}`] = style; // Shift styles after deleted column
-                          }
-                          // Skip styles for deleted column (c === colIndex)
-                      }
-                      styles = newStyles;
-                      stepResult.success = true;
-                  } else {
-                      stepResult.error = 'Column index out of bounds';
-                  }
-                  stepResults.push(stepResult);
-              } catch (stepError: any) {
-                  console.error(`Delete column step failed:`, stepError);
-                  stepResult.error = stepError.message || 'Unknown error';
-                  stepResults.push(stepResult);
-                  addToast('error', 'Step Failed', `Delete column step failed: ${stepResult.error}`);
-              }
-          }
-
-          // Execute delete_row steps in reverse order (highest index first) to avoid index shifting
-          for (let stepIdx = 0; stepIdx < deleteRowSteps.length; stepIdx++) {
-              const step = deleteRowSteps[stepIdx];
-              const stepResult: StepResult = {
-                step,
-                success: false,
-                index: otherSteps.length + deleteColSteps.length + stepIdx,
-              };
-              
-              try {
-                  const { rowIndex } = step.params;
-                  if (rowIndex >= 0 && rowIndex < data.length) {
-                      data = data.filter((_, i) => i !== rowIndex);
-                      // Remove styles for deleted row and shift remaining row styles
-                      const newStyles: Record<string, any> = {};
-                      for (const [key, style] of Object.entries(styles)) {
-                          const [r, c] = key.split(',').map(Number);
-                          if (r < rowIndex) {
-                              newStyles[key] = style; // Keep styles before deleted row
-                          } else if (r > rowIndex) {
-                              newStyles[`${r - 1},${c}`] = style; // Shift styles after deleted row
-                          }
-                          // Skip styles for deleted row (r === rowIndex)
-                      }
-                      styles = newStyles;
-                      stepResult.success = true;
-                  } else {
-                      stepResult.error = 'Row index out of bounds';
-                  }
-                  stepResults.push(stepResult);
-              } catch (stepError: any) {
-                  console.error(`Delete row step failed:`, stepError);
-                  stepResult.error = stepError.message || 'Unknown error';
-                  stepResults.push(stepResult);
-                  addToast('error', 'Step Failed', `Delete row step failed: ${stepResult.error}`);
-              }
-          }
-          
-          // Summary of execution
-          const successCount = stepResults.filter(r => r.success).length;
-          const failureCount = stepResults.filter(r => !r.success).length;
-          
-          if (failureCount > 0) {
-              console.warn(`Workflow execution completed with ${failureCount} failure(s) out of ${stepResults.length} steps`);
-          }
-
-          // Update the file
-          const updatedFile = { ...targetFile, data, columns, styles, lastModified: Date.now() };
+          const updatedFile = await runWorkflowEngine(workflow, targetFile, {
+              addToast,
+              getCredits: () => credits,
+              onRollback: async (rolledBackFile) => {
+                  setFiles(prev => prev.map(f => f.id === targetFile.id ? rolledBackFile : f));
+                  await db.upsertFile(rolledBackFile);
+                  addToast('info', 'Workflow Rolled Back', 'Changes have been reverted due to critical error.');
+              },
+          });
           setFiles(prev => prev.map(f => f.id === targetFile.id ? updatedFile : f));
           await db.upsertFile(updatedFile);
-
-          // Update workflow last run status
           const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'success' as const };
           await db.upsertWorkflow(updatedWorkflow);
           setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
-
-          // Show completion message with summary
-          if (failureCount === 0) {
-              addToast('success', 'Workflow Completed', `All ${successCount} step(s) executed successfully.`);
-          } else {
-              addToast('warning', 'Workflow Partially Completed', 
-                `${successCount} step(s) succeeded, ${failureCount} step(s) failed.`);
-          }
-          
           return updatedFile;
       } catch (error: any) {
-          console.error('Workflow execution failed:', error);
-          
-          // Rollback: restore original file state
-          try {
-              const rolledBackFile = { 
-                  ...targetFile, 
-                  data: originalData, 
-                  columns: originalColumns, 
-                  styles: originalStyles,
-                  lastModified: Date.now()
-              };
-              setFiles(prev => prev.map(f => f.id === targetFile.id ? rolledBackFile : f));
-              await db.upsertFile(rolledBackFile);
-              addToast('info', 'Workflow Rolled Back', 'Changes have been reverted due to critical error.');
-          } catch (rollbackError) {
-              console.error('Failed to rollback workflow:', rollbackError);
-              addToast('error', 'Rollback Failed', 'Failed to restore original file. Please reload the page.');
-          }
-          
           const updatedWorkflow = { ...workflow, lastRun: Date.now(), lastRunStatus: 'failed' as const };
           await db.upsertWorkflow(updatedWorkflow);
           setWorkflows(prev => prev.map(w => w.id === workflow.id ? updatedWorkflow : w));
-          addToast('error', 'Workflow Failed', `Workflow execution failed: ${error.message || 'Unknown error'}. Changes have been rolled back.`);
-          throw error; // Re-throw so caller knows it failed
+          throw error;
       }
   };
 
@@ -895,7 +556,7 @@ const Workspace: React.FC = () => {
          <div className="flex-1 flex overflow-hidden relative">
             <main className="flex-1 relative overflow-y-auto bg-[#F9FAFB] flex flex-col min-h-0">
                 <Outlet context={{ 
-                    jobs, files, credits, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow
+                    jobs, files, credits, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording
                 } satisfies WorkspaceContextType} />
             </main>
          </div>
@@ -1006,24 +667,6 @@ const Workspace: React.FC = () => {
                   <p className="text-[#666] mb-5 text-[13px]">What type of data process do you want to automate?</p>
                   
                   <div className="space-y-2.5">
-                      <button 
-                          onClick={() => { 
-                              setCreateWorkflowTypeModal(false); 
-                              navigate('/extract/new'); 
-                              setIsRecording(true); 
-                              setSessionSteps([]); 
-                          }}
-                          className="w-full p-3.5 border border-[#e5e5e5] rounded-xl flex items-center gap-3 hover:border-orange-300 hover:bg-orange-50/50 transition-all group text-left"
-                      >
-                          <div className="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                              <ScanText size={18} />
-                          </div>
-                          <div>
-                              <div className="font-medium text-[14px] text-[#0a0a0a]">PDF Extraction</div>
-                              <div className="text-[12px] text-[#666]">Automate invoice/receipt processing</div>
-                          </div>
-                      </button>
-
                       <button 
                           onClick={() => { 
                               setCreateWorkflowTypeModal(false);

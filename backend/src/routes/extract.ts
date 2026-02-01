@@ -149,21 +149,44 @@ Return JSON: { "fields": [ { "key", "value", "confidence", "box2d" } ], "lineIte
       : `${basePrompt}
 Return JSON array: [ { "key", "value", "confidence", "box2d": [ymin, xmin, ymax, xmax] } ]`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    
-    const extractionPromise = model.generateContent([
-      {
-        inlineData: {
-          mimeType: fileType || 'image/jpeg',
-          data: file
-        }
-      },
-      fullPrompt
-    ]);
+    const modelNames = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    let text = '';
+    let lastError: Error | null = null;
 
-    const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
-    const response = await result.response;
-    const text = response.text() || (includeLineItems ? '{}' : '[]');
+    for (const modelName of modelNames) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const extractionPromise = model.generateContent([
+          {
+            inlineData: {
+              mimeType: fileType || 'image/jpeg',
+              data: file
+            }
+          },
+          fullPrompt
+        ]);
+
+        const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
+        const response = result.response;
+
+        if (!response || !response.candidates?.length) {
+          const blockReason = (result.response?.promptFeedback || result.promptFeedback)?.blockReason || 'No candidates';
+          const finishReason = response?.candidates?.[0]?.finishReason || 'unknown';
+          throw new Error(`Gemini blocked or empty: ${blockReason}, finishReason=${finishReason}`);
+        }
+
+        text = response.text?.() || (response.candidates?.[0]?.content?.parts?.[0]?.text ?? '') || (includeLineItems ? '{}' : '[]');
+        if (text) break;
+      } catch (err: any) {
+        lastError = err;
+        logger.warn(`Extract failed with ${modelName}:`, { message: err.message, status: err.status });
+        if (modelName === modelNames[modelNames.length - 1]) throw err;
+      }
+    }
+
+    if (!text) {
+      throw lastError || new Error('No response from Gemini');
+    }
     
     let extractedFields: any[] = [];
     let lineItems: any[] = [];
@@ -240,7 +263,12 @@ Return JSON array: [ { "key", "value", "confidence", "box2d": [ymin, xmin, ymax,
       fileRef: `storage:${bucket}/${objectPath}` 
     });
   } catch (error: any) {
-    console.error('Extraction error:', error);
+    (logger || console).error?.('Extraction error', {
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+      response: error?.response?.data,
+    });
 
     if (error instanceof InsufficientCreditsError) {
       return res.status(402).json({

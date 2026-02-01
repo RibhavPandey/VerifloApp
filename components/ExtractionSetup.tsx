@@ -276,7 +276,7 @@ const ExtractionSetup: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col items-center justify-center p-8 bg-background overflow-y-auto" style={{ zoom: 0.85 }}>
-            <div className="bg-card border border-border p-8 rounded-2xl shadow-lg max-w-4xl w-full">
+            <div className="bg-card border p-8 rounded-2xl shadow-lg max-w-4xl w-full" style={{ borderColor: 'hsl(0deg 19.71% 84.83%)' }}>
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold text-foreground mb-2">Configure Extraction</h2>
                     <p className="text-muted-foreground">Upload documents and select the data points you need.</p>
