@@ -426,7 +426,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
                 <ul className="space-y-2">
                   {column.links.map((link) => (
                     <li key={link}>
-                      <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                      <a href={link === "Contact" ? "/contact" : "#"} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                         {link}
                       </a>
                     </li>
@@ -444,6 +444,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               <div className="flex gap-6">
                 <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
                 <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+                <a href="/contact" className="hover:text-foreground transition-colors">Contact</a>
               </div>
             </div>
           </div>

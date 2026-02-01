@@ -14,6 +14,7 @@ import Settings from './components/Settings';
 import ResetPassword from './components/ResetPassword';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import ContactUs from './components/ContactUs';
 import AdminPanel from './components/AdminPanel';
 import { supabase } from './lib/supabase';
 import { ToastProvider } from './components/ui/toast';
@@ -123,6 +124,7 @@ const App: React.FC = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/contact" element={<ContactUs />} />
 
           {/* Protected Routes (Workspace Layout) */}
           <Route element={session ? <Workspace /> : <Navigate to="/auth" />}>

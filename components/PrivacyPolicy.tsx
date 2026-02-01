@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import Navbar from './Navbar';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
@@ -8,131 +7,115 @@ import { useNavigate } from 'react-router-dom';
 const PrivacyPolicy: React.FC = () => {
   const navigate = useNavigate();
 
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <section className="pb-8 mb-8 border-b border-muted-foreground/20 last:border-0">
+      <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+      <div className="text-muted-foreground space-y-2">{children}</div>
+    </section>
+  );
+
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <Button
-            onClick={() => navigate(-1)}
-            variant="ghost"
-            className="mb-6"
-          >
+      <div className="min-h-screen bg-background py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <Button onClick={() => navigate(-1)} variant="ghost" className="mb-8 -ml-2">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold">Privacy Policy</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Last updated: {new Date().toLocaleDateString()}
-              </p>
-            </CardHeader>
-            <CardContent className="prose prose-sm max-w-none">
-              <div className="space-y-6">
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">1. Introduction</h2>
-                  <p className="text-muted-foreground">
-                    We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.
-                  </p>
-                </section>
+          <h1 className="text-3xl font-semibold mb-2">Privacy Policy</h1>
+          <p className="text-sm text-muted-foreground mb-12">
+            Last updated: {new Date().toLocaleDateString()}
+          </p>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">2. Information We Collect</h2>
-                  <h3 className="text-xl font-semibold mb-2 mt-4">2.1 Information You Provide</h3>
-                  <p className="text-muted-foreground mb-2">We collect information that you provide directly to us, including:</p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 space-y-1">
-                    <li>Account information (name, email address)</li>
-                    <li>Content you upload or create using our service</li>
-                    <li>Communications with our support team</li>
-                  </ul>
+          <Section title="1. Introduction">
+            <p><strong>By using Veriflo, you agree to this Privacy Policy.</strong> If you do not agree, do not use the service.</p>
+            <p>This policy explains in plain language what data we collect, why we collect it, how we use it, and your rights. We have written it so that anyone can understand it.</p>
+          </Section>
 
-                  <h3 className="text-xl font-semibold mb-2 mt-4">2.2 Automatically Collected Information</h3>
-                  <p className="text-muted-foreground mb-2">We automatically collect certain information when you use our service:</p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 space-y-1">
-                    <li>Usage data and analytics</li>
-                    <li>Device information</li>
-                    <li>Log data (IP address, browser type, access times)</li>
-                  </ul>
-                </section>
+          <Section title="2. What Data We Collect">
+            <h3 className="text-lg font-medium mt-4 mb-2 text-foreground">2.1 Data You Give Us</h3>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li><strong>Account info:</strong> Name, email address, password (encrypted)</li>
+              <li><strong>Your files:</strong> Invoices, spreadsheets, and other documents you upload</li>
+              <li><strong>Support messages:</strong> Emails or messages you send us</li>
+            </ul>
+            <h3 className="text-lg font-medium mt-4 mb-2 text-foreground">2.2 Data We Collect Automatically</h3>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li><strong>Usage data:</strong> Which features you use, how often you log in</li>
+              <li><strong>Device info:</strong> Browser type, device type, screen size</li>
+              <li><strong>Log data:</strong> IP address, access times, pages visited</li>
+            </ul>
+            <p>We need this data to run the service, fix problems, and improve it. We do not collect data we do not need.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">3. How We Use Your Information</h2>
-                  <p className="text-muted-foreground mb-2">We use the information we collect to:</p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 space-y-1">
-                    <li>Provide, maintain, and improve our service</li>
-                    <li>Process transactions and send related information</li>
-                    <li>Send technical notices and support messages</li>
-                    <li>Respond to your comments and questions</li>
-                    <li>Monitor and analyze usage patterns</li>
-                  </ul>
-                </section>
+          <Section title="3. How We Use Your Data">
+            <p>We use your data only to:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li>Provide and run the Veriflo service</li>
+              <li>Process your subscription and payments</li>
+              <li>Send you important notices (e.g. password reset, billing)</li>
+              <li>Respond to your support requests</li>
+              <li>Improve the service and fix bugs</li>
+              <li>Comply with legal obligations</li>
+            </ul>
+            <p><strong>We do not sell your data. We do not use your data for advertising.</strong></p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">4. Information Sharing and Disclosure</h2>
-                  <p className="text-muted-foreground mb-2">We do not sell your personal information. We may share your information only:</p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 space-y-1">
-                    <li>With your consent</li>
-                    <li>To comply with legal obligations</li>
-                    <li>To protect our rights and safety</li>
-                    <li>With service providers who assist in operating our service (under strict confidentiality agreements)</li>
-                  </ul>
-                </section>
+          <Section title="4. When We Share Your Data">
+            <p>We do not sell or rent your data to anyone.</p>
+            <p>We may share your data only in these cases:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li><strong>Service providers:</strong> Companies that help us run Veriflo (e.g. hosting, payment processing). They are bound by contracts to protect your data.</li>
+              <li><strong>Legal requirement:</strong> If a court or law requires us to hand over data</li>
+              <li><strong>Safety:</strong> To protect our rights, your safety, or the safety of others</li>
+            </ul>
+            <p>We will not share your data for marketing or with third parties for their own use.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">5. Data Security</h2>
-                  <p className="text-muted-foreground">
-                    We implement appropriate technical and organizational measures to protect your personal information. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
-                  </p>
-                </section>
+          <Section title="5. Data Security">
+            <p>We use industry-standard measures to protect your data (encryption, secure servers, access controls).</p>
+            <p><strong>However:</strong> No system is 100% secure. We cannot guarantee that your data will never be breached. You use the service at your own risk.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">6. Your Rights (GDPR)</h2>
-                  <p className="text-muted-foreground mb-2">If you are located in the European Economic Area, you have certain rights regarding your personal information:</p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 space-y-1">
-                    <li>Right to access your personal data</li>
-                    <li>Right to rectify inaccurate data</li>
-                    <li>Right to erasure ("right to be forgotten")</li>
-                    <li>Right to restrict processing</li>
-                    <li>Right to data portability</li>
-                    <li>Right to object to processing</li>
-                  </ul>
-                  <p className="text-muted-foreground mt-2">
-                    To exercise these rights, please contact us through our support channels.
-                  </p>
-                </section>
+          <Section title="6. Your Rights (Including GDPR)">
+            <p>Depending on where you live, you may have the right to:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li><strong>Access:</strong> Request a copy of the data we hold about you</li>
+              <li><strong>Correct:</strong> Ask us to fix inaccurate data</li>
+              <li><strong>Delete:</strong> Ask us to delete your data (&quot;right to be forgotten&quot;)</li>
+              <li><strong>Restrict:</strong> Ask us to limit how we use your data</li>
+              <li><strong>Portability:</strong> Request your data in a format you can use elsewhere</li>
+            </ul>
+            <p>To exercise any of these rights, email us at{' '}
+              <a href="mailto:ribhavkumarpandey@gmail.com" className="text-primary hover:underline">
+                ribhavkumarpandey@gmail.com
+              </a>. We will respond within 30 days.
+            </p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">7. Data Retention</h2>
-                  <p className="text-muted-foreground">
-                    We retain your personal information for as long as necessary to provide our service and fulfill the purposes outlined in this policy, unless a longer retention period is required by law.
-                  </p>
-                </section>
+          <Section title="7. How Long We Keep Your Data">
+            <p>We keep your data for as long as you have an account. After you delete your account or cancel, we may keep some data for up to 30 days (e.g. for backups or to resolve disputes).</p>
+            <p>We may keep certain data longer if required by law (e.g. tax records, legal compliance).</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">8. Children's Privacy</h2>
-                  <p className="text-muted-foreground">
-                    Our service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.
-                  </p>
-                </section>
+          <Section title="8. Children">
+            <p>Veriflo is not for children under 13. We do not knowingly collect data from anyone under 13. If you are a parent and believe your child gave us data, contact us and we will delete it.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">9. Changes to This Privacy Policy</h2>
-                  <p className="text-muted-foreground">
-                    We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
-                  </p>
-                </section>
+          <Section title="9. Changes to This Policy">
+            <p>We may update this Privacy Policy from time to time. We will change the &quot;Last updated&quot; date when we do.</p>
+            <p><strong>Your continued use of Veriflo after we post changes means you accept the new policy.</strong> Check this page periodically.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">10. Contact Us</h2>
-                  <p className="text-muted-foreground">
-                    If you have any questions about this Privacy Policy, please contact us through our support channels.
-                  </p>
-                </section>
-              </div>
-            </CardContent>
-          </Card>
+          <Section title="10. Contact Us">
+            <p>For privacy questions or to exercise your rights, contact us at{' '}
+              <a href="mailto:ribhavkumarpandey@gmail.com" className="text-primary hover:underline">
+                ribhavkumarpandey@gmail.com
+              </a>.
+            </p>
+          </Section>
         </div>
       </div>
     </>

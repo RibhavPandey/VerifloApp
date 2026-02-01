@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import Navbar from './Navbar';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
@@ -8,107 +7,108 @@ import { useNavigate } from 'react-router-dom';
 const TermsOfService: React.FC = () => {
   const navigate = useNavigate();
 
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <section className="pb-8 mb-8 border-b border-muted-foreground/20 last:border-0">
+      <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+      <div className="text-muted-foreground space-y-2">{children}</div>
+    </section>
+  );
+
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <Button
-            onClick={() => navigate(-1)}
-            variant="ghost"
-            className="mb-6"
-          >
+      <div className="min-h-screen bg-background py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <Button onClick={() => navigate(-1)} variant="ghost" className="mb-8 -ml-2">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold">Terms of Service</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Last updated: {new Date().toLocaleDateString()}
-              </p>
-            </CardHeader>
-            <CardContent className="prose prose-sm max-w-none">
-              <div className="space-y-6">
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">1. Acceptance of Terms</h2>
-                  <p className="text-muted-foreground">
-                    By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement.
-                  </p>
-                </section>
+          <h1 className="text-3xl font-semibold mb-2">Terms of Service</h1>
+          <p className="text-sm text-muted-foreground mb-12">
+            Last updated: {new Date().toLocaleDateString()}
+          </p>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">2. Use License</h2>
-                  <p className="text-muted-foreground mb-2">
-                    Permission is granted to temporarily use this service for personal, non-commercial transitory viewing only.
-                  </p>
-                  <p className="text-muted-foreground">
-                    This is the grant of a license, not a transfer of title, and under this license you may not:
-                  </p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 mt-2 space-y-1">
-                    <li>Modify or copy the materials</li>
-                    <li>Use the materials for any commercial purpose</li>
-                    <li>Attempt to reverse engineer any software contained in the service</li>
-                    <li>Remove any copyright or other proprietary notations from the materials</li>
-                  </ul>
-                </section>
+          <Section title="1. Acceptance of Terms">
+            <p><strong>By creating an account, signing in, or using any part of Veriflo, you confirm that you have read, understood, and agree to these terms.</strong> If you do not agree, you must not use the service.</p>
+            <p>You cannot use Veriflo without agreeing to these terms. There is no exception. Using the service counts as your acceptance, even if you did not read this page.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">3. User Accounts</h2>
-                  <p className="text-muted-foreground">
-                    You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.
-                  </p>
-                </section>
+          <Section title="2. What You May and May Not Do">
+            <p>You may use Veriflo for your business to process invoices, run workflows, and manage your data.</p>
+            <p><strong>You must NOT:</strong></p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li>Copy, resell, or redistribute the service to others</li>
+              <li>Reverse engineer, decompile, or try to extract our code or technology</li>
+              <li>Scrape, crawl, or use automated tools to access the service without our permission</li>
+              <li>Remove any copyright, trademark, or branding from the service</li>
+              <li>Use the service to build a competing product</li>
+            </ul>
+            <p>If you violate these rules, we may terminate your account immediately without refund.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">4. Service Availability</h2>
-                  <p className="text-muted-foreground">
-                    We strive to provide continuous availability of our service, but we do not guarantee uninterrupted access. We reserve the right to modify, suspend, or discontinue the service at any time.
-                  </p>
-                </section>
+          <Section title="3. Your Account and Password">
+            <p>You are solely responsible for your account and password. Everything that happens under your account is your responsibility.</p>
+            <p>If someone else uses your account because you shared your password or did not keep it secure, we are not responsible. You must notify us immediately if you suspect unauthorized access.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">5. User Content</h2>
-                  <p className="text-muted-foreground">
-                    You retain ownership of any content you upload or create using our service. By using our service, you grant us a license to use, store, and process your content solely for the purpose of providing the service.
-                  </p>
-                </section>
+          <Section title="4. Service Availability">
+            <p>We try to keep Veriflo running, but we do not guarantee that the service will always be available. Downtime can happen for maintenance, technical issues, or other reasons.</p>
+            <p>We may change, suspend, or shut down the service at any time, with or without notice. We are not liable if the service is unavailable.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">6. Prohibited Uses</h2>
-                  <p className="text-muted-foreground mb-2">You may not use our service:</p>
-                  <ul className="list-disc list-inside text-muted-foreground ml-4 space-y-1">
-                    <li>In any way that violates any applicable law or regulation</li>
-                    <li>To transmit any malicious code or viruses</li>
-                    <li>To attempt to gain unauthorized access to any part of the service</li>
-                    <li>To interfere with or disrupt the service or servers</li>
-                  </ul>
-                </section>
+          <Section title="5. Your Data and Content">
+            <p>You own the data and files you upload. By using Veriflo, you give us permission to store, process, and display your data only for the purpose of providing the service to you.</p>
+            <p>We do not own your data. We do not use your data for advertising or sell it to third parties.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">7. Limitation of Liability</h2>
-                  <p className="text-muted-foreground">
-                    In no event shall we be liable for any damages arising out of the use or inability to use the service, including but not limited to data loss or corruption.
-                  </p>
-                </section>
+          <Section title="6. Prohibited Uses – You Must Not">
+            <p>You must NOT use Veriflo to:</p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li>Break any law or regulation</li>
+              <li>Send viruses, malware, or harmful code</li>
+              <li>Try to hack or gain unauthorized access to our systems or other users&apos; accounts</li>
+              <li>Overload or disrupt our servers</li>
+              <li>Impersonate someone else or use a fake identity</li>
+            </ul>
+            <p><strong>Violation of this section will result in immediate account termination without refund.</strong></p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">8. Changes to Terms</h2>
-                  <p className="text-muted-foreground">
-                    We reserve the right to modify these terms at any time. Your continued use of the service after any changes constitutes acceptance of the new terms.
-                  </p>
-                </section>
+          <Section title="7. Our Liability – Important">
+            <p><strong>We are not liable for:</strong></p>
+            <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+              <li>Loss or corruption of your data</li>
+              <li>Loss of business, profits, or revenue</li>
+              <li>Indirect, incidental, or consequential damages</li>
+              <li>Any damages beyond the amount you paid us in the last 12 months</li>
+            </ul>
+            <p>The service is provided &quot;as is.&quot; We do not guarantee that it will meet your specific needs or be error-free.</p>
+          </Section>
 
-                <section>
-                  <h2 className="text-2xl font-bold mb-4">9. Contact Information</h2>
-                  <p className="text-muted-foreground">
-                    If you have any questions about these Terms of Service, please contact us through our support channels.
-                  </p>
-                </section>
-              </div>
-            </CardContent>
-          </Card>
+          <Section title="8. Changes to These Terms">
+            <p>We may update these terms at any time. When we do, we will update the &quot;Last updated&quot; date at the top of this page.</p>
+            <p><strong>Your continued use of Veriflo after we post changes means you accept the new terms.</strong> It is your responsibility to check this page. We are not required to email you about every change.</p>
+          </Section>
+
+          <Section title="9. Cancellations & Refunds">
+            <p><strong>Cancellation:</strong> You may cancel your subscription at any time. After you cancel, you will keep access until the end of your current billing period. After that, your access stops.</p>
+            <p><strong>Your data:</strong> We keep your data for 30 days after cancellation. After 30 days, it may be permanently deleted. Export your data before cancelling if you need it.</p>
+            <p><strong>Refunds:</strong> Refunds are not guaranteed. We may, at our sole discretion, consider refund requests only if you contact us within 14 days of the charge. We will not refund: (a) partial months, (b) amounts for time you already used the service, or (c) requests made more than 14 days after payment. If we approve a refund, it will be processed within 5–10 business days. Our decision on refunds is final.</p>
+            <p>Once you cancel, you cannot claim a refund for the remaining period of your billing cycle.</p>
+          </Section>
+
+          <Section title="10. Shipping & Delivery">
+            <p>Veriflo is a digital, online service. There is no physical product. There is no shipping.</p>
+            <p>You get access immediately after you sign up and pay. You can use the service through your web browser at any time.</p>
+          </Section>
+
+          <Section title="11. Contact">
+            <p>For questions about these terms, contact us at{' '}
+              <a href="mailto:ribhavkumarpandey@gmail.com" className="text-primary hover:underline">
+                ribhavkumarpandey@gmail.com
+              </a>.
+            </p>
+          </Section>
         </div>
       </div>
     </>
