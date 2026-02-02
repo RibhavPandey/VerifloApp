@@ -76,7 +76,10 @@ const Workflows: React.FC = () => {
                 input.accept = '.xlsx,.csv';
                 input.onchange = async (e: any) => {
                     const fileList = e.target.files;
-                    if (!fileList) return;
+                    if (!fileList || !fileList[0]) {
+                        setRunningWorkflowId(null);
+                        return;
+                    }
                     const file = fileList[0];
                     setRunningWorkflowId(wf.id);
                     const reader = new FileReader();

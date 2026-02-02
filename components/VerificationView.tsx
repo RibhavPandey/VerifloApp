@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { ExtractedField, VerificationDocument, FieldChange, LineItem } from '../types';
-import { AlertTriangle, ArrowRight, CheckCircle2, Download, FileDown } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Download, FileDown, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ExcelJS from 'exceljs';
 
@@ -18,6 +18,7 @@ interface VerificationViewProps {
 const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteReview, onSaveProgress }) => {
     const [localDocs, setLocalDocs] = useState<VerificationDocument[]>(docs);
     const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+    const [imageLoaded, setImageLoaded] = useState(false);
     const [reviewMode, setReviewMode] = useState<'risky' | 'all'>('risky');
     const [isExporting, setIsExporting] = useState(false);
     
@@ -47,73 +48,92 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    
-    // Resolve storage refs to signed URLs (for private Supabase Storage)
+    const preloadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
+
+    // Prefetch signed URLs for ALL docs on mount (parallel) - avoids delay when switching
     useEffect(() => {
         let isCancelled = false;
-        const run = async () => {
-            if (!activeDoc) return;
-            const data = activeDoc.fileData || '';
-            if (!data.startsWith('storage:')) return;
+        const storageDocs = localDocs.filter(d => (d.fileData || '').startsWith('storage:'));
+        if (storageDocs.length === 0) return;
 
-            const ref = data.slice('storage:'.length);
-            const [bucket, ...rest] = ref.split('/');
-            const path = rest.join('/');
-            if (!bucket || !path) return;
-
-            const { data: signed, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
-            if (error) return;
-            if (!isCancelled && signed?.signedUrl) {
-                setSignedUrls(prev => ({ ...prev, [activeDoc.id]: signed.signedUrl! }));
+        const fetchAll = async () => {
+            const results = await Promise.all(
+                storageDocs.map(async (doc) => {
+                    const ref = doc.fileData!.slice('storage:'.length);
+                    const [bucket, ...rest] = ref.split('/');
+                    const path = rest.join('/');
+                    if (!bucket || !path) return { id: doc.id, url: null };
+                    const { data: signed, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+                    if (error || !signed?.signedUrl) return { id: doc.id, url: null };
+                    return { id: doc.id, url: signed.signedUrl };
+                })
+            );
+            if (!isCancelled) {
+                const urls: Record<string, string> = {};
+                results.forEach(r => { if (r.url) urls[r.id] = r.url; });
+                setSignedUrls(prev => ({ ...prev, ...urls }));
+                // Preload images in background (browser caches them for instant display on switch)
+                results.forEach(({ id, url }) => {
+                    if (url && !preloadedImagesRef.current[id]) {
+                        const img = new Image();
+                        img.src = url;
+                        preloadedImagesRef.current[id] = img;
+                    }
+                });
             }
         };
-        run();
+        fetchAll();
         return () => { isCancelled = true; };
-    }, [activeDoc?.id, activeDoc?.fileData]);
+    }, [localDocs]);
 
-    // Draw Image and Boxes
+    // Draw Image and Boxes - use preloaded image if ready, else load
     useEffect(() => {
         if (!activeDoc || !canvasRef.current || !containerRef.current) return;
 
+        setImageLoaded(false);
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const img = new Image();
+        const isStorage = activeDoc.fileData?.startsWith('storage:');
         const storageUrl = signedUrls[activeDoc.id];
-        img.src = activeDoc.fileData?.startsWith('storage:')
-            ? (storageUrl || '')
-            : `data:${activeDoc.mimeType};base64,${activeDoc.fileData}`;
-        if (!img.src) return;
-        
-        img.onload = () => {
+        const imgSrc = isStorage ? (storageUrl || '') : `data:${activeDoc.mimeType};base64,${activeDoc.fileData}`;
+        if (!imgSrc) return;
+
+        const drawImage = (img: HTMLImageElement) => {
             const containerWidth = containerRef.current!.clientWidth;
             const scale = containerWidth / img.width;
-            
             canvas.width = containerWidth;
             canvas.height = img.height * scale;
-
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
             if (activeItem && activeItem.type === 'field' && activeItem.docId === activeDoc.id && activeItem.field.box2d) {
                 const [ymin, xmin, ymax, xmax] = activeItem.field.box2d as number[];
-                
                 const x = (xmin / 1000) * canvas.width;
                 const y = (ymin / 1000) * canvas.height;
                 const w = ((xmax - xmin) / 1000) * canvas.width;
                 const h = ((ymax - ymin) / 1000) * canvas.height;
-
                 ctx.beginPath();
                 ctx.rect(x - 5, y - 5, w + 10, h + 10);
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = '#ef4444';
                 ctx.stroke();
-
                 ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
                 ctx.fill();
             }
+            setImageLoaded(true);
         };
-    }, [activeDoc, activeItem, containerRef.current?.clientWidth]);
+
+        const preloaded = preloadedImagesRef.current[activeDoc.id];
+        if (preloaded && preloaded.complete && preloaded.naturalWidth > 0) {
+            drawImage(preloaded);
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => drawImage(img);
+        img.onerror = () => setImageLoaded(true);
+        img.src = imgSrc;
+    }, [activeDoc, activeItem, signedUrls]);
 
     const handleUpdateField = (val: string) => {
         if (!activeItem || activeItem.type !== 'field') return;
@@ -260,8 +280,13 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                     <span>{activeDoc?.fileName}</span>
                     <span className="text-zinc-500">Zoom: Fit</span>
                 </div>
-                <div ref={containerRef} className="flex-1 overflow-y-auto p-8 flex justify-center">
+                <div ref={containerRef} className="flex-1 overflow-y-auto p-8 flex justify-center items-center relative">
                     <canvas ref={canvasRef} className="shadow-2xl rounded-lg" />
+                    {!imageLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80">
+                            <Loader2 className="w-10 h-10 text-white animate-spin" />
+                        </div>
+                    )}
                 </div>
             </div>
 

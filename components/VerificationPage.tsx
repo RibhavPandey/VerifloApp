@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import VerificationView from './VerificationView';
 import { db } from '../lib/db';
+import { WorkspaceContextType } from './Workspace';
 import { VerificationDocument, Job, ExcelFile } from '../types';
 import { Loader2 } from 'lucide-react';
 import { useToast } from './ui/toast';
@@ -10,6 +11,7 @@ import { useToast } from './ui/toast';
 const VerificationPage: React.FC = () => {
     const { id } = useParams<{ id: string }>(); // Job ID
     const navigate = useNavigate();
+    const { refreshData } = useOutletContext<WorkspaceContextType>();
     const { addToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [job, setJob] = useState<Job | null>(null);
@@ -126,6 +128,7 @@ const VerificationPage: React.FC = () => {
             };
             await db.upsertJob(completedJob);
 
+            if (refreshData) refreshData();
             addToast('success', 'Extraction Complete', 'Redirecting to spreadsheet editor...');
             navigate(`/sheet/${job.id}`);
         } catch (e) {

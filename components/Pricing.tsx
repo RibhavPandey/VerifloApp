@@ -53,6 +53,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
         },
         prefill: { email: '' },
         theme: { color: '#0f172a' },
+        modal: {
+          ondismiss: () => reject(new Error('Payment cancelled')),
+        },
       }
       const rzp = new window.Razorpay(options)
       rzp.on('payment.failed', () => reject(new Error('Payment failed')))
@@ -71,6 +74,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
         onStart()
         return
       }
+      if (e?.message?.includes('cancelled')) return // User closed modal - no toast
       addToast('error', 'Payment Error', e?.message || 'Could not start payment.')
     } finally {
       setLoading(null)

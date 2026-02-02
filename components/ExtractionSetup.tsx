@@ -20,7 +20,7 @@ const STANDARD_FIELDS = [
 ];
 
 const ExtractionSetup: React.FC = () => {
-    const { onJobCreated } = useOutletContext<WorkspaceContextType>();
+    const { onJobCreated, refreshData } = useOutletContext<WorkspaceContextType>();
     const navigate = useNavigate();
     const { addToast } = useToast();
     
@@ -242,9 +242,8 @@ const ExtractionSetup: React.FC = () => {
             );
         }
         
-        // We do NOT use onJobCreated here because we want to redirect to Review view, not Sheet view
-        // But onJobCreated redirects to sheet.
-        // We will just navigate manually.
+        // Refresh credits/docs count so header updates without page reload
+        if (refreshData) refreshData();
         navigate(`/extract/${jobId}/review`);
     };
 

@@ -1185,7 +1185,7 @@ const SpreadsheetView: React.FC = () => {
   };
 
   const handleDataAction = (action: 'trim' | 'upper' | 'lower' | 'title' | 'dedup') => {
-    if (!selection) return;
+    if (!file || !selection) return;
     
     const newData = file.data.map(row => [...(row || [])]);
     for (let r = 0; r < newData.length; r++) {
@@ -1423,22 +1423,22 @@ const SpreadsheetView: React.FC = () => {
                 Download as
               </div>
               <div className="space-y-0.5">
-                <button
-                  onClick={exportToExcel}
+                <DropdownMenuItem
+                  onSelect={() => exportToExcel()}
                   disabled={isExporting}
-                  className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="gap-2 cursor-pointer"
                 >
                   <FileText size={16} className="text-green-600" />
                   Excel (.xlsx)
-                </button>
-                <button
-                  onClick={exportToCSV}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => exportToCSV()}
                   disabled={isExporting}
-                  className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="gap-2 cursor-pointer"
                 >
                   <FileText size={16} className="text-blue-600" />
                   CSV (.csv)
-                </button>
+                </DropdownMenuItem>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1632,24 +1632,24 @@ const SpreadsheetView: React.FC = () => {
                          </Button>
                        </DropdownMenuTrigger>
                        <DropdownMenuContent align="center" className="w-48 z-[300]">
-                         <DropdownMenuItem onClick={() => { handleDataAction('trim'); setShowTransformMenu(false); }} className="gap-2">
+                         <DropdownMenuItem onSelect={() => { handleDataAction('trim'); setShowTransformMenu(false); }} className="gap-2">
                            <Scissors size={14} className="text-muted-foreground" />
                            Trim whitespace
                          </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => { handleDataAction('upper'); setShowTransformMenu(false); }} className="gap-2">
+                         <DropdownMenuItem onSelect={() => { handleDataAction('upper'); setShowTransformMenu(false); }} className="gap-2">
                            <CaseUpper size={14} className="text-muted-foreground" />
                            UPPERCASE
                          </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => { handleDataAction('lower'); setShowTransformMenu(false); }} className="gap-2">
+                         <DropdownMenuItem onSelect={() => { handleDataAction('lower'); setShowTransformMenu(false); }} className="gap-2">
                            <CaseLower size={14} className="text-muted-foreground" />
                            lowercase
                          </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => { handleDataAction('title'); setShowTransformMenu(false); }} className="gap-2">
+                         <DropdownMenuItem onSelect={() => { handleDataAction('title'); setShowTransformMenu(false); }} className="gap-2">
                            <CaseSensitive size={14} className="text-muted-foreground" />
                            Title Case
                          </DropdownMenuItem>
                          <div className="h-px bg-border my-1" />
-                         <DropdownMenuItem onClick={() => { handleDataAction('dedup'); setShowTransformMenu(false); }} className="gap-2 text-destructive focus:text-destructive">
+                         <DropdownMenuItem onSelect={() => { handleDataAction('dedup'); setShowTransformMenu(false); }} className="gap-2 text-destructive focus:text-destructive">
                            <CopyMinus size={14} />
                            Remove duplicates
                          </DropdownMenuItem>

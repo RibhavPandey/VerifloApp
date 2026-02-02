@@ -48,6 +48,7 @@ const Workspace: React.FC = () => {
 
   // --- UI STATE ---
   const [showMergeModal, setShowMergeModal] = useState(false);
+  const [fileUploadInProgress, setFileUploadInProgress] = useState(0);
   
   // --- WORKFLOW STATE ---
   const [isRecording, setIsRecording] = useState(false);
@@ -363,13 +364,22 @@ const Workspace: React.FC = () => {
         });
     }
     
+    const validFiles = validationResult.valid;
+    if (validFiles.length === 0) return;
+
+    setFileUploadInProgress(prev => prev + validFiles.length);
+    
     // Process valid files
-    validationResult.valid.forEach((file: File) => {
+    validFiles.forEach((file: File) => {
         const reader = new FileReader();
+        const onDone = () => {
+            setFileUploadInProgress(prev => Math.max(0, prev - 1));
+        };
         reader.onload = async (e) => {
             const ab = e.target?.result as ArrayBuffer;
             if (!ab) {
                 addToast('error', 'File Error', `Failed to read ${file.name}`);
+                onDone();
                 return;
             }
             try {
@@ -397,6 +407,7 @@ const Workspace: React.FC = () => {
                 // Validate parsed data
                 if (!data || data.length === 0) {
                     addToast('error', 'File Error', `${file.name} appears to be empty or corrupted.`);
+                    onDone();
                     return;
                 }
                 
@@ -420,17 +431,20 @@ const Workspace: React.FC = () => {
                 await db.upsertJob(newJob);
                 await db.upsertFile(newFile);
                 handleJobCreated(newJob, newFile);
-                addToast('success', 'File Uploaded', `${file.name} loaded successfully.`);
+                addToast('success', 'File uploaded', '');
 
             } catch (err: any) {
                 console.error(err);
                 const errorMsg = err instanceof Error ? err.message : 'Unknown error';
                 addToast('error', 'File Error', `Failed to parse ${file.name}: ${errorMsg}`);
+            } finally {
+                onDone();
             }
         };
         
         reader.onerror = () => {
             addToast('error', 'File Error', `Failed to read ${file.name}`);
+            onDone();
         };
         
         reader.readAsArrayBuffer(file);
@@ -442,6 +456,14 @@ const Workspace: React.FC = () => {
 
   return (
     <div className="h-screen flex bg-white overflow-hidden text-[#111827]">
+      {/* Small bottom-right loading for file upload */}
+      {fileUploadInProgress > 0 && (
+        <div className="fixed bottom-4 right-4 z-[90] flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg text-sm font-medium text-gray-700">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          Loading...
+        </div>
+      )}
+
       {/* GLOBAL HIDDEN INPUT FOR DASHBOARD UPLOAD TRIGGER */}
       <input 
         type="file" 
