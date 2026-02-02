@@ -31,12 +31,12 @@ router.post('/stream', async (req: AuthenticatedRequest, res) => {
       return res.status(400).json({ error: 'Missing prompt' });
     }
 
-    // Charge credits before streaming starts (5 credits per chat message)
+    // Charge credits before streaming starts (3 credits per chat message)
     // Skip charge when retryOnError: user is retrying after a code execution failure
     let creditsCharged = false;
     try {
       if (!retryOnError) {
-        await chargeCredits(req.user.id, 5);
+        await chargeCredits(req.user.id, 3);
         creditsCharged = true;
       }
     } catch (error: any) {

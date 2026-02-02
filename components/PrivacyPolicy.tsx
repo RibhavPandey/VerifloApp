@@ -1,15 +1,10 @@
 import React from 'react';
 import Navbar from './Navbar';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from './ui/button';
-import { useNavigate } from 'react-router-dom';
 
 const PrivacyPolicy: React.FC = () => {
-  const navigate = useNavigate();
-
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <section className="pb-8 mb-8 border-b border-muted-foreground/20 last:border-0">
-      <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+      <h2 className="text-xl font-bold mb-4 text-foreground">{title}</h2>
       <div className="text-muted-foreground space-y-2">{children}</div>
     </section>
   );
@@ -19,12 +14,7 @@ const PrivacyPolicy: React.FC = () => {
       <Navbar />
       <div className="min-h-screen bg-background py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <Button onClick={() => navigate(-1)} variant="ghost" className="mb-8 -ml-2">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-
-          <h1 className="text-3xl font-semibold mb-2">Privacy Policy</h1>
+          <h1 className="text-4xl font-bold mb-2 text-foreground">Privacy Policy</h1>
           <p className="text-sm text-muted-foreground mb-12">
             Last updated: {new Date().toLocaleDateString()}
           </p>
@@ -35,13 +25,13 @@ const PrivacyPolicy: React.FC = () => {
           </Section>
 
           <Section title="2. What Data We Collect">
-            <h3 className="text-lg font-medium mt-4 mb-2 text-foreground">2.1 Data You Give Us</h3>
+            <h3 className="text-base font-semibold mt-4 mb-2 text-foreground">2.1 Data You Give Us</h3>
             <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
               <li><strong>Account info:</strong> Name, email address, password (encrypted)</li>
               <li><strong>Your files:</strong> Invoices, spreadsheets, and other documents you upload</li>
               <li><strong>Support messages:</strong> Emails or messages you send us</li>
             </ul>
-            <h3 className="text-lg font-medium mt-4 mb-2 text-foreground">2.2 Data We Collect Automatically</h3>
+            <h3 className="text-base font-semibold mt-4 mb-2 text-foreground">2.2 Data We Collect Automatically</h3>
             <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
               <li><strong>Usage data:</strong> Which features you use, how often you log in</li>
               <li><strong>Device info:</strong> Browser type, device type, screen size</li>

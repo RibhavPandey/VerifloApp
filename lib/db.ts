@@ -31,7 +31,7 @@ export const db = {
                 .from('profiles')
                 .insert({ 
                     id: user.id, 
-                    credits: 200, 
+                    credits: 100, 
                     email: user.email 
                 })
                 .select()
@@ -49,7 +49,7 @@ export const db = {
                if (createError.code === '42501') {
                    console.error("CRITICAL: RLS Policy missing. Please run the contents of supabase_setup.sql in your Supabase SQL Editor.");
                }
-               return { credits: 200 }; 
+               return { credits: 100, documents_used: 0 }; 
           }
           return newProfile;
       }
@@ -62,7 +62,7 @@ export const db = {
           if (dbError.isTransient) {
             throw new Error(dbError.message);
           }
-          return { credits: 200 }; 
+          return { credits: 100, documents_used: 0 }; 
       }
 
       return data;
@@ -70,7 +70,7 @@ export const db = {
       const dbError = parseDbError(error);
       console.error('Failed to get user profile after retries:', dbError);
       // Return fallback profile on persistent errors
-      return { credits: 200 };
+      return { credits: 100, documents_used: 0 };
     }
   },
 

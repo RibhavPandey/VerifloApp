@@ -8,8 +8,10 @@ import {
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
 import MergeModal from './MergeModal';
-import { db } from '../lib/db'; 
+import { db } from '../lib/db';
+import { getPlanLimits } from '../lib/plans'; 
 import { runWorkflow as runWorkflowEngine } from '../lib/workflow-runner';
+import { api } from '../lib/api';
 import { useToast } from './ui/toast';
 import { worker } from '../lib/worker';
 import ExcelJS from 'exceljs';
@@ -19,6 +21,8 @@ export interface WorkspaceContextType {
     jobs: Job[];
     files: ExcelFile[];
     credits: number;
+    documentsUsed: number;
+    documentsLimit: number;
     handleUseCredit: (amount: number) => void;
     refreshData: () => void;
     handleRecordAction: (type: AutomationStep['type'], description: string, params: any) => void;
@@ -38,6 +42,8 @@ const Workspace: React.FC = () => {
   const [files, setFiles] = useState<ExcelFile[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [credits, setCredits] = useState(0);
+  const [documentsUsed, setDocumentsUsed] = useState(0);
+  const [documentsLimit, setDocumentsLimit] = useState(10);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // --- UI STATE ---
@@ -75,7 +81,12 @@ const Workspace: React.FC = () => {
           
           setJobs(fetchedJobs);
           setWorkflows(fetchedWorkflows);
-          if (profile) setCredits(profile.credits);
+          if (profile) {
+            setCredits(profile.credits ?? 0);
+            setDocumentsUsed(profile.documents_used ?? 0);
+            const limits = getPlanLimits(profile.subscription_plan || 'free');
+            setDocumentsLimit(limits.documents || 10);
+          }
           
           if (fetchedJobs.length > 0) {
               const allFileIds = fetchedJobs.flatMap(j => j.fileIds);
@@ -103,11 +114,14 @@ const Workspace: React.FC = () => {
   }, []);
 
   const handleUseCredit = async (amount: number) => {
-      // Credits are enforced server-side. Keep this as a lightweight "refresh credits" helper
-      // to avoid double-charging from the client.
       try {
           const profile = await db.getUserProfile();
-          if (profile) setCredits(profile.credits);
+          if (profile) {
+            setCredits(profile.credits ?? 0);
+            setDocumentsUsed(profile.documents_used ?? 0);
+            const limits = getPlanLimits(profile.subscription_plan || 'free');
+            setDocumentsLimit(limits.documents || 10);
+          }
       } catch (e) {
           console.error("Failed to refresh credits", e);
           addToast('warning', 'Credits Update Failed', 'Credits may be out of sync. Please refresh.');
@@ -199,6 +213,7 @@ const Workspace: React.FC = () => {
 
   const runWorkflow = async (workflow: Workflow, targetFile: ExcelFile): Promise<ExcelFile> => {
       try {
+          await api.chargeWorkflow();
           const updatedFile = await runWorkflowEngine(workflow, targetFile, {
               addToast,
               getCredits: () => credits,
@@ -545,7 +560,7 @@ const Workspace: React.FC = () => {
                
                <div className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-sm font-semibold mr-2 shadow-sm">
                   <Coins size={16} className="text-blue-600" />
-                  <span>{credits} Credits</span>
+                  <span>{documentsUsed}/{documentsLimit} docs · {credits} credits</span>
                </div>
 
                <div className="h-6 w-px bg-gray-200 mx-1"></div>
@@ -556,7 +571,7 @@ const Workspace: React.FC = () => {
          <div className="flex-1 flex overflow-hidden relative">
             <main className="flex-1 relative overflow-y-auto bg-[#F9FAFB] flex flex-col min-h-0">
                 <Outlet context={{ 
-                    jobs, files, credits, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording
+                    jobs, files, credits, documentsUsed, documentsLimit, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording
                 } satisfies WorkspaceContextType} />
             </main>
          </div>

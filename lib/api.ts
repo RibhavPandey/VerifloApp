@@ -134,6 +134,56 @@ export const api = {
     return result;
   },
 
+  createPaymentOrder: async (params: { type: string; planId?: string; addonId?: string; period?: string }) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_URL}/api/payment/create-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      await handleApiError(response, 'Failed to create order');
+    }
+    return response.json();
+  },
+
+  chargeWorkflow: async () => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch(`${API_URL}/api/workflows/charge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) await handleApiError(res, 'Workflow charge failed');
+    return res.json();
+  },
+
+  verifyPayment: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const res = await fetch(`${API_URL}/api/payment/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(response),
+    });
+
+    if (!res.ok) {
+      await handleApiError(res, 'Verification failed');
+    }
+    return res.json();
+  },
+
   chat: async function* (prompt: string, fileContext: string, history: any[], isDataMode: boolean, retryOnError?: boolean) {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');

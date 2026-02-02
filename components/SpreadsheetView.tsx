@@ -633,12 +633,12 @@ const SpreadsheetView: React.FC = () => {
   const handleEnrichment = async () => {
     if (enrichmentTargetCol === null || !enrichmentPrompt) return;
 
-    // Calculate cost based on unique items (25 credits per batch of 100)
+    // Calculate cost based on unique items (20 credits per batch of 100)
     const sourceData = file.data.slice(1).map(r => r[enrichmentTargetCol]).filter(v => v !== undefined && v !== null && v !== '');
     const allUniqueItems = Array.from(new Set(sourceData.map(v => String(v).trim())));
     const BATCH_SIZE = 100; // Process 100 items per API call (backend limit)
     const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
-    const totalCost = numBatches * 25;
+    const totalCost = numBatches * 20;
 
     if (credits < totalCost) {
         addToast('error', 'Insufficient Credits', `Data enrichment requires ${totalCost} credits (${allUniqueItems.length} unique items).`);
@@ -1381,7 +1381,7 @@ const SpreadsheetView: React.FC = () => {
         </div>
 
         {/* Right: Filter (when recording) + Export + Zoom */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isRecording && file && (
             <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50">
               <Filter size={16} />
@@ -1389,9 +1389,9 @@ const SpreadsheetView: React.FC = () => {
             </Button>
           )}
           {/* Export with ERP Format inside */}
-          <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu}>
+          <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu} modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={isExporting} className="rounded-xl">
+              <Button type="button" variant="outline" size="sm" disabled={isExporting} className="rounded-xl">
                 <Download size={16} />
                 <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
               </Button>
@@ -1623,9 +1623,9 @@ const SpreadsheetView: React.FC = () => {
                      <div className="w-px h-5 bg-border" />
 
                      {/* Transform Dropdown */}
-                     <DropdownMenu open={showTransformMenu} onOpenChange={setShowTransformMenu}>
+                     <DropdownMenu open={showTransformMenu} onOpenChange={setShowTransformMenu} modal={false}>
                        <DropdownMenuTrigger asChild>
-                         <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-lg">
+                         <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 rounded-lg">
                            <Wand2 size={14} />
                            <span className="hidden sm:inline">Transform</span>
                            <ChevronDown size={12} className={cn("transition-transform", showTransformMenu && "rotate-180")} />
@@ -1669,7 +1669,7 @@ const SpreadsheetView: React.FC = () => {
                            addToast('warning', "Select a column first"); 
                          } 
                        }}
-                       title="AI Enrich (25 credits)"
+                       title="AI Enrich (20 credits per 100 items)"
                        className="h-7 gap-1.5 rounded-lg"
                      >
                        <Sparkles size={14} />
@@ -1718,7 +1718,7 @@ const SpreadsheetView: React.FC = () => {
               <Globe className="text-blue-500" /> Enrich Data
             </h3>
             <p className="text-sm text-gray-500 mb-4">
-              Cost: <span className="font-bold text-blue-600">25 Credits</span>. 
+              Cost: <span className="font-bold text-blue-600">20 Credits per 100 items</span>. 
               What info do you want for <strong>{getColumnLabel(enrichmentTargetCol)}</strong>?
             </p>
             <textarea 

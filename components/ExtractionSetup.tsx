@@ -191,14 +191,16 @@ const ExtractionSetup: React.FC = () => {
             setExtractionProgress(null);
             const failedJob: Job = { ...newJob, status: 'processing', fileIds: [] };
             await db.upsertJob(failedJob);
-            const isInsufficientCredits = rejectionReasons.some(msg =>
-                msg?.toLowerCase().includes('insufficient credits')
+            const isInsufficientQuota = rejectionReasons.some(msg =>
+                msg?.toLowerCase().includes('insufficient credits') ||
+                msg?.toLowerCase().includes('insufficient document') ||
+                msg?.toLowerCase().includes('document quota')
             );
-            if (isInsufficientCredits) {
+            if (isInsufficientQuota) {
                 addToast(
                     'error',
-                    'Insufficient Credits',
-                    'You need more credits to extract documents. Upgrade your plan to continue.',
+                    'Quota Exceeded',
+                    'You need more document quota or credits. Upgrade your plan to continue.',
                     { label: 'View Pricing', onClick: () => navigate('/pricing') }
                 );
             } else {

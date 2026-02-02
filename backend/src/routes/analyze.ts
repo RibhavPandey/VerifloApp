@@ -19,8 +19,8 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       return res.status(500).json({ error: 'Service is not configured.' });
     }
 
-    // Charge credits (20 credits per analysis, matches frontend)
-    await chargeCredits(req.user.id, 20);
+    // Charge credits (15 credits per analysis, matches frontend)
+    await chargeCredits(req.user.id, 15);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     

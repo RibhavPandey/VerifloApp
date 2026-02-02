@@ -1,7 +1,7 @@
-// Monthly credit reset logic
+// Monthly credit and document reset logic
 
 import { createClient } from '@supabase/supabase-js';
-import { getMonthlyCredits } from './plans.js';
+import { getMonthlyCredits, getMonthlyDocuments } from './plans.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -16,7 +16,6 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 export async function resetMonthlyCredits(userId: string): Promise<void> {
   try {
-    // Get user's current plan
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('subscription_plan')
@@ -26,14 +25,16 @@ export async function resetMonthlyCredits(userId: string): Promise<void> {
     if (profileError) throw profileError;
 
     const plan = profile?.subscription_plan || 'free';
-    const monthlyCredits = getMonthlyCredits(plan);
+    const monthlyCredits = plan === 'enterprise' ? 100000 : getMonthlyCredits(plan);
+    const monthlyDocuments = plan === 'enterprise' ? 10000 : getMonthlyDocuments(plan);
 
-    // Reset credits and update reset timestamp
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({
         credits: monthlyCredits,
+        documents_used: 0,
         monthly_credits_reset_at: new Date().toISOString(),
+        monthly_documents_reset_at: new Date().toISOString(),
       })
       .eq('id', userId);
 
@@ -49,7 +50,6 @@ export async function resetAllMonthlyCredits(): Promise<{ success: number; faile
   let failed = 0;
 
   try {
-    // Get all users
     const { data: profiles, error } = await supabaseAdmin
       .from('profiles')
       .select('id, subscription_plan, monthly_credits_reset_at');
@@ -65,7 +65,6 @@ export async function resetAllMonthlyCredits(): Promise<{ success: number; faile
 
     for (const profile of profiles) {
       try {
-        // Check if reset is needed (more than 30 days since last reset, or never reset)
         const lastReset = profile.monthly_credits_reset_at
           ? new Date(profile.monthly_credits_reset_at)
           : null;

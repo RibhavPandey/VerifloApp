@@ -64,14 +64,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="mb-6 animate-fade-in-up text-balance font-mono text-4xl font-bold leading-tight text-foreground animation-delay-100 md:text-5xl">
-              From inbox to{" "}
+              Hours of manual work.{" "}
               <span className="relative inline-block border-4 border-black bg-primary px-4 py-2 text-primary-foreground shadow-lg">
-                accounting—no detours
+                Done in seconds.
               </span>
             </h1>
 
             <p className="mb-10 animate-fade-in-up text-pretty text-lg leading-relaxed text-muted-foreground animation-delay-200 md:text-xl">
-              Extract invoices, run workflows, chat with your data—one workspace. Tally, QuickBooks, Zoho ready.
+              Extract invoices, automate workflows, chat with your data—all in one workspace. Export to Tally, QuickBooks, Zoho.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 animate-fade-in-up animation-delay-300 sm:flex-row">

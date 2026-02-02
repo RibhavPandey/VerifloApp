@@ -80,7 +80,7 @@ export async function runWorkflow(
                 const { api } = await import('./api');
                 const BATCH_SIZE = 100;
                 const numBatches = Math.ceil(allUniqueItems.length / BATCH_SIZE);
-                const batchCost = numBatches * 25;
+                const batchCost = numBatches * 20;
                 if (getCredits() < batchCost) {
                   addToast('error', 'Insufficient Credits', `Enrichment requires ${batchCost} credits.`);
                   continue;

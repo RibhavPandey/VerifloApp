@@ -107,15 +107,25 @@ app.get('/health', (req, res) => {
 });
 
 // Import routes AFTER env is loaded (prevents import-time env issues)
-const [{ default: extractRoutes }, { default: analyzeRoutes }, { default: enrichRoutes }, { default: chatRoutes }, { default: authRoutes }, { default: adminRoutes }] =
-  await Promise.all([
-    import('./routes/extract.js'),
-    import('./routes/analyze.js'),
-    import('./routes/enrich.js'),
-    import('./routes/chat.js'),
-    import('./routes/auth.js'),
-    import('./routes/admin.js'),
-  ]);
+const [
+  { default: extractRoutes },
+  { default: analyzeRoutes },
+  { default: enrichRoutes },
+  { default: chatRoutes },
+  { default: authRoutes },
+  { default: adminRoutes },
+  { default: paymentRoutes },
+  { default: workflowRoutes },
+] = await Promise.all([
+  import('./routes/extract.js'),
+  import('./routes/analyze.js'),
+  import('./routes/enrich.js'),
+  import('./routes/chat.js'),
+  import('./routes/auth.js'),
+  import('./routes/admin.js'),
+  import('./routes/payment.js'),
+  import('./routes/workflows.js'),
+]);
 
 // Public: signup welcome email (no auth - user has no session until email confirmed)
 const { sendWelcomeEmail } = await import('./utils/email.js');
@@ -140,6 +150,11 @@ app.post('/api/auth/signup-welcome-email', rateLimit({ keyPrefix: 'signup-email'
   }
 });
 
+// Payment webhook (no auth - Razorpay calls this)
+app.post('/api/payment/webhook', rateLimit({ keyPrefix: 'payment-webhook', windowMs: 60_000, max: 100 }), async (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Routes (all protected with authentication)
 app.use('/api/extract', authenticate, rateLimit({ keyPrefix: 'extract', windowMs: 60_000, max: 10 }), extractRoutes);
 app.use('/api/analyze', authenticate, rateLimit({ keyPrefix: 'analyze', windowMs: 60_000, max: 20 }), analyzeRoutes);
@@ -147,6 +162,8 @@ app.use('/api/enrich', authenticate, rateLimit({ keyPrefix: 'enrich', windowMs: 
 app.use('/api/chat', authenticate, rateLimit({ keyPrefix: 'chat', windowMs: 60_000, max: 30 }), chatRoutes);
 app.use('/api/auth', authenticate, authRoutes);
 app.use('/api/admin', authenticate, adminRoutes);
+app.use('/api/payment', authenticate, rateLimit({ keyPrefix: 'payment', windowMs: 60_000, max: 20 }), paymentRoutes);
+app.use('/api/workflows', authenticate, rateLimit({ keyPrefix: 'workflows', windowMs: 60_000, max: 30 }), workflowRoutes);
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

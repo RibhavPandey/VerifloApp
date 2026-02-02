@@ -103,8 +103,8 @@ export async function chargeCredits(userId: string, amount: number): Promise<{ b
         return { before, after: 0 };
       }
       
-      // Send low credit warning if credits are below 100
-      if (finalCredits < 100 && finalCredits > 0) {
+      // Send low credit warning if credits are below 20
+      if (finalCredits < 20 && finalCredits > 0) {
         // Get user email and name for warning email
         const { data: profileData } = await supabaseAdmin
           .from('profiles')

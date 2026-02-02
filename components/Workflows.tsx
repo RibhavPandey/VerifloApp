@@ -4,6 +4,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Plus, ScanText, FileSpreadsheet, Play, Trash2, Loader2, Workflow as WorkflowIcon, Zap, X, AlertTriangle, Pencil, ChevronUp, ChevronDown } from 'lucide-react';
 import { db } from '../lib/db';
 import { runWorkflow as runWorkflowEngine } from '../lib/workflow-runner';
+import { api } from '../lib/api';
 import { Workflow, ExcelFile, Job, AutomationStep } from '../types';
 import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
@@ -29,6 +30,7 @@ const Workflows: React.FC = () => {
 
     const runWorkflow = async (workflow: Workflow, targetFile: ExcelFile): Promise<ExcelFile> => {
         try {
+            await api.chargeWorkflow();
             const updatedFile = await runWorkflowEngine(workflow, targetFile, {
                 addToast,
                 getCredits: () => credits,

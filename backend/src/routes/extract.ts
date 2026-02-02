@@ -1,7 +1,7 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
-import { chargeCredits, InsufficientCreditsError } from '../utils/credits.js';
+import { incrementDocumentsUsed, InsufficientDocumentsError } from '../utils/documents.js';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import { createLogger } from '../utils/logger.js';
@@ -245,13 +245,13 @@ Return JSON array: [ { "key", "value", "confidence", "box2d": [ymin, xmin, ymax,
     }));
 
     try {
-      await chargeCredits(req.user.id, 100);
+      await incrementDocumentsUsed(req.user.id);
     } catch (error: any) {
-      if (error instanceof InsufficientCreditsError) {
+      if (error instanceof InsufficientDocumentsError) {
         return res.status(402).json({
-          error: 'Insufficient credits',
-          required: error.required,
-          available: error.available,
+          error: 'Insufficient document quota',
+          used: error.available,
+          limit: error.limit,
         });
       }
       throw error;
@@ -270,11 +270,11 @@ Return JSON array: [ { "key", "value", "confidence", "box2d": [ymin, xmin, ymax,
       response: error?.response?.data,
     });
 
-    if (error instanceof InsufficientCreditsError) {
+    if (error instanceof InsufficientDocumentsError) {
       return res.status(402).json({
-        error: 'Insufficient credits',
-        required: error.required,
-        available: error.available,
+        error: 'Insufficient document quota',
+        used: error.available,
+        limit: error.limit,
       });
     }
     

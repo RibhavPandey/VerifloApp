@@ -23,8 +23,8 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       return res.status(500).json({ error: 'API key not configured. Please set GEMINI_API_KEY in your .env file.' });
     }
 
-    // Charge credits (25 credits per call, matches frontend)
-    await chargeCredits(req.user.id, 25);
+    // Charge credits (20 credits per 100 items, matches frontend)
+    await chargeCredits(req.user.id, 20);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 

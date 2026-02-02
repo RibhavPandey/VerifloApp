@@ -3,25 +3,40 @@
 export type PlanType = 'free' | 'starter' | 'pro' | 'enterprise';
 
 export interface PlanLimits {
+  monthlyDocuments: number;
   monthlyCredits: number;
+  overageDocPriceCents: number; // USD cents per doc (0 = no overage)
+  overageCreditPriceCents: number; // USD cents per credit (0 = no overage)
   features: string[];
 }
 
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   free: {
-    monthlyCredits: 200,
+    monthlyDocuments: 10,
+    monthlyCredits: 100,
+    overageDocPriceCents: 0,
+    overageCreditPriceCents: 0,
     features: ['Basic features'],
   },
   starter: {
-    monthlyCredits: 2000,
+    monthlyDocuments: 150,
+    monthlyCredits: 750,
+    overageDocPriceCents: 15, // $0.15
+    overageCreditPriceCents: 2, // $0.02
     features: ['Basic features', 'Priority support'],
   },
   pro: {
-    monthlyCredits: 7500,
+    monthlyDocuments: 750,
+    monthlyCredits: 3000,
+    overageDocPriceCents: 12, // $0.12
+    overageCreditPriceCents: 2, // ~$0.015 (rounded)
     features: ['All starter features', 'Higher limits', 'Priority support'],
   },
   enterprise: {
-    monthlyCredits: 20000,
+    monthlyDocuments: 0, // custom
+    monthlyCredits: 0, // custom
+    overageDocPriceCents: 0,
+    overageCreditPriceCents: 0,
     features: ['All pro features', 'Team-friendly limits', 'Dedicated support'],
   },
 };
@@ -32,6 +47,10 @@ export function getPlanLimits(plan: PlanType | string): PlanLimits {
 
 export function getMonthlyCredits(plan: PlanType | string): number {
   return getPlanLimits(plan).monthlyCredits;
+}
+
+export function getMonthlyDocuments(plan: PlanType | string): number {
+  return getPlanLimits(plan).monthlyDocuments;
 }
 
 export function isValidPlan(plan: string): plan is PlanType {

@@ -356,9 +356,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (!textToSend) return;
         const useAnalysis = files.length >= 2 && isAnalysisQuery(textToSend);
         const retryOnError = !useAnalysis && messageHadExecutionError(assistantMsg);
-        const creditsNeeded = useAnalysis ? 20 : (retryOnError ? 0 : 5);
+        const creditsNeeded = useAnalysis ? 15 : (retryOnError ? 0 : 3);
         if (credits < creditsNeeded) {
-            addToast('error', "Insufficient Credits", creditsNeeded === 20 ? "Analysis requires 20 credits." : "You need 5 credits to regenerate.");
+            addToast('error', "Insufficient Credits", creditsNeeded === 15 ? "Analysis requires 15 credits." : "You need 3 credits to regenerate.");
             return;
         }
         const historyWithoutAssistant = history.filter(m => m.id !== assistantMsg.id);
@@ -373,9 +373,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         const textToSend = (promptOverride ?? prompt).trim();
         if (!textToSend) return;
 
-        const creditsNeeded = files.length >= 2 && isAnalysisQuery(textToSend) ? 20 : 5;
+        const creditsNeeded = files.length >= 2 && isAnalysisQuery(textToSend) ? 15 : 3;
         if (credits < creditsNeeded) {
-            addToast('error', "Insufficient Credits", creditsNeeded === 20 ? "Analysis requires 20 credits." : "You need 5 credits to send a message.");
+            addToast('error', "Insufficient Credits", creditsNeeded === 15 ? "Analysis requires 15 credits." : "You need 3 credits to send a message.");
             return;
         }
 
