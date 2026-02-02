@@ -115,7 +115,7 @@ const App: React.FC = () => {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage onStart={() => window.location.href = '/auth'} onPricing={() => window.location.href = '/pricing'} />} />

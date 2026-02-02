@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import LandingPage from './LandingPage';
 
 const renderWithRouter = (ui: React.ReactElement) =>
-  render(<MemoryRouter>{ui}</MemoryRouter>);
+  render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>);
 
 describe('LandingPage', () => {
   it('renders main heading', () => {
