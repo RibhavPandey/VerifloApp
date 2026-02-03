@@ -18,12 +18,6 @@ import ExcelJS from 'exceljs';
 import { validateSpreadsheetData, validateFormula, normalizeData } from '../lib/spreadsheet-validation';
 import { trackEvent } from '../lib/analytics';
 import { Button } from './ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 import { cn } from '../lib/utils';
 
 const ROW_HEIGHT = 24;
@@ -99,6 +93,13 @@ const FILTER_OPERATORS = [
   { value: 'less', label: 'less than' },
   { value: 'not_empty', label: 'is not empty' },
   { value: 'empty', label: 'is empty' },
+] as const;
+
+const TRANSFORM_ACTIONS = [
+  { id: 'trim', label: 'Trim whitespace', Icon: Scissors },
+  { id: 'upper', label: 'UPPERCASE', Icon: CaseUpper },
+  { id: 'lower', label: 'lowercase', Icon: CaseLower },
+  { id: 'title', label: 'Title Case', Icon: CaseSensitive },
 ] as const;
 
 const FilterStepModal: React.FC<{
@@ -392,63 +393,41 @@ const SpreadsheetView: React.FC = () => {
   const [enrichmentTargetCol, setEnrichmentTargetCol] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'H1',
-        location: 'components/SpreadsheetView.tsx:397',
-        message: 'showExportMenu state changed',
-        data: { showExportMenu },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
-  }, [showExportMenu]);
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'H3',
-        location: 'components/SpreadsheetView.tsx:406',
-        message: 'isExporting state changed',
-        data: { isExporting },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
-  }, [isExporting]);
-  useEffect(() => {
-    if (!showExportMenu) return;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: 'debug-session',
-        runId: 'initial',
-        hypothesisId: 'H2',
-        location: 'components/SpreadsheetView.tsx:417',
-        message: 'Dropdown menu opened',
-        data: { selectedERPFormat },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
-  }, [showExportMenu, selectedERPFormat]);
   const [selectedERPFormat, setSelectedERPFormat] = useState<string>('generic');
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100%, range: 0.5 to 2.0
   const [showTransformMenu, setShowTransformMenu] = useState(false);
   const [isGridFocused, setIsGridFocused] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const transformMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showExportMenu && !showTransformMenu) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (showExportMenu && exportMenuRef.current && !exportMenuRef.current.contains(target)) {
+        setShowExportMenu(false);
+      }
+      if (showTransformMenu && transformMenuRef.current && !transformMenuRef.current.contains(target)) {
+        setShowTransformMenu(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showExportMenu) setShowExportMenu(false);
+        if (showTransformMenu) setShowTransformMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showExportMenu, showTransformMenu]);
 
   // HyperFormula
   const hfInstance = useRef<HyperFormula | null>(null);
@@ -1441,82 +1420,69 @@ const SpreadsheetView: React.FC = () => {
             </Button>
           )}
           {/* Export with ERP Format inside */}
-          <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu} modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isExporting}
-                className="rounded-xl"
-                onClick={() => {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      sessionId: 'debug-session',
-                      runId: 'initial',
-                      hypothesisId: 'H1',
-                      location: 'components/SpreadsheetView.tsx:1397',
-                      message: 'Export trigger clicked',
-                      data: { isExporting, showExportMenu },
-                      timestamp: Date.now()
-                    })
-                  }).catch(() => {});
-                  // #endregion
-                }}
-              >
-                <Download size={16} />
-                <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 p-2">
-              <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                Template
-              </div>
-              <div className="space-y-0.5 mb-2">
-                {ERP_TEMPLATES.map((template) => (
+          <div className="relative" ref={exportMenuRef}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isExporting}
+              className="rounded-xl"
+              onClick={() => setShowExportMenu(prev => !prev)}
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+            </Button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300]">
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  Template
+                </div>
+                <div className="space-y-0.5 mb-2">
+                  {ERP_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedERPFormat(template.id)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left",
+                        selectedERPFormat === template.id 
+                          ? "bg-blue-50 text-blue-700" 
+                          : "text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      {selectedERPFormat === template.id && <Check size={14} className="text-blue-600" />}
+                      {selectedERPFormat !== template.id && <span className="w-[14px]" />}
+                      {template.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="h-px bg-gray-100 my-2" />
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  Download as
+                </div>
+                <div className="space-y-0.5">
                   <button
-                    key={template.id}
-                    onClick={() => setSelectedERPFormat(template.id)}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left",
-                      selectedERPFormat === template.id 
-                        ? "bg-blue-50 text-blue-700" 
-                        : "text-gray-600 hover:bg-gray-50"
-                    )}
+                    type="button"
+                    onClick={() => exportToExcel()}
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {selectedERPFormat === template.id && <Check size={14} className="text-blue-600" />}
-                    {selectedERPFormat !== template.id && <span className="w-[14px]" />}
-                    {template.name}
+                    <FileText size={16} className="text-green-600" />
+                    Excel (.xlsx)
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV()}
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileText size={16} className="text-blue-600" />
+                    CSV (.csv)
+                  </button>
+                </div>
               </div>
-              <div className="h-px bg-gray-100 my-2" />
-              <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                Download as
-              </div>
-              <div className="space-y-0.5">
-                <DropdownMenuItem
-                  onSelect={() => exportToExcel()}
-                  disabled={isExporting}
-                  className="gap-2 cursor-pointer"
-                >
-                  <FileText size={16} className="text-green-600" />
-                  Excel (.xlsx)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => exportToCSV()}
-                  disabled={isExporting}
-                  className="gap-2 cursor-pointer"
-                >
-                  <FileText size={16} className="text-blue-600" />
-                  CSV (.csv)
-                </DropdownMenuItem>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+          </div>
 
           {/* Zoom - Minimal */}
           <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded-xl px-1">
@@ -1697,39 +1663,44 @@ const SpreadsheetView: React.FC = () => {
 
                      <div className="w-px h-5 bg-border" />
 
-                     {/* Transform Dropdown */}
-                     <DropdownMenu open={showTransformMenu} onOpenChange={setShowTransformMenu} modal={false}>
-                       <DropdownMenuTrigger asChild>
-                         <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 rounded-lg">
-                           <Wand2 size={14} />
-                           <span className="hidden sm:inline">Transform</span>
-                           <ChevronDown size={12} className={cn("transition-transform", showTransformMenu && "rotate-180")} />
-                         </Button>
-                       </DropdownMenuTrigger>
-                       <DropdownMenuContent align="center" className="w-48 z-[300]">
-                         <DropdownMenuItem onSelect={() => { handleDataAction('trim'); setShowTransformMenu(false); }} className="gap-2">
-                           <Scissors size={14} className="text-muted-foreground" />
-                           Trim whitespace
-                         </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => { handleDataAction('upper'); setShowTransformMenu(false); }} className="gap-2">
-                           <CaseUpper size={14} className="text-muted-foreground" />
-                           UPPERCASE
-                         </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => { handleDataAction('lower'); setShowTransformMenu(false); }} className="gap-2">
-                           <CaseLower size={14} className="text-muted-foreground" />
-                           lowercase
-                         </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => { handleDataAction('title'); setShowTransformMenu(false); }} className="gap-2">
-                           <CaseSensitive size={14} className="text-muted-foreground" />
-                           Title Case
-                         </DropdownMenuItem>
-                         <div className="h-px bg-border my-1" />
-                         <DropdownMenuItem onSelect={() => { handleDataAction('dedup'); setShowTransformMenu(false); }} className="gap-2 text-destructive focus:text-destructive">
-                           <CopyMinus size={14} />
-                           Remove duplicates
-                         </DropdownMenuItem>
-                       </DropdownMenuContent>
-                     </DropdownMenu>
+                    {/* Transform Dropdown */}
+                    <div className="relative" ref={transformMenuRef}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 rounded-lg"
+                        onClick={() => setShowTransformMenu(prev => !prev)}
+                      >
+                        <Wand2 size={14} />
+                        <span className="hidden sm:inline">Transform</span>
+                        <ChevronDown size={12} className={cn("transition-transform", showTransformMenu && "rotate-180")} />
+                      </Button>
+                      {showTransformMenu && (
+                        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-popover shadow-xl z-[300] py-1">
+                          {TRANSFORM_ACTIONS.map(({ id, label, Icon }) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => { handleDataAction(id); setShowTransformMenu(false); }}
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                            >
+                              <Icon size={14} className="text-muted-foreground" />
+                              {label}
+                            </button>
+                          ))}
+                          <div className="h-px bg-border my-1" />
+                          <button
+                            type="button"
+                            onClick={() => { handleDataAction('dedup'); setShowTransformMenu(false); }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 text-left"
+                          >
+                            <CopyMinus size={14} />
+                            Remove duplicates
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                      <div className="w-px h-5 bg-border" />
 

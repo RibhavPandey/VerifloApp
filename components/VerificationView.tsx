@@ -41,6 +41,16 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
     }, [localDocs, reviewMode]);
 
     const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
+    
+    // Adjust index if current item was removed from reviewItems (e.g., when marked as reviewed)
+    useEffect(() => {
+        if (reviewItems.length === 0) return;
+        // If current index is out of bounds, reset to 0 or last valid index
+        if (currentReviewIndex >= reviewItems.length) {
+            setCurrentReviewIndex(Math.max(0, reviewItems.length - 1));
+        }
+    }, [reviewItems.length, currentReviewIndex]);
+    
     const activeItem = reviewItems[currentReviewIndex];
     
     const activeDocId = activeItem ? activeItem.docId : (localDocs[0]?.id ?? null);
@@ -140,10 +150,16 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
         const newDocs = localDocs.map(d => {
             if (d.id === activeItem.docId) {
                 const oldField = d.fields[activeItem.fieldIndex];
+                // Only update value during typing, don't change confidence/flagged yet
+                // This prevents the field from being removed from reviewItems while user is typing
                 const newFields = [...d.fields];
-                newFields[activeItem.fieldIndex] = { ...newFields[activeItem.fieldIndex], value: val, flagged: false, confidence: 1.0 };
-                const change: FieldChange = { fieldKey: oldField.key, oldValue: oldField.value, newValue: val, timestamp: Date.now(), oldConfidence: oldField.confidence };
-                return { ...d, fields: newFields, auditTrail: [...(d.auditTrail || []), change] };
+                newFields[activeItem.fieldIndex] = { ...newFields[activeItem.fieldIndex], value: val };
+                // Only add to auditTrail if value actually changed
+                if (oldField.value !== val) {
+                    const change: FieldChange = { fieldKey: oldField.key, oldValue: oldField.value, newValue: val, timestamp: Date.now(), oldConfidence: oldField.confidence };
+                    return { ...d, fields: newFields, auditTrail: [...(d.auditTrail || []), change] };
+                }
+                return { ...d, fields: newFields };
             }
             return d;
         });
@@ -234,11 +250,33 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
     };
 
     const handleNext = () => {
+        // Mark current item as reviewed
+        if (activeItem) {
+            const newDocs = localDocs.map(d => {
+                if (d.id === activeItem.docId) {
+                    if (activeItem.type === 'field') {
+                        // Mark as reviewed: set confidence to 1.0 and flagged to false
+                        const newFields = [...d.fields];
+                        newFields[activeItem.fieldIndex] = { ...newFields[activeItem.fieldIndex], flagged: false, confidence: 1.0 };
+                        return { ...d, fields: newFields };
+                    } else if (activeItem.type === 'lineItem' && d.lineItems) {
+                        const newLineItems = [...d.lineItems];
+                        newLineItems[activeItem.lineItemIndex] = { ...newLineItems[activeItem.lineItemIndex], confidence: 1 };
+                        return { ...d, lineItems: newLineItems };
+                    }
+                }
+                return d;
+            });
+            setLocalDocs(newDocs);
+        }
+        
+        // Move to next item
+        // If we're at the last item, stay at current index (it will point to next after current is removed)
+        // Otherwise, increment to next
         if (currentReviewIndex < reviewItems.length - 1) {
             setCurrentReviewIndex(prev => prev + 1);
-        } else {
-            onCompleteReview(localDocs);
         }
+        // If at last item, the useEffect will adjust the index after the item is removed
     };
 
     if (reviewItems.length === 0) {
@@ -334,7 +372,13 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                                 </span>
                             </div>
                             <div className="text-sm font-bold text-foreground mb-3">{activeItem.field.key}</div>
-                            <input autoFocus className="w-full text-lg font-bold text-foreground bg-muted/50 border-b-2 border-border focus:border-primary outline-none py-1 transition-colors rounded" value={activeItem.field.value || ''} onChange={(e) => handleUpdateField(e.target.value)} />
+                            <input 
+                                key={`${activeItem.docId}-${activeItem.fieldIndex}-${activeItem.field.key}`}
+                                autoFocus 
+                                className="w-full text-lg font-bold text-foreground bg-muted/50 border-b-2 border-border focus:border-primary outline-none py-1 transition-colors rounded" 
+                                value={activeItem.field.value || ''} 
+                                onChange={(e) => handleUpdateField(e.target.value)} 
+                            />
                             <p className="text-xs text-muted-foreground mt-2 italic">Check the highlighted box on the left.</p>
                         </div>
                     ) : activeItem?.type === 'lineItem' ? (

@@ -176,6 +176,14 @@ app.use('/api/admin', authenticate, adminRoutes);
 app.use('/api/payment', authenticate, rateLimit({ keyPrefix: 'payment', windowMs: 60_000, max: 20 }), paymentRoutes);
 app.use('/api/workflows', authenticate, rateLimit({ keyPrefix: 'workflows', windowMs: 60_000, max: 30 }), workflowRoutes);
 
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err?.type === 'entity.aborted') {
+    console.warn(`[request] body stream aborted for ${req.method} ${req.originalUrl}`);
+    return res.status(400).send('Request aborted');
+  }
+  return next(err);
+});
+
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
