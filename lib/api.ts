@@ -134,7 +134,7 @@ export const api = {
     return result;
   },
 
-  createPaymentOrder: async (params: { type: string; planId?: string; addonId?: string; period?: string }) => {
+  createPaymentOrder: async (params: { type: string; planId?: string; addonId?: string; period?: string; region?: 'IN' | 'INTL' }) => {
     const token = await getAuthToken();
     if (!token) throw new Error('Not authenticated');
 

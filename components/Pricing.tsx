@@ -1,10 +1,13 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Navbar from './Navbar'
 import { api } from "@/lib/api"
 import { useToast } from './ui/toast'
+
+type PaymentRegion = 'IN' | 'INTL' | null
 
 interface PricingPageProps {
   onBack: () => void;
@@ -18,8 +21,19 @@ declare global {
 }
 
 const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = useState<string | null>(null)
+  const [region, setRegion] = useState<PaymentRegion>(null)
   const { addToast } = useToast()
+
+  useEffect(() => {
+    const dodoSuccess = searchParams.get('dodo_success')
+    if (dodoSuccess === '1') {
+      addToast('success', 'Payment Successful', 'Your plan has been activated.')
+      setSearchParams({})
+      window.location.reload()
+    }
+  }, [searchParams, setSearchParams, addToast])
 
   const openCheckout = async (orderData: { orderId: string; amount: number; currency: string; keyId: string }, description: string) => {
     if (!window.Razorpay) {
@@ -64,9 +78,17 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
   }
 
   const handleUpgrade = async (type: string, planId?: string, addonId?: string, period?: string) => {
+    if (!region) {
+      addToast('info', 'Select region', 'Please choose India or International first.')
+      return
+    }
     setLoading(`${type}-${planId || addonId || ''}`)
     try {
-      const order = await api.createPaymentOrder({ type, planId, addonId, period })
+      const order = await api.createPaymentOrder({ type, planId, addonId, period, region })
+      if (order.provider === 'dodo' && order.checkout_url) {
+        window.location.href = order.checkout_url
+        return
+      }
       const desc = type === 'intro_offer' ? 'Starter - First month' : type === 'subscription' ? `${planId} - ${period || 'monthly'}` : type === 'addon_docs' ? `${addonId} docs pack` : `${addonId} credits pack`
       await openCheckout(order, desc)
     } catch (e: any) {
@@ -74,7 +96,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
         onStart()
         return
       }
-      if (e?.message?.includes('cancelled')) return // User closed modal - no toast
+      if (e?.message?.includes('cancelled')) return
       addToast('error', 'Payment Error', e?.message || 'Could not start payment.')
     } finally {
       setLoading(null)
@@ -179,6 +201,25 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
             <p className="text-xl sm:text-2xl max-w-2xl mx-auto text-gray-600">
               Documents and credits. Extraction per doc. AI features use credits.
             </p>
+            <div className="mt-6 flex justify-center gap-3 flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground self-center">Pay in:</span>
+              <Button
+                variant={region === 'IN' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setRegion('IN')}
+                className="rounded-xl"
+              >
+                India (INR)
+              </Button>
+              <Button
+                variant={region === 'INTL' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setRegion('INTL')}
+                className="rounded-xl"
+              >
+                International (USD)
+              </Button>
+            </div>
           </div>
 
           {/* Intro offer banner */}
@@ -295,7 +336,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
             <div className="space-y-6">
               {[
                 { q: "Can I change plans later?", a: "Yes! You can upgrade or downgrade at any time. Changes take effect immediately." },
-                { q: "What payment methods do you accept?", a: "We accept cards, UPI, netbanking via Razorpay." },
+                { q: "What payment methods do you accept?", a: "India: cards, UPI, netbanking via Razorpay. International: cards via DodoPayments." },
                 { q: "Is there a free trial?", a: "No trial. The Free plan is your entry point—10 docs and 100 credits per month. No credit card required." },
                 { q: "What happens when I cancel?", a: "You keep access until the end of your billing period. Your data is kept for 30 days after cancellation." },
               ].map((faq, i) => (

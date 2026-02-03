@@ -141,6 +141,25 @@ PORT=3001
 NODE_ENV=production
 ```
 
+### DodoPayments (International - optional)
+Add for international payments (non-India users):
+```env
+DODO_PAYMENTS_API_KEY=your_dodo_api_key
+DODO_WEBHOOK_SECRET=your_webhook_signing_secret
+DODO_PRODUCT_INTRO=prod_xxx
+DODO_PRODUCT_STARTER_MONTHLY=prod_xxx
+DODO_PRODUCT_STARTER_YEARLY=prod_xxx
+DODO_PRODUCT_PRO_MONTHLY=prod_xxx
+DODO_PRODUCT_PRO_YEARLY=prod_xxx
+DODO_PRODUCT_DOCS_50=prod_xxx
+DODO_PRODUCT_DOCS_100=prod_xxx
+DODO_PRODUCT_DOCS_250=prod_xxx
+DODO_PRODUCT_CREDITS_SMALL=prod_xxx
+DODO_PRODUCT_CREDITS_MEDIUM=prod_xxx
+DODO_PRODUCT_CREDITS_LARGE=prod_xxx
+```
+Create products in Dodo dashboard, then add webhook URL: `https://your-backend.railway.app/api/payment/webhook/dodo`
+
 ### Frontend (Vercel)
 ```env
 VITE_API_URL=https://your-backend.railway.app

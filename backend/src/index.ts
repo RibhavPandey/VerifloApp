@@ -95,6 +95,17 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
+// DodoPayments webhook must use raw body (before express.json consumes it)
+app.post(
+  '/api/payment/webhook/dodo',
+  express.raw({ type: 'application/json' }),
+  rateLimit({ keyPrefix: 'dodo-webhook', windowMs: 60_000, max: 200 }),
+  async (req, res, next) => {
+    const { handleDodoWebhook } = await import('./routes/payment.js');
+    return handleDodoWebhook(req, res);
+  }
+);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -150,7 +161,7 @@ app.post('/api/auth/signup-welcome-email', rateLimit({ keyPrefix: 'signup-email'
   }
 });
 
-// Payment webhook (no auth - Razorpay calls this)
+// Payment webhooks (no auth)
 app.post('/api/payment/webhook', rateLimit({ keyPrefix: 'payment-webhook', windowMs: 60_000, max: 100 }), async (req, res) => {
   res.status(200).send('OK');
 });
