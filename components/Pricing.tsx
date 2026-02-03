@@ -24,6 +24,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
   const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = useState<string | null>(null)
   const [region, setRegion] = useState<PaymentRegion>(null)
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const { addToast } = useToast()
 
   useEffect(() => {
@@ -34,6 +35,26 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
       window.location.reload()
     }
   }, [searchParams, setSearchParams, addToast])
+
+  useEffect(() => {
+    let cancelled = false
+    const detectRegion = async () => {
+      try {
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), 3000)
+        const res = await fetch('https://ipapi.co/json/', { signal: ctrl.signal })
+        clearTimeout(t)
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        if (cancelled) return
+        setRegion(data.country_code === 'IN' ? 'IN' : 'INTL')
+      } catch {
+        if (!cancelled) setRegion('INTL')
+      }
+    }
+    detectRegion()
+    return () => { cancelled = true }
+  }, [])
 
   const openCheckout = async (orderData: { orderId: string; amount: number; currency: string; keyId: string }, description: string) => {
     if (!window.Razorpay) {
@@ -78,13 +99,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
   }
 
   const handleUpgrade = async (type: string, planId?: string, addonId?: string, period?: string) => {
-    if (!region) {
-      addToast('info', 'Select region', 'Please choose India or International first.')
-      return
-    }
+    const r = region ?? 'INTL'
     setLoading(`${type}-${planId || addonId || ''}`)
     try {
-      const order = await api.createPaymentOrder({ type, planId, addonId, period, region })
+      const order = await api.createPaymentOrder({ type, planId, addonId, period, region: r })
       if (order.provider === 'dodo' && order.checkout_url) {
         window.location.href = order.checkout_url
         return
@@ -103,6 +121,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
     }
   }
 
+  const planPrices = {
+    starter: { monthly: 29, yearly: 290 },
+    pro: { monthly: 79, yearly: 790 },
+  }
+
   const plans = [
     {
       id: 'free',
@@ -119,12 +142,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
       cta: "GET STARTED",
       ctaAction: onStart,
       highlighted: false,
+      subscription: false,
     },
     {
       id: 'starter',
       name: "Starter",
-      price: "$29",
-      period: "/month",
       description: "For individuals and light usage",
       features: [
         "150 documents / month",
@@ -133,14 +155,13 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
         "Priority support",
       ],
       cta: "UPGRADE",
-      ctaAction: () => handleUpgrade('subscription', 'starter', undefined, 'monthly'),
       highlighted: false,
+      subscription: true,
+      planId: 'starter' as const,
     },
     {
       id: 'pro',
       name: "Pro",
-      price: "$79",
-      period: "/month",
       description: "Best value for regular users",
       features: [
         "750 documents / month",
@@ -149,8 +170,9 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
         "Priority support",
       ],
       cta: "UPGRADE",
-      ctaAction: () => handleUpgrade('subscription', 'pro', undefined, 'monthly'),
       highlighted: true,
+      subscription: true,
+      planId: 'pro' as const,
     },
     {
       id: 'enterprise',
@@ -166,6 +188,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
       cta: "CONTACT SALES",
       ctaAction: () => window.location.href = '/contact',
       highlighted: false,
+      subscription: false,
     },
   ]
 
@@ -201,25 +224,28 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
             <p className="text-xl sm:text-2xl max-w-2xl mx-auto text-gray-600">
               Documents and credits. Extraction per doc. AI features use credits.
             </p>
-            <div className="mt-6 flex justify-center gap-3 flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground self-center">Pay in:</span>
-              <Button
-                variant={region === 'IN' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setRegion('IN')}
-                className="rounded-xl"
-              >
-                India (INR)
-              </Button>
-              <Button
-                variant={region === 'INTL' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setRegion('INTL')}
-                className="rounded-xl"
-              >
-                International (USD)
-              </Button>
-            </div>
+            {region && (
+              <p className="mt-4 text-sm text-muted-foreground">
+                {region === 'IN' ? 'Pay in INR (UPI, cards, netbanking)' : 'Pay in USD (international cards)'}
+                <button
+                  type="button"
+                  onClick={() => setRegion(region === 'IN' ? 'INTL' : 'IN')}
+                  className="ml-2 text-primary hover:underline"
+                >
+                  {region === 'IN' ? 'Pay in USD instead' : 'Pay from India instead'}
+                </button>
+              </p>
+            )}
+          </div>
+
+          {/* Billing period toggle (for subscription plans) */}
+          <div className="flex justify-center gap-2 mb-8">
+            <Button variant={billingPeriod === 'monthly' ? 'default' : 'outline'} size="sm" onClick={() => setBillingPeriod('monthly')}>
+              Monthly
+            </Button>
+            <Button variant={billingPeriod === 'yearly' ? 'default' : 'outline'} size="sm" onClick={() => setBillingPeriod('yearly')}>
+              Yearly (save 2 months)
+            </Button>
           </div>
 
           {/* Intro offer banner */}
@@ -232,66 +258,52 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
 
           {/* Pricing Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {plans.map((plan) => (
-              <Card
-                key={plan.id}
-                className={`relative border-4 border-border ${
-                  plan.highlighted ? "shadow-xl scale-105 bg-primary text-primary-foreground" : "shadow-md hover:shadow-lg transition-shadow"
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground px-4 py-1 border-2 border-border text-xs font-black">
-                    MOST POPULAR
-                  </div>
-                )}
-                <CardHeader className="space-y-2">
-                  <CardTitle className="text-2xl font-black uppercase">{plan.name}</CardTitle>
-                  <CardDescription className={plan.highlighted ? "text-primary-foreground/90" : ""}>{plan.description}</CardDescription>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black">{plan.price}</span>
-                    <span className="text-sm font-bold">{plan.period}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {plan.features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={3} />
-                        <span className="text-sm font-bold">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={plan.ctaAction} disabled={!!loading} className="w-full font-black" size="lg">
-                    {loading?.includes(plan.id) ? 'Loading...' : plan.cta}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-
-          {/* Credit Usage */}
-          <div className="mb-16">
-            <h2 className="text-2xl font-black mb-6 uppercase">Credit Usage</h2>
-            <div className="overflow-x-auto border-4 border-border rounded-xl">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b-2 border-border bg-muted/50">
-                    <th className="p-4 font-black">Action</th>
-                    <th className="p-4 font-black">Credits</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {creditUsage.map((row, i) => (
-                    <tr key={i} className="border-b border-border">
-                      <td className="p-4 font-bold">{row.action}</td>
-                      <td className="p-4 font-bold">{row.credits}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {plans.map((plan) => {
+              const isSub = plan.subscription && 'planId' in plan
+              const price = isSub ? planPrices[plan.planId][billingPeriod] : (plan as { price?: string }).price
+              const period = isSub ? (billingPeriod === 'monthly' ? '/month' : '/year') : (plan as { period?: string }).period || ''
+              const ctaAction = isSub
+                ? () => handleUpgrade('subscription', plan.planId, undefined, billingPeriod)
+                : (plan as { ctaAction?: () => void }).ctaAction
+              const loadingKey = isSub ? `subscription-${plan.planId}` : plan.id
+              return (
+                <Card
+                  key={plan.id}
+                  className={`relative border-4 border-border ${
+                    plan.highlighted ? "shadow-xl scale-105 bg-primary text-primary-foreground" : "shadow-md hover:shadow-lg transition-shadow"
+                  }`}
+                >
+                  {plan.highlighted && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground px-4 py-1 border-2 border-border text-xs font-black">
+                      MOST POPULAR
+                    </div>
+                  )}
+                  <CardHeader className="space-y-2">
+                    <CardTitle className="text-2xl font-black uppercase">{plan.name}</CardTitle>
+                    <CardDescription className={plan.highlighted ? "text-primary-foreground/90" : ""}>{plan.description}</CardDescription>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black">{typeof price === 'number' ? `$${price}` : price}</span>
+                      <span className="text-sm font-bold">{period}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {plan.features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={3} />
+                          <span className="text-sm font-bold">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={ctaAction} disabled={!!loading} className="w-full font-black" size="lg">
+                      {loading === loadingKey ? 'Loading...' : plan.cta}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )
+            })}
           </div>
 
           {/* Add-Ons */}
@@ -306,7 +318,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
                       <span className="text-muted-foreground ml-2">${pack.perDoc}/doc</span>
                     </div>
                     <Button onClick={() => handleUpgrade('addon_docs', undefined, pack.id)} disabled={!!loading} size="sm">
-                      {loading?.includes(pack.id) ? '...' : `$${pack.price}`}
+                      {loading === `addon_docs-${pack.id}` ? '...' : `$${pack.price}`}
                     </Button>
                   </div>
                 ))}
@@ -322,7 +334,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
                       <span className="text-muted-foreground ml-2">${pack.perCredit}/credit</span>
                     </div>
                     <Button onClick={() => handleUpgrade('addon_credits', undefined, pack.id)} disabled={!!loading} size="sm">
-                      {loading?.includes(pack.id) ? '...' : `$${pack.price}`}
+                      {loading === `addon_credits-${pack.id}` ? '...' : `$${pack.price}`}
                     </Button>
                   </div>
                 ))}
@@ -334,6 +346,27 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
           <div className="max-w-3xl mx-auto mt-16">
             <h2 className="text-4xl font-black text-center mb-10 uppercase">FAQ</h2>
             <div className="space-y-6">
+              <div className="border-4 border-border p-6 shadow-md bg-card rounded-xl">
+                <h3 className="text-xl font-black mb-4">How are credits used?</h3>
+                <div className="overflow-x-auto border-2 border-border rounded-lg">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b-2 border-border bg-muted/50">
+                        <th className="p-3 font-black">Action</th>
+                        <th className="p-3 font-black">Credits</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {creditUsage.map((row, i) => (
+                        <tr key={i} className="border-b border-border">
+                          <td className="p-3 font-bold">{row.action}</td>
+                          <td className="p-3 font-bold">{row.credits}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
               {[
                 { q: "Can I change plans later?", a: "Yes! You can upgrade or downgrade at any time. Changes take effect immediately." },
                 { q: "What payment methods do you accept?", a: "India: cards, UPI, netbanking via Razorpay. International: cards via DodoPayments." },
