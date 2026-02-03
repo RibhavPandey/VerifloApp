@@ -377,7 +377,13 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                                 autoFocus 
                                 className="w-full text-lg font-bold text-foreground bg-muted/50 border-b-2 border-border focus:border-primary outline-none py-1 transition-colors rounded" 
                                 value={activeItem.field.value || ''} 
-                                onChange={(e) => handleUpdateField(e.target.value)} 
+                                onChange={(e) => handleUpdateField(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleNext();
+                                    }
+                                }}
                             />
                             <p className="text-xs text-muted-foreground mt-2 italic">Check the highlighted box on the left.</p>
                         </div>
@@ -391,20 +397,60 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Description</label>
-                                <input className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" value={String(activeItem.lineItem.description ?? '')} onChange={(e) => handleUpdateLineItem('description', e.target.value)} />
+                                <input 
+                                    className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                    value={String(activeItem.lineItem.description ?? '')} 
+                                    onChange={(e) => handleUpdateLineItem('description', e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleNext();
+                                        }
+                                    }}
+                                />
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                                 <div>
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Qty</label>
-                                    <input className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" value={String(activeItem.lineItem.quantity ?? '')} onChange={(e) => handleUpdateLineItem('quantity', e.target.value)} />
+                                    <input 
+                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                        value={String(activeItem.lineItem.quantity ?? '')} 
+                                        onChange={(e) => handleUpdateLineItem('quantity', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleNext();
+                                            }
+                                        }}
+                                    />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Unit Price</label>
-                                    <input className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" value={String(activeItem.lineItem.unitPrice ?? '')} onChange={(e) => handleUpdateLineItem('unitPrice', e.target.value)} />
+                                    <input 
+                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                        value={String(activeItem.lineItem.unitPrice ?? '')} 
+                                        onChange={(e) => handleUpdateLineItem('unitPrice', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleNext();
+                                            }
+                                        }}
+                                    />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Line Total</label>
-                                    <input className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" value={String(activeItem.lineItem.lineTotal ?? '')} onChange={(e) => handleUpdateLineItem('lineTotal', e.target.value)} />
+                                    <input 
+                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                        value={String(activeItem.lineItem.lineTotal ?? '')} 
+                                        onChange={(e) => handleUpdateLineItem('lineTotal', e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleNext();
+                                            }
+                                        }}
+                                    />
                                 </div>
                             </div>
                         </div>
