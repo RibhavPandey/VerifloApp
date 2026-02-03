@@ -392,6 +392,58 @@ const SpreadsheetView: React.FC = () => {
   const [enrichmentTargetCol, setEnrichmentTargetCol] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'H1',
+        location: 'components/SpreadsheetView.tsx:397',
+        message: 'showExportMenu state changed',
+        data: { showExportMenu },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion
+  }, [showExportMenu]);
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'H3',
+        location: 'components/SpreadsheetView.tsx:406',
+        message: 'isExporting state changed',
+        data: { isExporting },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion
+  }, [isExporting]);
+  useEffect(() => {
+    if (!showExportMenu) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'initial',
+        hypothesisId: 'H2',
+        location: 'components/SpreadsheetView.tsx:417',
+        message: 'Dropdown menu opened',
+        data: { selectedERPFormat },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion
+  }, [showExportMenu, selectedERPFormat]);
   const [selectedERPFormat, setSelectedERPFormat] = useState<string>('generic');
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100%, range: 0.5 to 2.0
   const [showTransformMenu, setShowTransformMenu] = useState(false);
@@ -1391,7 +1443,30 @@ const SpreadsheetView: React.FC = () => {
           {/* Export with ERP Format inside */}
           <DropdownMenu open={showExportMenu} onOpenChange={setShowExportMenu} modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="sm" disabled={isExporting} className="rounded-xl">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isExporting}
+                className="rounded-xl"
+                onClick={() => {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/d9d5e317-074c-4d0b-bbb8-288914b5a823', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      sessionId: 'debug-session',
+                      runId: 'initial',
+                      hypothesisId: 'H1',
+                      location: 'components/SpreadsheetView.tsx:1397',
+                      message: 'Export trigger clicked',
+                      data: { isExporting, showExportMenu },
+                      timestamp: Date.now()
+                    })
+                  }).catch(() => {});
+                  // #endregion
+                }}
+              >
                 <Download size={16} />
                 <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
               </Button>

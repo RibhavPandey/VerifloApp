@@ -56,7 +56,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background landing-font">
       <Navbar />
       
       {/* Hero Section */}
@@ -65,7 +65,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="mb-6 animate-fade-in-up text-balance font-mono text-4xl font-bold leading-tight text-foreground animation-delay-100 md:text-5xl">
               Hours of manual work.{" "}
-              <span className="relative inline-block border-4 border-black bg-primary px-4 py-2 text-primary-foreground shadow-lg">
+              <span className="relative inline-block border-2 border-black bg-primary px-4 py-2 text-primary-foreground shadow-lg">
                 Done in seconds.
               </span>
             </h1>
@@ -86,7 +86,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full border-4 font-mono text-lg font-bold sm:w-auto bg-transparent"
+                className="w-full border-2 font-mono text-lg font-bold sm:w-auto bg-transparent"
               >
                 <Play className="mr-2 h-5 w-5" />
                 Watch Demo
@@ -104,13 +104,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           className="pointer-events-none absolute left-10 top-20 hidden animate-float lg:block"
           style={{ transform: `translateY(${scrollY * 0.1}px)` }}
         >
-          <div className="h-20 w-20 border-4 border-black bg-accent shadow-lg" />
+          <div className="h-20 w-20 border-2 border-black bg-accent shadow-lg" />
         </div>
         <div
           className="pointer-events-none absolute right-10 top-40 hidden animate-float lg:block animation-delay-200"
           style={{ transform: `translateY(${scrollY * 0.15}px)` }}
         >
-          <div className="h-16 w-16 rotate-45 border-4 border-black bg-secondary shadow-lg" />
+          <div className="h-16 w-16 rotate-45 border-2 border-black bg-secondary shadow-lg" />
         </div>
       </section>
 
@@ -130,11 +130,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           </div>
           
           <div className="max-w-4xl mx-auto">
-            <div className="relative aspect-video border-4 border-black bg-muted shadow-2xl">
+            <div className="relative aspect-video border-2 border-black bg-muted shadow-2xl">
               {/* Video Placeholder - User will replace this */}
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
                 <div className="text-center">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full border-4 border-black bg-primary flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full border-2 border-black bg-primary flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
                     <Play className="h-10 w-10 text-primary-foreground ml-1" fill="currentColor" />
                   </div>
                   <p className="font-mono font-bold text-lg">Demo Video</p>
@@ -185,11 +185,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             ].map((feature, index) => (
               <Card
                 key={index}
-                className={`group cursor-pointer border-4 border-black p-6 shadow-md transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-2xs ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                className={`group cursor-pointer border-2 border-black p-6 shadow-md transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-2xs ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 style={{ transitionDelay: `${index * 100}ms`, transitionDuration: '700ms' }}
               >
                 <div
-                  className={`mb-4 inline-flex h-12 w-12 items-center justify-center border-4 border-black ${feature.color} shadow-xs`}
+                  className={`mb-4 inline-flex h-12 w-12 items-center justify-center border-2 border-black ${feature.color} shadow-xs`}
                 >
                   <feature.icon className="h-6 w-6" />
                 </div>
@@ -241,7 +241,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               },
             ].map((item, index) => (
               <div key={index} className="relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center border-4 border-black bg-primary font-mono text-2xl font-bold text-primary-foreground shadow-md">
+                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center border-2 border-black bg-primary font-mono text-2xl font-bold text-primary-foreground shadow-md">
                   {item.step}
                 </div>
                 <h3 className="mb-2 font-mono text-2xl font-bold">{item.title}</h3>
@@ -355,7 +355,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             ].map((useCase, index) => (
               <Card
                 key={index}
-                className={`border-4 border-black p-6 shadow-md transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-2xs ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                className={`border-2 border-black p-6 shadow-md transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-2xs ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 style={{ transitionDelay: `${index * 150}ms`, transitionDuration: '700ms' }}
               >
                 <h3 className="mb-3 font-mono text-2xl font-bold">{useCase.title}</h3>
@@ -389,7 +389,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           <Button
             onClick={onStart}
             size="lg"
-            className="group border-4 border-black bg-secondary font-mono text-lg font-bold text-secondary-foreground shadow-xl hover:bg-secondary/90"
+            className="group border-2 border-black bg-secondary font-mono text-lg font-bold text-secondary-foreground shadow-xl hover:bg-secondary/90"
           >
             Start Your Free Trial
             <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -406,7 +406,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           <div className="grid gap-8 md:grid-cols-4">
             <div>
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center border-4 border-black bg-primary">
+                <div className="flex h-8 w-8 items-center justify-center border-2 border-black bg-primary">
                   <VerifloLogo size={20} />
                 </div>
                 <span className="font-mono text-lg font-bold">Veriflo</span>

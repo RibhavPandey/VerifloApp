@@ -217,11 +217,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
       <main className="min-h-screen bg-background py-20 px-4 sm:px-6 lg:px-8 animate-fade-in-up">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 pb-12">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-medium mb-10 text-balance">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-light mb-10 text-balance">
               Predictable pricing
               <br />
               scalable plans</h1>
-            <p className="text-xl sm:text-2xl max-w-2xl mx-auto text-gray-600">
+            <p className="text-xl sm:text-xl max-w-2xl mx-auto text-gray-600">
               Documents and credits. Extraction per doc. AI features use credits.
             </p>
             {region && (
@@ -249,7 +249,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
           </div>
 
           {/* Intro offer banner */}
-          <div className="mb-12 p-4 bg-primary/10 border-4 border-primary rounded-xl text-center">
+          <div className="mb-12 p-4 bg-primary/10 border-2 border-primary rounded-xl text-center">
             <p className="text-lg font-bold">New user offer: First month Starter at <strong>$19</strong> (one-time, no subscription)</p>
             <Button onClick={() => handleUpgrade('intro_offer')} disabled={!!loading} className="mt-3">
               {loading === 'intro_offer-' ? 'Loading...' : 'Claim Offer'}
@@ -269,7 +269,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
               return (
                 <Card
                   key={plan.id}
-                  className={`relative border-4 border-border ${
+                className={`relative border-2 border-border ${
                     plan.highlighted ? "shadow-xl scale-105 bg-primary text-primary-foreground" : "shadow-md hover:shadow-lg transition-shadow"
                   }`}
                 >
@@ -312,7 +312,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
               <h2 className="text-2xl font-black mb-4 uppercase">Document Packs</h2>
               <div className="space-y-3">
                 {docPacks.map((pack) => (
-                  <div key={pack.id} className="flex justify-between items-center p-4 border-4 border-border rounded-xl">
+                  <div key={pack.id} className="flex justify-between items-center p-4 border-2 border-border rounded-xl">
                     <div>
                       <span className="font-black">{pack.docs} docs</span>
                       <span className="text-muted-foreground ml-2">${pack.perDoc}/doc</span>
@@ -328,7 +328,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
               <h2 className="text-2xl font-black mb-4 uppercase">Credit Packs (30-day expiry)</h2>
               <div className="space-y-3">
                 {creditPacks.map((pack) => (
-                  <div key={pack.id} className="flex justify-between items-center p-4 border-4 border-border rounded-xl">
+                  <div key={pack.id} className="flex justify-between items-center p-4 border-2 border-border rounded-xl">
                     <div>
                       <span className="font-black">{pack.credits} credits</span>
                       <span className="text-muted-foreground ml-2">${pack.perCredit}/credit</span>
@@ -346,7 +346,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
           <div className="max-w-3xl mx-auto mt-16">
             <h2 className="text-4xl font-black text-center mb-10 uppercase">FAQ</h2>
             <div className="space-y-6">
-              <div className="border-4 border-border p-6 shadow-md bg-card rounded-xl">
+              <div className="border-2 border-border p-6 shadow-md bg-card rounded-xl">
                 <h3 className="text-xl font-black mb-4">How are credits used?</h3>
                 <div className="overflow-x-auto border-2 border-border rounded-lg">
                   <table className="w-full text-left">
@@ -373,7 +373,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
                 { q: "Is there a free trial?", a: "No trial. The Free plan is your entry point—10 docs and 100 credits per month. No credit card required." },
                 { q: "What happens when I cancel?", a: "You keep access until the end of your billing period. Your data is kept for 30 days after cancellation." },
               ].map((faq, i) => (
-                <div key={i} className="border-4 border-border p-6 shadow-md bg-card rounded-xl">
+                <div key={i} className="border-2 border-border p-6 shadow-md bg-card rounded-xl">
                   <h3 className="text-xl font-black mb-2">{faq.q}</h3>
                   <p className="font-bold text-muted-foreground">{faq.a}</p>
                 </div>
@@ -381,12 +381,12 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
             </div>
           </div>
 
-          <div className="mt-20 text-center bg-accent text-accent-foreground border-4 border-border shadow-xl p-12 rounded-xl">
+          <div className="mt-20 text-center bg-accent text-accent-foreground border-2 border-border shadow-xl p-12 rounded-xl">
             <h2 className="text-4xl font-black mb-4 uppercase">Still Have Questions?</h2>
             <p className="text-xl font-bold mb-8 max-w-2xl mx-auto">
               Our team is here to help you find the perfect plan.
             </p>
-            <Button size="lg" className="h-14 px-8 text-lg font-black border-4 bg-background text-foreground hover:bg-background/90" onClick={() => window.location.href = '/contact'}>
+            <Button size="lg" className="h-14 px-8 text-lg font-black border-2 bg-background text-foreground hover:bg-background/90" onClick={() => window.location.href = '/contact'}>
               CONTACT SALES
             </Button>
           </div>
