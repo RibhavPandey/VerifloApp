@@ -14,6 +14,8 @@ interface NavigationProps {
   jobs: Job[];
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onMergeClick: () => void;
+  isMobile?: boolean;
+  onNavigate?: () => void;
 }
 
 interface NavItemProps {
@@ -25,7 +27,7 @@ interface NavItemProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ 
-  activeView, files, jobs, onFileUpload, onMergeClick
+  activeView, files, jobs, onFileUpload, onMergeClick, isMobile = false, onNavigate
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +35,13 @@ const Navigation: React.FC<NavigationProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+
+  const handleNavClick = (callback: () => void) => {
+    callback();
+    if (isMobile && onNavigate) {
+      onNavigate();
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -61,10 +70,145 @@ const Navigation: React.FC<NavigationProps> = ({
     return user.name.substring(0, 2).toUpperCase();
   };
 
-  const isExpanded = isHovered || isDropdownOpen;
+  const isExpanded = isHovered || isDropdownOpen || isMobile;
 
+  // Mobile: render as simple content (will be wrapped in Sheet)
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full bg-[#f9f9f9]">
+        {/* New Project Button */}
+        <div className="px-2 pt-4 pb-2">
+          <label 
+            className="flex items-center px-3 py-3 rounded-xl border border-[#e0e0e0] bg-white cursor-pointer hover:bg-[#f5f5f5] overflow-hidden w-full gap-3 min-h-[44px]"
+          >
+            <Plus size={18} className="text-[#666] flex-shrink-0" strokeWidth={2} />
+            <span className="text-[13px] font-medium text-[#333] whitespace-nowrap">
+              New Project
+            </span>
+            <input type="file" multiple className="hidden" onChange={onFileUpload} accept=".xlsx, .xls, .csv" />
+          </label>
+        </div>
+        
+        {/* Main Navigation */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+          <div className="px-2 space-y-0.5">
+            <NavItem 
+              icon={<LayoutDashboard size={18} />} 
+              label="Dashboard" 
+              isActive={activeView === 'dashboard'} 
+              onClick={() => handleNavClick(() => navigate('/dashboard'))}
+              isExpanded={true}
+            />
+            <NavItem 
+              icon={<Workflow size={18} />} 
+              label="Workflows" 
+              isActive={activeView === 'workflows'} 
+              onClick={() => handleNavClick(() => navigate('/workflows'))}
+              isExpanded={true}
+            />
+            <NavItem 
+              icon={<ScanText size={18} />} 
+              label="Extraction" 
+              isActive={activeView === 'extraction'} 
+              onClick={() => handleNavClick(() => navigate('/extract/new'))}
+              isExpanded={true}
+            />
+          </div>
+
+          {/* Recent Section */}
+          <div className="mt-6 px-2">
+            <div className="flex items-center mb-1.5 px-2.5 h-5">
+              <span className="text-[11px] font-semibold text-[#999] uppercase tracking-wide">
+                Recent
+              </span>
+            </div>
+            <div className="space-y-0.5">
+              {(() => {
+                const recentJobs = jobs
+                  .filter(j => j.status !== 'needs_review')
+                  .sort((a, b) => b.updatedAt - a.updatedAt)
+                  .slice(0, 5);
+                
+                if (recentJobs.length === 0) {
+                  return (
+                    <div className="px-2.5 py-2 text-[12px] text-[#999]">
+                      No recent projects
+                    </div>
+                  );
+                }
+                
+                return recentJobs.map(job => (
+                  <NavItem
+                    key={job.id}
+                    icon={job.type === 'extraction' ? <ScanText size={16} /> : <FileText size={16} />}
+                    label={job.title}
+                    isActive={location.pathname === `/sheet/${job.id}`}
+                    onClick={() => handleNavClick(() => navigate(`/sheet/${job.id}`))}
+                    isExpanded={true}
+                  />
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+
+        {/* User Section */}
+        <div className="p-2 border-t border-[#e5e5e5] bg-[#f9f9f9]">
+          <div className="relative">
+            <button 
+              className="flex items-center px-2.5 py-2 rounded-xl hover:bg-[#ebebeb] overflow-hidden w-full gap-2.5 min-h-[44px]"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
+                {getUserInitials()}
+              </div>
+              <div className="min-w-0 text-left flex-1">
+                <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
+                <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
+              </div>
+              <MoreHorizontal size={16} className="text-[#888] flex-shrink-0" />
+            </button>
+            
+            {isDropdownOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-[#e5e5e5] rounded-xl shadow-lg overflow-hidden z-[60]">
+                <div className="px-3 py-2.5 border-b border-[#f0f0f0] bg-[#fafafa]">
+                  <div className="text-[13px] font-medium text-[#333]">{user?.name || 'User'}</div>
+                  <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
+                </div>
+                <div className="p-1">
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      handleNavClick(() => navigate('/settings'));
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#444] hover:bg-[#f5f5f5] rounded-lg transition-colors min-h-[44px]"
+                  >
+                    <Settings size={15} className="text-[#666]" />
+                    <span>Settings</span>
+                    <ChevronRight size={14} className="ml-auto text-[#999]" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#dc2626] hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
+                  >
+                    <LogOut size={15} />
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: render as sidebar
   return (
-    <div ref={navRef} className="relative w-[68px] h-full flex-shrink-0 z-[200]">
+    <div ref={navRef} className="relative w-[68px] h-full flex-shrink-0 z-[200] hidden md:block">
       <div 
         className={`group absolute top-0 left-0 h-full bg-[#f9f9f9] border-r border-[#e5e5e5] transition-all duration-300 ease-out flex flex-col ${isExpanded ? 'w-[260px] shadow-[4px_0_24px_-2px_rgba(0,0,0,0.08)]' : 'w-[68px]'}`}
         style={{ 
@@ -244,7 +388,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, isExp
   <button 
     onClick={onClick}
     style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-    className={`flex items-center px-3 py-3 rounded-xl text-[13px] relative overflow-hidden
+    className={`flex items-center px-3 py-3 rounded-xl text-[13px] relative overflow-hidden min-h-[44px]
       ${isExpanded ? 'w-full gap-3' : 'w-[44px] gap-0'}
       ${isActive 
         ? 'bg-[#ebebeb] text-[#1a1a1a] font-medium' 

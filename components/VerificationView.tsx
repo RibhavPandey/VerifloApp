@@ -336,17 +336,17 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                             <h2 className="font-bold text-lg text-foreground">Review Items</h2>
                         </div>
                         <div className="flex items-center gap-1">
-                            <button onClick={handleDownloadXlsx} disabled={isExporting} className="text-xs font-bold text-primary hover:bg-primary/10 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1" title="Download as Excel">
+                            <button onClick={handleDownloadXlsx} disabled={isExporting} className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-2.5 md:px-2.5 md:py-1.5 rounded-lg transition-colors flex items-center gap-1 min-h-[44px] md:min-h-0" title="Download as Excel">
                                 <FileDown size={12} /> .xlsx
                             </button>
-                            <button onClick={() => onCompleteReview(localDocs)} className="text-xs font-bold text-primary hover:bg-primary/10 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1" title="Skip remaining review and export">
+                            <button onClick={() => onCompleteReview(localDocs)} className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-2.5 md:px-2.5 md:py-1.5 rounded-lg transition-colors flex items-center gap-1 min-h-[44px] md:min-h-0" title="Skip remaining review and export">
                                 Export All <Download size={12} />
                             </button>
                         </div>
                     </div>
                     <div className="flex gap-1 p-1 bg-muted rounded-lg mb-3">
-                        <button onClick={() => setReviewMode('risky')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${reviewMode === 'risky' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Risky only</button>
-                        <button onClick={() => setReviewMode('all')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${reviewMode === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>All fields</button>
+                        <button onClick={() => setReviewMode('risky')} className={`flex-1 py-2.5 md:py-1.5 text-xs font-medium rounded-md transition-colors min-h-[44px] md:min-h-0 ${reviewMode === 'risky' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Risky only</button>
+                        <button onClick={() => setReviewMode('all')} className={`flex-1 py-2.5 md:py-1.5 text-xs font-medium rounded-md transition-colors min-h-[44px] md:min-h-0 ${reviewMode === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>All fields</button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">
                         {reviewItems.length} item{reviewItems.length !== 1 ? 's' : ''} to review
@@ -470,8 +470,8 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                 </div>
 
                 <div className="p-4 border-t border-border flex justify-between items-center gap-3">
-                    <button onClick={() => onSaveProgress(localDocs)} className="px-4 py-3 text-muted-foreground font-bold text-xs hover:bg-muted rounded-xl transition-colors">Save & Exit</button>
-                    <button onClick={handleNext} className="flex-1 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-primary/90">
+                    <button onClick={() => onSaveProgress(localDocs)} className="px-4 py-3 md:py-3 text-muted-foreground font-bold text-xs hover:bg-muted rounded-xl transition-colors min-h-[44px] md:min-h-0">Save & Exit</button>
+                    <button onClick={handleNext} className="flex-1 bg-primary text-primary-foreground px-6 py-3 md:py-3 rounded-xl font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-primary/90 min-h-[44px] md:min-h-0">
                         {currentReviewIndex === reviewItems.length - 1 ? 'Finish & Export' : 'Approve & Next'} <ArrowRight size={18} />
                     </button>
                 </div>

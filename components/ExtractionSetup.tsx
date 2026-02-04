@@ -351,14 +351,14 @@ const ExtractionSetup: React.FC = () => {
                             <h3 className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Fields to Extract</h3>
                             <span className="text-xs text-muted-foreground">{selectedFields.length} selected</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-3 mb-4 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
                             {allAvailableFields.map((field) => {
                                 const isSelected = selectedFields.includes(field.id);
                                 return (
                                     <div
                                         key={field.id}
                                         onClick={() => isSelected ? setSelectedFields(selectedFields.filter(sf => sf !== field.id)) : setSelectedFields([...selectedFields, field.id])}
-                                        className={`group relative p-3 border rounded-xl cursor-pointer transition-all flex items-start gap-3 select-none ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
+                                        className={`group relative p-3 md:p-3 border rounded-xl cursor-pointer transition-all flex items-start gap-3 select-none min-h-[64px] md:min-h-0 ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
                                     >
                                         <div className={`p-2 rounded-lg flex-shrink-0 ${isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}><Tag size={18} /></div>
                                         <div className="flex-1 min-w-0"><div className="font-bold text-sm text-foreground">{field.label}</div><div className="text-xs text-muted-foreground truncate">{field.desc}</div></div>
@@ -372,11 +372,11 @@ const ExtractionSetup: React.FC = () => {
                             <span className="text-xs text-muted-foreground">(Description, Qty, Unit Price, Line Total)</span>
                         </label>
                         <div className="mt-auto pt-4 border-t border-border">
-                            <div className="flex gap-2 mb-4">
-                                <input type="text" placeholder="Add custom field..." className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm bg-background" value={customFieldInput} onChange={(e) => setCustomFieldInput(e.target.value)} />
-                                <button onClick={addCustomField} disabled={!customFieldInput.trim()} className="px-4 py-2.5 bg-foreground text-background rounded-xl font-medium hover:opacity-90 disabled:opacity-50"><Plus size={18} /></button>
+                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                <input type="text" placeholder="Add custom field..." className="flex-1 px-4 py-3 md:py-2.5 border border-border rounded-xl text-sm bg-background min-h-[44px] md:min-h-0" value={customFieldInput} onChange={(e) => setCustomFieldInput(e.target.value)} />
+                                <button onClick={addCustomField} disabled={!customFieldInput.trim()} className="px-4 py-3 md:py-2.5 bg-foreground text-background rounded-xl font-medium hover:opacity-90 disabled:opacity-50 min-h-[44px] md:min-h-0 flex items-center justify-center"><Plus size={18} /></button>
                             </div>
-                            <button onClick={runExtraction} disabled={pendingUploads.length === 0 || selectedFields.length === 0} className="w-full py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">Start Extraction <ArrowRight size={18} /></button>
+                            <button onClick={runExtraction} disabled={pendingUploads.length === 0 || selectedFields.length === 0} className="w-full py-3 md:py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors min-h-[44px] md:min-h-0">Start Extraction <ArrowRight size={18} /></button>
                         </div>
                     </div>
                 </div>

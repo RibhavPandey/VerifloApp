@@ -190,19 +190,19 @@ const Dashboard: React.FC = () => {
       style={{ background: 'linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%)' }}
       onClick={() => setOpenMenuJobId(null)}
     >
-      <div className="max-w-6xl mx-auto px-8 py-10">
+      <div className="max-w-6xl mx-auto px-4 py-6 md:px-8 md:py-10">
         
         {/* HEADER */}
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-[28px] font-semibold text-[#0a0a0a] tracking-[-0.02em] mb-1">
+            <h1 className="text-2xl md:text-[28px] font-semibold text-[#0a0a0a] tracking-[-0.02em] mb-1">
               {getGreeting()}{userName ? `, ${userName}` : ''}
             </h1>
-            <p className="text-[15px] text-[#666]">What would you like to do today?</p>
+            <p className="text-sm md:text-[15px] text-[#666]">What would you like to do today?</p>
           </div>
           <button 
             onClick={handleLoadDemo}
-            className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-all shadow-sm"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-all shadow-sm min-h-[44px] md:min-h-0"
           >
             <Sparkles size={14} />
             Try Demo
@@ -210,14 +210,14 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* ACTION CARDS */}
-        <div className="mb-10">
+        <div className="mb-8 md:mb-10">
           <h2 className="text-[13px] font-semibold text-[#999] uppercase tracking-wide mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Extract Data Card */}
             <button 
               onClick={() => navigate('/extract/new')} 
-              className="group relative bg-gradient-to-br from-[#0a0a0a] to-[#262626] rounded-2xl p-6 text-left overflow-hidden transition-all duration-300 hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5"
+              className="group relative bg-gradient-to-br from-[#0a0a0a] to-[#262626] rounded-2xl p-5 md:p-6 text-left overflow-hidden transition-all duration-300 hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500" />
               <div className="relative z-10">
@@ -236,7 +236,7 @@ const Dashboard: React.FC = () => {
             {/* Upload File Card */}
             <button 
               onClick={() => document.getElementById('hidden-csv-upload')?.click()} 
-              className="group bg-white rounded-2xl p-6 text-left border border-[#e5e5e5] transition-all duration-300 hover:border-[#ccc] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5"
+              className="group bg-white rounded-2xl p-5 md:p-6 text-left border border-[#e5e5e5] transition-all duration-300 hover:border-[#ccc] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
             >
               <div className="w-11 h-11 rounded-xl bg-[#f5f5f5] flex items-center justify-center mb-5 group-hover:bg-blue-50 transition-colors">
                 <FileSpreadsheet size={20} className="text-[#666] group-hover:text-blue-600 transition-colors" />
@@ -252,7 +252,7 @@ const Dashboard: React.FC = () => {
             {/* New Sheet Card */}
             <button 
               onClick={handleCreateEmpty} 
-              className="group bg-white rounded-2xl p-6 text-left border border-[#e5e5e5] transition-all duration-300 hover:border-[#ccc] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5"
+              className="group bg-white rounded-2xl p-5 md:p-6 text-left border border-[#e5e5e5] transition-all duration-300 hover:border-[#ccc] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
             >
               <div className="w-11 h-11 rounded-xl bg-[#f5f5f5] flex items-center justify-center mb-5 group-hover:bg-green-50 transition-colors">
                 <Plus size={20} className="text-[#666] group-hover:text-green-600 transition-colors" />
@@ -269,7 +269,7 @@ const Dashboard: React.FC = () => {
 
         {/* NEEDS ATTENTION */}
         {needsAttentionJobs.length > 0 && (
-          <div className="mb-10">
+          <div className="mb-8 md:mb-10">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
               <h2 className="text-[13px] font-semibold text-[#999] uppercase tracking-wide">Needs Review</h2>
@@ -280,20 +280,20 @@ const Dashboard: React.FC = () => {
                 <div 
                   key={job.id} 
                   onClick={() => navigate(`/extract/${job.id}/review`)} 
-                  className={`p-4 flex items-center justify-between hover:bg-orange-50/50 cursor-pointer group transition-colors ${idx !== needsAttentionJobs.length - 1 ? 'border-b border-orange-100' : ''}`}
+                  className={`p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-orange-50/50 cursor-pointer group transition-colors min-h-[80px] sm:min-h-0 ${idx !== needsAttentionJobs.length - 1 ? 'border-b border-orange-100' : ''}`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-semibold text-sm">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-semibold text-sm flex-shrink-0">
                       {job.riskyCount || '!'}
                     </div>
-                    <div>
-                      <h4 className="text-[14px] font-medium text-[#0a0a0a]">{job.title}</h4>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-[14px] font-medium text-[#0a0a0a] truncate">{job.title}</h4>
                       <p className="text-[12px] text-orange-600 font-medium flex items-center gap-1 mt-0.5">
                         <Clock size={11} /> Pending verification
                       </p>
                     </div>
                   </div>
-                  <button className="px-4 py-2 text-[13px] font-medium text-orange-700 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
+                  <button className="px-4 py-2.5 sm:py-2 text-[13px] font-medium text-orange-700 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors w-full sm:w-auto min-h-[44px] sm:min-h-0">
                     Review
                   </button>
                 </div>
@@ -307,12 +307,12 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[13px] font-semibold text-[#999] uppercase tracking-wide">Recent Projects</h2>
             {recentJobs.length > 0 && (
-              <span className="text-[12px] text-[#999]">{recentJobs.length} projects</span>
+              <span className="text-[12px] text-[#999] hidden sm:inline">{recentJobs.length} projects</span>
             )}
           </div>
           
           {recentJobs.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-[#e5e5e5]">
+            <div className="text-center py-12 md:py-16 bg-white rounded-2xl border border-dashed border-[#e5e5e5] px-4">
               <div className="w-12 h-12 rounded-full bg-[#f5f5f5] flex items-center justify-center mx-auto mb-4">
                 <FolderOpen size={24} className="text-[#999]" />
               </div>
@@ -320,17 +320,17 @@ const Dashboard: React.FC = () => {
               <p className="text-[13px] text-[#666] mb-5 max-w-sm mx-auto leading-relaxed">
                 Start by extracting PDFs, uploading a spreadsheet, or creating a new sheet.
               </p>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
                 <button 
                   onClick={() => navigate('/extract/new')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-colors min-h-[44px] md:min-h-0"
                 >
                   <Plus size={14} />
                   New Project
                 </button>
                 <button 
                   onClick={handleLoadDemo}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-colors min-h-[44px] md:min-h-0"
                 >
                   <Sparkles size={14} />
                   Try Demo
@@ -338,7 +338,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentJobs.slice(0, 9).map(job => (
                 <div 
                   key={job.id} 
@@ -405,19 +405,19 @@ const Dashboard: React.FC = () => {
 
       {/* RENAME MODAL */}
       {renameJobId && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setRenameJobId(null)}>
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#e5e5e5]" onClick={e => e.stopPropagation()}>
-            <h3 className="text-[17px] font-semibold text-[#0a0a0a] mb-4">Rename Project</h3>
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setRenameJobId(null)}>
+          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#e5e5e5]" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base md:text-[17px] font-semibold text-[#0a0a0a] mb-4">Rename Project</h3>
             <input 
-              className="w-full px-4 py-3 border border-[#e5e5e5] rounded-xl text-[14px] mb-5 focus:outline-none focus:border-[#0a0a0a] focus:ring-1 focus:ring-[#0a0a0a] transition-all" 
+              className="w-full px-4 py-3 md:py-3 border border-[#e5e5e5] rounded-xl text-[14px] mb-5 focus:outline-none focus:border-[#0a0a0a] focus:ring-1 focus:ring-[#0a0a0a] transition-all min-h-[44px]" 
               value={renameTitle} 
               onChange={(e) => setRenameTitle(e.target.value)} 
               autoFocus 
               onKeyDown={(e) => e.key === 'Enter' && (handleRenameJob(renameJobId, renameTitle), setRenameJobId(null))} 
             />
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setRenameJobId(null)} className="px-4 py-2.5 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f5] rounded-lg transition-colors">Cancel</button>
-              <button onClick={() => { handleRenameJob(renameJobId, renameTitle); setRenameJobId(null); }} className="px-5 py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-colors">Save</button>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button onClick={() => setRenameJobId(null)} className="px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f5] rounded-lg transition-colors min-h-[44px] md:min-h-0">Cancel</button>
+              <button onClick={() => { handleRenameJob(renameJobId, renameTitle); setRenameJobId(null); }} className="px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-colors min-h-[44px] md:min-h-0">Save</button>
             </div>
           </div>
         </div>
@@ -425,18 +425,18 @@ const Dashboard: React.FC = () => {
 
       {/* DELETE MODAL */}
       {deleteJobId && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setDeleteJobId(null)}>
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#e5e5e5]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setDeleteJobId(null)}>
+          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#e5e5e5]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                 <AlertCircle size={20} className="text-red-600" />
               </div>
-              <h3 className="text-[17px] font-semibold text-[#0a0a0a]">Delete Project?</h3>
+              <h3 className="text-base md:text-[17px] font-semibold text-[#0a0a0a]">Delete Project?</h3>
             </div>
-            <p className="text-[14px] text-[#666] leading-relaxed mb-6">This action cannot be undone. All associated files and data will be permanently removed.</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteJobId(null)} className="px-4 py-2.5 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f5] rounded-lg transition-colors">Cancel</button>
-              <button onClick={() => { handleDeleteJob(deleteJobId); setDeleteJobId(null); }} className="px-5 py-2.5 text-[13px] font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">Delete</button>
+            <p className="text-sm md:text-[14px] text-[#666] leading-relaxed mb-6">This action cannot be undone. All associated files and data will be permanently removed.</p>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button onClick={() => setDeleteJobId(null)} className="px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f5] rounded-lg transition-colors min-h-[44px] md:min-h-0">Cancel</button>
+              <button onClick={() => { handleDeleteJob(deleteJobId); setDeleteJobId(null); }} className="px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors min-h-[44px] md:min-h-0">Delete</button>
             </div>
           </div>
         </div>

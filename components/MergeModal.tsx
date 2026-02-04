@@ -199,59 +199,61 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
   const allColsCount = new Set(selectedFiles.flatMap(f => f.columns)).size;
 
   return (
-    <div className="absolute inset-0 z-[60] flex justify-end bg-black/20 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-[60] flex justify-end bg-black/20 backdrop-blur-[2px] md:absolute">
       {/* Backdrop click to close */}
       <div className="absolute inset-0" onClick={onClose} />
       
       {/* Panel */}
-      <div className="relative w-[58%] min-w-[500px] max-w-[900px] h-full bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="relative w-full md:w-[58%] md:min-w-[500px] md:max-w-[900px] h-full bg-white shadow-2xl border-l border-gray-200 flex flex-col animate-in slide-in-from-right duration-300">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+        <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
               <GitMerge size={18} className="text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Smart Merge</h2>
-              <p className="text-xs text-gray-500">Combine data from multiple files</p>
+            <div className="min-w-0">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 truncate">Smart Merge</h2>
+              <p className="text-xs text-gray-500 hidden md:block">Combine data from multiple files</p>
             </div>
           </div>
           <button 
             onClick={onClose} 
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Mode Toggle */}
-        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50">
-          <div className="flex bg-white border border-gray-200 rounded-lg p-1 w-fit">
+        <div className="px-4 md:px-6 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex bg-white border border-gray-200 rounded-lg p-1 w-full md:w-fit">
             <button
               onClick={() => handleModeChange('join')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-3 md:py-2 rounded-md text-sm font-medium transition-all min-h-[44px] md:min-h-0 ${
                 mergeMode === 'join' 
                   ? 'bg-blue-600 text-white shadow-sm' 
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <GitMerge size={14} />
-              Join Columns
+              <span className="hidden sm:inline">Join Columns</span>
+              <span className="sm:hidden">Join</span>
             </button>
             <button
               onClick={() => handleModeChange('stack')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-3 md:py-2 rounded-md text-sm font-medium transition-all min-h-[44px] md:min-h-0 ${
                 mergeMode === 'stack' 
                   ? 'bg-green-600 text-white shadow-sm' 
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <Layers size={14} />
-              Stack Rows
+              <span className="hidden sm:inline">Stack Rows</span>
+              <span className="sm:hidden">Stack</span>
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-400 mt-2 hidden md:block">
             {mergeMode === 'join' 
               ? 'Combine columns horizontally using a common key (like VLOOKUP)' 
               : 'Append rows vertically from multiple files'}
@@ -265,7 +267,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
           <div className="border-b border-gray-100">
             <button 
               onClick={() => setExpandedSection(expandedSection === 'files' ? 'settings' : 'files')}
-              className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="w-full px-4 md:px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors min-h-[44px]"
             >
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">1. Select Files</span>
@@ -279,14 +281,14 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
             </button>
             
             {expandedSection === 'files' && (
-              <div className="px-6 pb-4 space-y-2">
+              <div className="px-4 md:px-6 pb-4 space-y-2">
                 <p className="text-xs text-gray-400 mb-3">
                   {mergeMode === 'join' ? 'Select exactly 2 files to join' : 'Select 2 or more files to stack'}
                 </p>
                 {files.map(file => (
                   <label
                     key={file.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 p-3 md:p-3 rounded-lg border cursor-pointer transition-all min-h-[64px] md:min-h-0 ${
                       selectedFileIds.includes(file.id)
                         ? mergeMode === 'join' 
                           ? 'border-blue-300 bg-blue-50/50' 
@@ -331,7 +333,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
           <div className="border-b border-gray-100">
             <button 
               onClick={() => setExpandedSection(expandedSection === 'settings' ? 'files' : 'settings')}
-              className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="w-full px-4 md:px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors min-h-[44px]"
             >
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">2. Configure</span>
@@ -345,7 +347,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
             </button>
 
             {expandedSection === 'settings' && (
-              <div className="px-6 pb-4">
+              <div className="px-4 md:px-6 pb-4">
                 {mergeMode === 'stack' ? (
                   // Stack Summary
                   <div className="bg-green-50 border border-green-100 rounded-lg p-4">
@@ -379,7 +381,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
                             <button
                               key={col}
                               onClick={() => setMergeKey(col)}
-                              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                              className={`px-3 py-2.5 md:py-1.5 rounded-lg text-sm font-medium border transition-all min-h-[44px] md:min-h-0 ${
                                 mergeKey === col
                                   ? 'bg-blue-600 text-white border-blue-600'
                                   : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
@@ -411,7 +413,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
                           <button
                             key={type.id}
                             onClick={() => setJoinType(type.id)}
-                            className={`p-3 rounded-lg border text-left transition-all ${
+                            className={`p-3 md:p-3 rounded-lg border text-left transition-all min-h-[64px] md:min-h-0 ${
                               joinType === type.id
                                 ? 'border-blue-400 bg-blue-50'
                                 : 'border-gray-200 hover:border-gray-300'
@@ -443,7 +445,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
             <div className="border-b border-gray-100">
               <button 
                 onClick={() => setExpandedSection(expandedSection === 'preview' ? 'settings' : 'preview')}
-                className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                className="w-full px-4 md:px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors min-h-[44px]"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">3. Preview</span>
@@ -457,9 +459,9 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
               </button>
 
               {expandedSection === 'preview' && (
-                <div className="px-6 pb-4">
+                <div className="px-4 md:px-6 pb-4">
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                    <div className="overflow-x-auto max-h-[300px] overflow-y-auto touch-pan-x touch-pan-y">
                       <table className="w-full text-xs">
                         <thead className="bg-gray-50 sticky top-0">
                           <tr>
@@ -502,20 +504,20 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex items-center justify-between">
+        <div className="px-4 md:px-6 py-4 border-t border-gray-100 bg-gray-50/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-4 py-3 md:py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] md:min-h-0"
           >
             Cancel
           </button>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {!showPreview && (
               <button
                 onClick={handlePreview}
                 disabled={!canPreview || isMerging}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                className="px-4 py-3 md:py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 min-h-[44px] md:min-h-0"
               >
                 {isMerging ? <RefreshCw size={14} className="animate-spin" /> : null}
                 Preview
@@ -524,7 +526,7 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
             <button
               onClick={handleExecute}
               disabled={!canExecute || isMerging}
-              className={`px-5 py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 ${
+              className={`px-5 py-3 md:py-2 text-sm font-bold text-white rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 min-h-[44px] md:min-h-0 ${
                 mergeMode === 'stack' 
                   ? 'bg-green-600 hover:bg-green-700' 
                   : 'bg-blue-600 hover:bg-blue-700'
@@ -538,7 +540,8 @@ const MergeModal: React.FC<MergeModalProps> = ({ files, onClose, onMergeComplete
               ) : (
                 <>
                   {mergeMode === 'stack' ? <Layers size={14} /> : <GitMerge size={14} />}
-                  {mergeMode === 'stack' ? 'Stack Files' : 'Execute Join'}
+                  <span className="hidden sm:inline">{mergeMode === 'stack' ? 'Stack Files' : 'Execute Join'}</span>
+                  <span className="sm:hidden">{mergeMode === 'stack' ? 'Stack' : 'Join'}</span>
                 </>
               )}
             </button>

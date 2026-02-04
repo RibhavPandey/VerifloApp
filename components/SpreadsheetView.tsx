@@ -19,6 +19,8 @@ import { validateSpreadsheetData, validateFormula, normalizeData } from '../lib/
 import { trackEvent } from '../lib/analytics';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { Sheet, SheetContent } from './ui/sheet';
+import { useIsMobile } from './ui/use-mobile';
 
 const ROW_HEIGHT = 24;
 const DEFAULT_COL_WIDTH = 100;
@@ -112,9 +114,9 @@ const FilterStepModal: React.FC<{
   const [value, setValue] = useState('');
   const needsValue = operator !== 'not_empty' && operator !== 'empty';
   return (
-    <div className="fixed inset-0 z-[250] bg-black/40 flex items-center justify-center backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+    <div className="fixed inset-0 z-[250] bg-black/40 flex items-center justify-center backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base md:text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
           <Filter className="text-purple-500" /> Filter Rows
         </h3>
         <div className="space-y-4">
@@ -123,7 +125,7 @@ const FilterStepModal: React.FC<{
             <select
               value={colIndex}
               onChange={(e) => setColIndex(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-3 md:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
             >
               {columns.map((col, i) => (
                 <option key={i} value={i}>{col || `Column ${i + 1}`}</option>
@@ -135,7 +137,7 @@ const FilterStepModal: React.FC<{
             <select
               value={operator}
               onChange={(e) => setOperator(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-3 md:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
             >
               {FILTER_OPERATORS.map((op) => (
                 <option key={op.value} value={op.value}>{op.label}</option>
@@ -150,17 +152,17 @@ const FilterStepModal: React.FC<{
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="Enter value..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-3 md:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
               />
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg">Cancel</button>
+        <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+          <button onClick={onClose} className="px-4 py-3 md:py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg min-h-[44px] md:min-h-0">Cancel</button>
           <button
             onClick={() => onApply(colIndex, operator, value)}
             disabled={needsValue && !value.trim()}
-            className="px-4 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            className="px-4 py-3 md:py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 disabled:opacity-50 min-h-[44px] md:min-h-0"
           >
             Apply Filter
           </button>
@@ -186,12 +188,13 @@ const SpreadsheetView: React.FC = () => {
   // We extract 'files' from context so we can pass ALL files to Sidebar for multi-file analysis
   const { credits, handleUseCredit, handleRecordAction, files: allFiles, isRecording } = useOutletContext<WorkspaceContextType>();
   const { addToast } = useToast();
+  const isMobile = useIsMobile();
   
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<Job | null>(null);
   const [file, setFile] = useState<ExcelFile | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
 
   // Debounced DB save (reduces frequent writes while keeping UI instant)
   const saveTimerRef = useRef<number | null>(null);
@@ -1346,23 +1349,25 @@ const SpreadsheetView: React.FC = () => {
 
   return (
     <div className="flex h-full overflow-hidden relative">
-        {/* SIDEBAR TOGGLE BUTTON */}
-        <div className="absolute bottom-8 z-50" style={{ right: isSidebarOpen ? '400px' : '0px' }}>
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="w-6 h-12 bg-white border border-gray-200 rounded-l-lg flex items-center justify-center shadow-md hover:bg-gray-50 text-gray-500 transition-all"
-          >
-            {isSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-          </button>
-        </div>
+        {/* SIDEBAR TOGGLE BUTTON - Desktop only */}
+        {!isMobile && (
+          <div className="absolute bottom-8 z-50" style={{ right: isSidebarOpen ? '400px' : '0px' }}>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="w-6 h-12 bg-white border border-gray-200 rounded-l-lg flex items-center justify-center shadow-md hover:bg-gray-50 text-gray-500 transition-all min-h-[44px]"
+            >
+              {isSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+          </div>
+        )}
 
         {/* MAIN EDITOR AREA */}
         <div className="flex-1 flex flex-col h-full bg-white text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
       
       {/* MINIMAL TOP BAR - Clean & Modern */}
-      <div className="flex items-center justify-between h-12 px-4 border-b border-gray-100 bg-white">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between h-auto md:h-12 px-2 md:px-4 py-2 md:py-0 border-b border-gray-100 bg-white gap-2 md:gap-0">
         {/* Left: Undo/Redo + Cell Reference */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
           <div className="flex items-center gap-0.5">
             <Button 
               variant="ghost" 
@@ -1370,7 +1375,7 @@ const SpreadsheetView: React.FC = () => {
               onClick={onUndo} 
               disabled={file.currentHistoryIndex <= 0} 
               title="Undo (Ctrl+Z)"
-              className="rounded-lg"
+              className="rounded-lg min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             >
               <Undo size={18} />
             </Button>
@@ -1380,7 +1385,7 @@ const SpreadsheetView: React.FC = () => {
               onClick={onRedo} 
               disabled={file.currentHistoryIndex >= file.history.length - 1} 
               title="Redo (Ctrl+Y)"
-              className="rounded-lg"
+              className="rounded-lg min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             >
               <Redo size={18} />
             </Button>
@@ -1394,12 +1399,12 @@ const SpreadsheetView: React.FC = () => {
         </div>
 
         {/* Center: Formula Bar */}
-        <div className="flex-1 max-w-2xl mx-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg border border-transparent focus-within:border-ring focus-within:bg-background focus-within:shadow-sm transition-all">
-            <span className="text-muted-foreground text-sm font-medium">fx</span>
+        <div className="flex-1 max-w-2xl mx-0 md:mx-4 min-w-0">
+          <div className="flex items-center gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-muted/50 rounded-lg border border-transparent focus-within:border-ring focus-within:bg-background focus-within:shadow-sm transition-all">
+            <span className="text-muted-foreground text-sm font-medium hidden sm:inline">fx</span>
             <input 
               type="text" 
-              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground min-h-[40px] md:min-h-0"
               placeholder={activeCell ? "Enter value or formula..." : "Select a cell"}
               value={editValue}
               onChange={(e) => {
@@ -1411,10 +1416,21 @@ const SpreadsheetView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Filter (when recording) + Export + Zoom */}
+        {/* Right: Filter (when recording) + Export + Sidebar Toggle (mobile) */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Mobile Sidebar Toggle */}
+          {isMobile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSidebarOpen(true)}
+              className="rounded-xl min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+            >
+              <Wand2 size={16} />
+            </Button>
+          )}
           {isRecording && file && (
-            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50">
+            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 min-h-[44px] md:min-h-0">
               <Filter size={16} />
               <span className="hidden sm:inline">Filter rows</span>
             </Button>
@@ -1426,14 +1442,14 @@ const SpreadsheetView: React.FC = () => {
               variant="outline"
               size="sm"
               disabled={isExporting}
-              className="rounded-xl"
+              className="rounded-xl min-h-[44px] md:min-h-0"
               onClick={() => setShowExportMenu(prev => !prev)}
             >
               <Download size={16} />
               <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
             </Button>
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300]">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300] max-w-[calc(100vw-2rem)]">
                 <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                   Template
                 </div>
@@ -1484,7 +1500,7 @@ const SpreadsheetView: React.FC = () => {
             )}
           </div>
 
-          {/* Zoom - Minimal */}
+          {/* Zoom - Desktop only */}
           <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded-xl px-1">
             <Button 
               variant="ghost" 
@@ -1514,7 +1530,7 @@ const SpreadsheetView: React.FC = () => {
       <div className="flex-1 relative overflow-hidden">
         <div
           ref={containerRef}
-          className="w-full h-full overflow-auto bg-gray-100 relative focus:outline-none"
+          className="w-full h-full overflow-auto bg-gray-100 relative focus:outline-none touch-pan-x touch-pan-y"
           tabIndex={0}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsGridFocused(true)}
@@ -1802,23 +1818,42 @@ const SpreadsheetView: React.FC = () => {
         />
       )}
     </div>
-      {/* SIDEBAR */}
-      <div 
-        className="flex-shrink-0 h-full border-l border-gray-200 bg-white overflow-hidden transition-all duration-300"
-        style={{ width: isSidebarOpen ? '400px' : '0px', borderLeftWidth: isSidebarOpen ? '1px' : '0px' }}
-      >
-        <div className="w-[400px] h-full">
-                <Sidebar 
-                    activeFile={file}
-                    files={allFiles} 
-                    history={chatHistory}
-                    onUpdateHistory={handleUpdateChatHistory}
-                    onPinToDashboard={() => {}}
-                    credits={credits}
-                    onUseCredit={handleUseCredit} 
-                />
+      {/* DESKTOP SIDEBAR */}
+      {!isMobile && (
+        <div 
+          className="flex-shrink-0 h-full border-l border-gray-200 bg-white overflow-hidden transition-all duration-300 hidden md:block"
+          style={{ width: isSidebarOpen ? '400px' : '0px', borderLeftWidth: isSidebarOpen ? '1px' : '0px' }}
+        >
+          <div className="w-[400px] h-full">
+            <Sidebar 
+              activeFile={file}
+              files={allFiles} 
+              history={chatHistory}
+              onUpdateHistory={handleUpdateChatHistory}
+              onPinToDashboard={() => {}}
+              credits={credits}
+              onUseCredit={handleUseCredit} 
+            />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* MOBILE SIDEBAR */}
+      {isMobile && (
+        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+          <SheetContent side="right" className="w-[90vw] sm:w-[400px] p-0">
+            <Sidebar 
+              activeFile={file}
+              files={allFiles} 
+              history={chatHistory}
+              onUpdateHistory={handleUpdateChatHistory}
+              onPinToDashboard={() => {}}
+              credits={credits}
+              onUseCredit={handleUseCredit} 
+            />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 };

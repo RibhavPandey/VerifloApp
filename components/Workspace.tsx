@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Bell, Cloud, Coins, Download, Loader2, Plus, 
-  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet
+  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, Menu
 } from 'lucide-react';
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
@@ -16,6 +16,8 @@ import { useToast } from './ui/toast';
 import { worker } from '../lib/worker';
 import ExcelJS from 'exceljs';
 import { validateFiles, formatFileSize } from '../lib/file-validation';
+import { Sheet, SheetContent } from './ui/sheet';
+import { useIsMobile } from './ui/use-mobile';
 
 export interface WorkspaceContextType {
     jobs: Job[];
@@ -36,6 +38,7 @@ const Workspace: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
+  const isMobile = useIsMobile();
   
   // --- CORE STATE ---
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -49,6 +52,7 @@ const Workspace: React.FC = () => {
   // --- UI STATE ---
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [fileUploadInProgress, setFileUploadInProgress] = useState(0);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   
   // --- WORKFLOW STATE ---
   const [isRecording, setIsRecording] = useState(false);
@@ -474,6 +478,7 @@ const Workspace: React.FC = () => {
         onChange={handleCSVUpload} 
       />
 
+      {/* Desktop Navigation */}
       <Navigation 
         activeView={location.pathname.includes('sheet') ? 'sheet' : location.pathname.includes('dashboard') ? 'dashboard' : location.pathname.includes('workflows') ? 'workflows' : 'extraction'}
         files={files}
@@ -482,46 +487,71 @@ const Workspace: React.FC = () => {
         onMergeClick={() => setShowMergeModal(true)}
       />
 
+      {/* Mobile Navigation Drawer */}
+      <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
+        <SheetContent side="left" className="w-[280px] p-0">
+          <Navigation 
+            activeView={location.pathname.includes('sheet') ? 'sheet' : location.pathname.includes('dashboard') ? 'dashboard' : location.pathname.includes('workflows') ? 'workflows' : 'extraction'}
+            files={files}
+            jobs={jobs}
+            onFileUpload={handleCSVUpload}
+            onMergeClick={() => setShowMergeModal(true)}
+            isMobile={true}
+            onNavigate={() => setIsMobileNavOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+
       <div className="flex-1 flex flex-col min-w-0 relative">
-         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0 z-[100]">
-            <div className="flex items-center gap-2">
-                <div className="text-sm font-medium text-gray-500">Workspace /</div>
-                <h1 className="font-bold text-gray-800">
+         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-3 md:px-6 flex-shrink-0 z-[100]">
+            <div className="flex items-center gap-2 min-w-0">
+                {/* Mobile Hamburger Menu */}
+                <button
+                  onClick={() => setIsMobileNavOpen(true)}
+                  className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label="Open menu"
+                >
+                  <Menu size={20} />
+                </button>
+                <div className="hidden md:flex items-center gap-2">
+                  <div className="text-sm font-medium text-gray-500">Workspace /</div>
+                </div>
+                <h1 className="font-bold text-gray-800 text-sm md:text-base truncate">
                     {location.pathname.includes('dashboard') ? 'Overview' : 
                      location.pathname.includes('workflows') ? 'Workflows' :
                      location.pathname.includes('extract') ? 'Extraction' :
                      'Editor'}
                 </h1>
-                {isSyncing && <Cloud className="animate-pulse text-gray-400 ml-2" size={14} />}
+                {isSyncing && <Cloud className="animate-pulse text-gray-400 ml-2 hidden md:block" size={14} />}
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
                <div className="relative">
                    {isRecording ? (
                        <button 
                            onClick={handleStopRecording}
-                           className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg font-bold text-sm animate-pulse hover:bg-red-100 transition-colors"
+                           className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg font-bold text-xs md:text-sm animate-pulse hover:bg-red-100 transition-colors min-h-[44px] md:min-h-0"
                        >
                            <StopCircle size={16} fill="currentColor" />
-                           <span className="w-20 text-center">Stop</span>
+                           <span className="hidden md:inline w-20 text-center">Stop</span>
                        </button>
                    ) : (
                        <button 
                             onClick={handleAutomateClick}
                             disabled={isWorkflowRunning}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-xs md:text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
                        >
                            {isWorkflowRunning ? (
                                <Loader2 size={16} className="animate-spin text-gray-500" />
                            ) : (
                            <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
                            )}
-                           {isWorkflowRunning ? "Running..." : "Automate"}
+                           <span className="hidden md:inline">{isWorkflowRunning ? "Running..." : "Automate"}</span>
                        </button>
                    )}
 
                    {showAutomateMenu && !isRecording && (
-                       <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2">
+                       <div className="absolute top-full right-0 mt-2 w-64 md:w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 max-w-[calc(100vw-2rem)]">
                            <div className="p-2 border-b border-gray-100">
                                <button 
                                    onClick={() => {
@@ -580,13 +610,16 @@ const Workspace: React.FC = () => {
                    )}
                </div>
                
-               <div className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-sm font-semibold mr-2 shadow-sm">
+               <div className="hidden sm:flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-xs md:text-sm font-semibold shadow-sm">
                   <Coins size={16} className="text-blue-600" />
-                  <span>{documentsUsed}/{documentsLimit} docs · {credits} credits</span>
+                  <span className="whitespace-nowrap">{documentsUsed}/{documentsLimit} docs · {credits} credits</span>
+               </div>
+               <div className="sm:hidden flex items-center px-2 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 shadow-sm min-h-[44px]">
+                  <Coins size={16} className="text-blue-600" />
                </div>
 
-               <div className="h-6 w-px bg-gray-200 mx-1"></div>
-               <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"><Bell size={20} /></button>
+               <div className="h-6 w-px bg-gray-200 mx-1 hidden md:block"></div>
+               <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-0 md:min-w-0"><Bell size={20} /></button>
             </div>
          </header>
 
@@ -601,20 +634,20 @@ const Workspace: React.FC = () => {
          {/* Workflow Editor Modal */}
          {showWorkflowEditor && (
              <div className="absolute inset-0 z-[60] flex justify-end bg-black/10 backdrop-blur-[1px]">
-                 <div className="w-[45%] h-full bg-white shadow-2xl border-l border-gray-200 animate-in slide-in-from-right duration-300 flex flex-col">
-                     <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                 <div className="w-full md:w-[45%] h-full bg-white shadow-2xl border-l border-gray-200 animate-in slide-in-from-right duration-300 flex flex-col">
+                     <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                          <div>
-                             <h2 className="text-lg font-bold text-gray-900">Save Workflow</h2>
-                             <p className="text-xs text-gray-500">Review recorded steps before saving.</p>
+                             <h2 className="text-base md:text-lg font-bold text-gray-900">Save Workflow</h2>
+                             <p className="text-xs text-gray-500 hidden md:block">Review recorded steps before saving.</p>
                          </div>
                          <button 
                              onClick={() => { setShowWorkflowEditor(false); setIsRecording(false); setSessionSteps([]); }} 
-                             className="p-2 hover:bg-gray-200 rounded-full text-gray-500"
+                             className="p-2 hover:bg-gray-200 rounded-full text-gray-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
                          >
                              <X size={20} />
                          </button>
                      </div>
-                     <div className="flex-1 overflow-y-auto p-6">
+                     <div className="flex-1 overflow-y-auto p-4 md:p-6">
                          <div className="mb-6">
                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Workflow Name</label>
                              <input 
@@ -647,17 +680,17 @@ const Workspace: React.FC = () => {
                              ))}
                          </div>
                      </div>
-                     <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                     <div className="p-4 md:p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3">
                          <button 
                              onClick={() => { setShowWorkflowEditor(false); setIsRecording(false); setSessionSteps([]); }}
-                             className="px-6 py-2.5 font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors text-sm"
+                             className="px-6 py-3 md:py-2.5 font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors text-sm min-h-[44px] md:min-h-0"
                          >
                              Discard
                          </button>
                          <button 
                              onClick={handleSaveWorkflowFromEditor}
                              disabled={!newWorkflowName.trim() || sessionSteps.length === 0}
-                             className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                             className="px-6 py-3 md:py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 shadow-lg active:scale-95 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
                          >
                              Save Workflow <CheckCircle2 size={16} />
                          </button>
@@ -669,7 +702,7 @@ const Workspace: React.FC = () => {
 
       {/* Recording Panel */}
       {isRecording && (
-          <div className="absolute bottom-6 right-6 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-bottom-4 overflow-hidden">
+          <div className="fixed md:absolute bottom-4 md:bottom-6 left-4 right-4 md:right-6 md:w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-bottom-4 overflow-hidden">
               <div className="bg-red-50 px-4 py-2 border-b border-red-100 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-red-700 font-bold text-xs uppercase tracking-wider">
                       <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
@@ -698,8 +731,8 @@ const Workspace: React.FC = () => {
 
       {/* Create Workflow Type Modal */}
       {createWorkflowTypeModal && (
-          <div className="fixed inset-0 z-[300] bg-[#0f172a]/40 flex items-center justify-center backdrop-blur-md">
-              <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200 border border-white/20">
+          <div className="fixed inset-0 z-[300] bg-[#0f172a]/40 flex items-center justify-center backdrop-blur-md p-4">
+              <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200 border border-white/20">
                   <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-1.5 tracking-[-0.01em]">Create New Workflow</h2>
                   <p className="text-[#666] mb-5 text-[13px]">What type of data process do you want to automate?</p>
                   
