@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Cloud, Coins, Download, Loader2, Plus, 
-  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, Menu
+  StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, Menu,
+  Home, DollarSign, HelpCircle, BookOpen, Settings, LogOut, CircleUser
 } from 'lucide-react';
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
@@ -18,6 +19,14 @@ import ExcelJS from 'exceljs';
 import { validateFiles, formatFileSize } from '../lib/file-validation';
 import { Sheet, SheetContent } from './ui/sheet';
 import { useIsMobile } from './ui/use-mobile';
+import { supabase } from '../lib/supabase';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 export interface WorkspaceContextType {
     jobs: Job[];
@@ -53,6 +62,9 @@ const Workspace: React.FC = () => {
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [fileUploadInProgress, setFileUploadInProgress] = useState(0);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  
+  // --- USER STATE ---
+  const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
   
   // --- WORKFLOW STATE ---
   const [isRecording, setIsRecording] = useState(false);
@@ -116,7 +128,47 @@ const Workspace: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    // Fetch user data
+    const fetchUser = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const profile = await db.getUserProfile();
+          setUser({
+            email: authUser.email,
+            name: profile?.name || authUser.email?.split('@')[0] || 'User'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    fetchUser();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      addToast('error', 'Logout Failed', 'Could not sign out. Please try again.');
+    }
+  };
+
+  const getUserInitials = () => {
+    if (user?.name) {
+      const names = user.name.split(' ');
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[1][0]}`.toUpperCase();
+      }
+      return user.name.substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
 
   const handleUseCredit = async (amount: number) => {
       try {
@@ -617,6 +669,75 @@ const Workspace: React.FC = () => {
                <div className="sm:hidden flex items-center px-2 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 min-h-[44px]">
                   <Coins size={16} className="text-gray-600" />
                </div>
+
+               {/* User Menu Dropdown */}
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <button className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] text-[#555] font-semibold text-xs md:text-sm hover:opacity-80 transition-opacity ring-1 ring-[#ddd] min-h-[44px] min-w-[44px]">
+                     {user ? getUserInitials() : <CircleUser size={20} />}
+                   </button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-lg border border-gray-200 p-2">
+                   {/* User Info Section */}
+                   {user && (
+                     <div className="px-3 py-2.5 border-b border-gray-100 bg-gray-50 rounded-lg mb-1">
+                       <div className="text-sm font-medium text-gray-900">{user.name || 'User'}</div>
+                       <div className="text-xs text-gray-500 truncate">{user.email || ''}</div>
+                     </div>
+                   )}
+                   
+                   {/* Navigation Items */}
+                   <DropdownMenuItem 
+                     onClick={() => navigate('/')}
+                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                   >
+                     <Home size={16} className="mr-3 text-gray-600" />
+                     <span className="text-sm font-medium text-gray-700">Home</span>
+                   </DropdownMenuItem>
+                   
+                   <DropdownMenuItem 
+                     onClick={() => navigate('/pricing')}
+                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                   >
+                     <DollarSign size={16} className="mr-3 text-gray-600" />
+                     <span className="text-sm font-medium text-gray-700">Pricing</span>
+                   </DropdownMenuItem>
+                   
+                   <DropdownMenuItem 
+                     onClick={() => window.open('https://help.veriflo.com', '_blank')}
+                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                   >
+                     <HelpCircle size={16} className="mr-3 text-gray-600" />
+                     <span className="text-sm font-medium text-gray-700">Help & Support</span>
+                   </DropdownMenuItem>
+                   
+                   <DropdownMenuItem 
+                     onClick={() => window.open('https://docs.veriflo.com', '_blank')}
+                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                   >
+                     <BookOpen size={16} className="mr-3 text-gray-600" />
+                     <span className="text-sm font-medium text-gray-700">Documentation</span>
+                   </DropdownMenuItem>
+                   
+                   <DropdownMenuSeparator className="my-1" />
+                   
+                   <DropdownMenuItem 
+                     onClick={() => navigate('/settings')}
+                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                   >
+                     <Settings size={16} className="mr-3 text-gray-600" />
+                     <span className="text-sm font-medium text-gray-700">Settings</span>
+                   </DropdownMenuItem>
+                   
+                   <DropdownMenuItem 
+                     onClick={handleLogout}
+                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-red-50 transition-colors"
+                   >
+                     <LogOut size={16} className="mr-3 text-red-600" />
+                     <span className="text-sm font-medium text-red-600">Logout</span>
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
             </div>
          </header>
 

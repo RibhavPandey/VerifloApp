@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, FileText, Plus, GitMerge,
-  MoreHorizontal, ScanText, Workflow, LogOut, Settings, ChevronRight
+  ScanText, Workflow
 } from 'lucide-react';
 import { ExcelFile, Job } from '../types';
 import { supabase } from '../lib/supabase';
@@ -32,7 +32,6 @@ const Navigation: React.FC<NavigationProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -56,10 +55,6 @@ const Navigation: React.FC<NavigationProps> = ({
     fetchUser();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/auth';
-  };
 
   const getUserInitials = () => {
     if (!user?.name) return 'U';
@@ -70,7 +65,7 @@ const Navigation: React.FC<NavigationProps> = ({
     return user.name.substring(0, 2).toUpperCase();
   };
 
-  const isExpanded = isHovered || isDropdownOpen || isMobile;
+  const isExpanded = isHovered || isMobile;
 
   // Mobile: render as simple content (will be wrapped in Sheet)
   if (isMobile) {
@@ -154,52 +149,14 @@ const Navigation: React.FC<NavigationProps> = ({
 
         {/* User Section */}
         <div className="p-2 border-t border-[#e5e5e5] bg-[#f9f9f9]">
-          <div className="relative">
-            <button 
-              className="flex items-center px-2.5 py-2 rounded-xl hover:bg-[#ebebeb] overflow-hidden w-full gap-2.5 min-h-[44px]"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
-                {getUserInitials()}
-              </div>
-              <div className="min-w-0 text-left flex-1">
-                <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
-                <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
-              </div>
-              <MoreHorizontal size={16} className="text-[#888] flex-shrink-0" />
-            </button>
-            
-            {isDropdownOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-[#e5e5e5] rounded-xl shadow-lg overflow-hidden z-[60]">
-                <div className="px-3 py-2.5 border-b border-[#f0f0f0] bg-[#fafafa]">
-                  <div className="text-[13px] font-medium text-[#333]">{user?.name || 'User'}</div>
-                  <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
-                </div>
-                <div className="p-1">
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      handleNavClick(() => navigate('/settings'));
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#444] hover:bg-[#f5f5f5] rounded-lg transition-colors min-h-[44px]"
-                  >
-                    <Settings size={15} className="text-[#666]" />
-                    <span>Settings</span>
-                    <ChevronRight size={14} className="ml-auto text-[#999]" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      handleLogout();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#dc2626] hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
-                  >
-                    <LogOut size={15} />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="flex items-center px-2.5 py-2 rounded-xl overflow-hidden w-full gap-2.5 min-h-[44px]">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
+              {getUserInitials()}
+            </div>
+            <div className="min-w-0 text-left flex-1">
+              <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
+              <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -212,7 +169,6 @@ const Navigation: React.FC<NavigationProps> = ({
       <div 
         className={`group absolute top-0 left-0 h-full bg-[#f9f9f9] border-r border-[#e5e5e5] transition-all duration-300 ease-out flex flex-col ${isExpanded ? 'w-[260px] shadow-[4px_0_24px_-2px_rgba(0,0,0,0.08)]' : 'w-[68px]'}`}
         style={{ 
-          overflow: isDropdownOpen ? 'visible' : 'hidden',
           minHeight: '100%'
         }}
         onMouseEnter={() => setIsHovered(true)}
@@ -306,77 +262,21 @@ const Navigation: React.FC<NavigationProps> = ({
         </div>
 
         {/* User Section */}
-        <div 
-          className="p-2 border-t border-[#e5e5e5] bg-[#f9f9f9]"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => {
-            if (!isDropdownOpen) {
-              setTimeout(() => {
-                if (!isDropdownOpen) setIsHovered(false);
-              }, 100);
-            }
-          }}
-        >
-          <div className="relative">
-            <button 
-              style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-              className={`flex items-center px-2.5 py-2 rounded-xl hover:bg-[#ebebeb] overflow-hidden ${isExpanded ? 'w-full gap-2.5' : 'w-[48px] gap-0'}`}
-              onMouseEnter={() => setIsHovered(true)}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        <div className="p-2 border-t border-[#e5e5e5] bg-[#f9f9f9]">
+          <div 
+            style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+            className={`flex items-center px-2.5 py-2 rounded-xl overflow-hidden ${isExpanded ? 'w-full gap-2.5' : 'w-[48px] gap-0'}`}
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
+              {getUserInitials()}
+            </div>
+            <div 
+              style={{ transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              className={`min-w-0 text-left flex-1 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
-                {getUserInitials()}
-              </div>
-              <div 
-                style={{ transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                className={`min-w-0 text-left flex-1 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
-              >
-                <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
-                <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
-              </div>
-              <MoreHorizontal 
-                size={16} 
-                style={{ transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                className={`text-[#888] flex-shrink-0 ${isExpanded ? 'opacity-100' : 'opacity-0'}`} 
-              />
-            </button>
-            
-            {isDropdownOpen && (
-              <div 
-                className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-[#e5e5e5] rounded-xl shadow-lg overflow-hidden z-[60]"
-                onMouseEnter={() => {
-                  setIsHovered(true);
-                  setIsDropdownOpen(true);
-                }}
-                onMouseLeave={() => setIsDropdownOpen(false)}
-              >
-                <div className="px-3 py-2.5 border-b border-[#f0f0f0] bg-[#fafafa]">
-                  <div className="text-[13px] font-medium text-[#333]">{user?.name || 'User'}</div>
-                  <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
-                </div>
-                <div className="p-1">
-                  <button
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      setIsHovered(false);
-                      navigate('/settings');
-                    }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#444] hover:bg-[#f5f5f5] rounded-lg transition-colors"
-                  >
-                    <Settings size={15} className="text-[#666]" />
-                    <span>Settings</span>
-                    <ChevronRight size={14} className="ml-auto text-[#999]" />
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-[13px] text-[#dc2626] hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <LogOut size={15} />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              </div>
-            )}
+              <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
+              <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
+            </div>
           </div>
         </div>
       </div>
