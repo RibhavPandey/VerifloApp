@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Upload, FileText, Tag, Plus, ArrowRight, X, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { Upload, FileText, Tag, Plus, ArrowRight, X, AlertCircle, Check, Loader2, StopCircle } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { WorkspaceContextType } from './Workspace';
 import { Job, VerificationDocument, ExtractedField, LineItem } from '../types';
@@ -20,7 +20,7 @@ const STANDARD_FIELDS = [
 ];
 
 const ExtractionSetup: React.FC = () => {
-    const { onJobCreated, refreshData } = useOutletContext<WorkspaceContextType>();
+    const { onJobCreated, refreshData, isRecording, handleRecordAction, onStopRecording } = useOutletContext<WorkspaceContextType>();
     const navigate = useNavigate();
     const { addToast } = useToast();
     
@@ -93,6 +93,18 @@ const ExtractionSetup: React.FC = () => {
 
     const runExtraction = async () => {
         if (pendingUploads.length === 0) return;
+        
+        // Record extraction step if recording workflow
+        if (isRecording && handleRecordAction) {
+            const fieldNames = selectedFields.join(', ');
+            const description = `Extract ${selectedFields.length} field(s): ${fieldNames}${includeLineItems ? ' (with line items)' : ''}`;
+            handleRecordAction('extraction', description, {
+                fields: selectedFields,
+                customFields: customFields,
+                includeLineItems: includeLineItems
+            });
+        }
+        
         setIsProcessing(true);
         setExtractionProgress({
             current: 0,
@@ -294,6 +306,26 @@ const ExtractionSetup: React.FC = () => {
     return (
         <div className="h-full flex flex-col items-center justify-center p-8 bg-background overflow-y-auto" style={{ zoom: 0.85 }}>
             <div className="bg-card border p-8 rounded-2xl shadow-lg max-w-4xl w-full" style={{ borderColor: 'hsl(0deg 19.71% 84.83%)' }}>
+                {/* Recording Indicator */}
+                {isRecording && (
+                    <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                            <span className="text-sm font-medium text-orange-900">Recording workflow...</span>
+                            <span className="text-xs text-orange-700">Configure your extraction to save it as a workflow</span>
+                        </div>
+                        {onStopRecording && (
+                            <button
+                                onClick={onStopRecording}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg font-medium text-xs hover:bg-orange-200 transition-colors"
+                            >
+                                <StopCircle size={14} />
+                                Stop Recording
+                            </button>
+                        )}
+                    </div>
+                )}
+                
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold text-foreground mb-2">Configure Extraction</h2>
                     <p className="text-muted-foreground">Upload documents and select the data points you need.</p>

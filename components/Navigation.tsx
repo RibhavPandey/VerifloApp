@@ -173,7 +173,6 @@ const Navigation: React.FC<NavigationProps> = ({
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={(e) => {
-          if (isDropdownOpen) return;
           const relatedTarget = e.relatedTarget as HTMLElement;
           if (relatedTarget && relatedTarget.closest('[data-radix-portal]')) {
             return;

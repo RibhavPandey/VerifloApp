@@ -76,27 +76,60 @@ const Navbar = () => {
                                         <ChevronDown className="h-4 w-4" />
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-48">
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/#features" className="cursor-pointer">All Features</Link>
+                                        <DropdownMenuItem 
+                                            onClick={() => window.location.href = '/#features'}
+                                            className="cursor-pointer"
+                                        >
+                                            All Features
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/#comparison" className="cursor-pointer">Why Veriflo</Link>
+                                        <DropdownMenuItem 
+                                            onClick={() => window.location.href = '/#comparison'}
+                                            className="cursor-pointer"
+                                        >
+                                            Why Veriflo
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/#how-it-works" className="cursor-pointer">How It Works</Link>
+                                        <DropdownMenuItem 
+                                            onClick={() => window.location.href = '/#how-it-works'}
+                                            className="cursor-pointer"
+                                        >
+                                            How It Works
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/#use-cases" className="cursor-pointer">Use Cases</Link>
+                                        <DropdownMenuItem 
+                                            onClick={() => window.location.href = '/#use-cases'}
+                                            className="cursor-pointer"
+                                        >
+                                            Use Cases
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                                <Link to="/#comparison" className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}>
+                                <Link 
+                                    to="/" 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        window.location.href = '/#comparison';
+                                    }}
+                                    className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}
+                                >
                                     Why Veriflo
                                 </Link>
-                                <Link to="/#how-it-works" className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}>
+                                <Link 
+                                    to="/" 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        window.location.href = '/#how-it-works';
+                                    }}
+                                    className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}
+                                >
                                     How It Works
                                 </Link>
-                                <Link to="/#use-cases" className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}>
+                                <Link 
+                                    to="/" 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        window.location.href = '/#use-cases';
+                                    }}
+                                    className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}
+                                >
                                     Use Cases
                                 </Link>
                             </>
@@ -135,18 +168,69 @@ const Navbar = () => {
                 {mobileMenuOpen && (
                     <div className="lg:hidden mt-4 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-100 p-6">
                         <div className="flex flex-col gap-4">
-                            <a href="#features" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                                Features
-                            </a>
-                            <a href="#comparison" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                                Why Veriflo
-                            </a>
-                            <a href="#how-it-works" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                                How It Works
-                            </a>
-                            <a href="#use-cases" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                                Use Cases
-                            </a>
+                            {isLanding ? (
+                                <>
+                                    <a href="#features" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                                        Features
+                                    </a>
+                                    <a href="#comparison" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                                        Why Veriflo
+                                    </a>
+                                    <a href="#how-it-works" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                                        How It Works
+                                    </a>
+                                    <a href="#use-cases" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                                        Use Cases
+                                    </a>
+                                </>
+                            ) : (
+                                <>
+                                    <Link 
+                                        to="/" 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setMobileMenuOpen(false);
+                                            window.location.href = '/#features';
+                                        }}
+                                        className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                                    >
+                                        Features
+                                    </Link>
+                                    <Link 
+                                        to="/" 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setMobileMenuOpen(false);
+                                            window.location.href = '/#comparison';
+                                        }}
+                                        className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                                    >
+                                        Why Veriflo
+                                    </Link>
+                                    <Link 
+                                        to="/" 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setMobileMenuOpen(false);
+                                            window.location.href = '/#how-it-works';
+                                        }}
+                                        className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                                    >
+                                        How It Works
+                                    </Link>
+                                    <Link 
+                                        to="/" 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setMobileMenuOpen(false);
+                                            window.location.href = '/#use-cases';
+                                        }}
+                                        className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+                                    >
+                                        Use Cases
+                                    </Link>
+                                </>
+                            )}
                             <Link to="/pricing" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                                 Pricing
                             </Link>

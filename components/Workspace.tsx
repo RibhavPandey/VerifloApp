@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Cloud, Coins, Download, Loader2, Plus, 
   StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, Menu,
-  Home, DollarSign, HelpCircle, BookOpen, Settings, LogOut, CircleUser
+  Home, DollarSign, HelpCircle, BookOpen, Settings, LogOut, CircleUser, ScanText
 } from 'lucide-react';
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
 import Navigation from './Navigation';
@@ -41,6 +41,7 @@ export interface WorkspaceContextType {
     handleCSVUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
     onCreateWorkflow: () => void;
     isRecording: boolean;
+    onStopRecording?: () => void;
 }
 
 const Workspace: React.FC = () => {
@@ -239,10 +240,16 @@ const Workspace: React.FC = () => {
 
   const handleSaveWorkflowFromEditor = async () => {
       if (!newWorkflowName.trim()) return;
+      
+      // Determine sourceType based on steps or current page
+      const hasExtractionStep = sessionSteps.some(s => s.type === 'extraction');
+      const isOnExtractionPage = location.pathname.includes('/extract/');
+      const sourceType: 'spreadsheet' | 'pdf' = (hasExtractionStep || isOnExtractionPage) ? 'pdf' : 'spreadsheet';
+      
       const newWorkflow: Workflow = {
           id: crypto.randomUUID(),
           name: newWorkflowName,
-          sourceType: 'spreadsheet',
+          sourceType: sourceType,
           steps: sessionSteps,
           createdAt: Date.now(),
           lastRunStatus: 'success'
@@ -252,6 +259,7 @@ const Workspace: React.FC = () => {
       setShowWorkflowEditor(false);
       setNewWorkflowName('');
       setSessionSteps([]);
+      setIsRecording(false);
       addToast('success', 'Workflow Saved', `"${newWorkflowName}" is ready to use.`);
   };
 
@@ -689,7 +697,7 @@ const Workspace: React.FC = () => {
                    {/* Navigation Items */}
                    <DropdownMenuItem 
                      onClick={() => navigate('/')}
-                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
                    >
                      <Home size={16} className="mr-3 text-gray-600" />
                      <span className="text-sm font-medium text-gray-700">Home</span>
@@ -697,7 +705,7 @@ const Workspace: React.FC = () => {
                    
                    <DropdownMenuItem 
                      onClick={() => navigate('/pricing')}
-                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
                    >
                      <DollarSign size={16} className="mr-3 text-gray-600" />
                      <span className="text-sm font-medium text-gray-700">Pricing</span>
@@ -705,7 +713,7 @@ const Workspace: React.FC = () => {
                    
                    <DropdownMenuItem 
                      onClick={() => window.open('https://help.veriflo.com', '_blank')}
-                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
                    >
                      <HelpCircle size={16} className="mr-3 text-gray-600" />
                      <span className="text-sm font-medium text-gray-700">Help & Support</span>
@@ -713,7 +721,7 @@ const Workspace: React.FC = () => {
                    
                    <DropdownMenuItem 
                      onClick={() => window.open('https://docs.veriflo.com', '_blank')}
-                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
                    >
                      <BookOpen size={16} className="mr-3 text-gray-600" />
                      <span className="text-sm font-medium text-gray-700">Documentation</span>
@@ -723,7 +731,7 @@ const Workspace: React.FC = () => {
                    
                    <DropdownMenuItem 
                      onClick={() => navigate('/settings')}
-                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
                    >
                      <Settings size={16} className="mr-3 text-gray-600" />
                      <span className="text-sm font-medium text-gray-700">Settings</span>
@@ -731,7 +739,7 @@ const Workspace: React.FC = () => {
                    
                    <DropdownMenuItem 
                      onClick={handleLogout}
-                     className="py-3 px-6 rounded-lg cursor-pointer hover:bg-red-50 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-red-50 focus:bg-red-50 focus:text-red-600 transition-colors"
                    >
                      <LogOut size={16} className="mr-3 text-red-600" />
                      <span className="text-sm font-medium text-red-600">Logout</span>
@@ -744,7 +752,7 @@ const Workspace: React.FC = () => {
          <div className="flex-1 flex overflow-hidden relative">
             <main className="flex-1 relative overflow-y-auto bg-[#F9FAFB] flex flex-col min-h-0">
                 <Outlet context={{ 
-                    jobs, files, credits, documentsUsed, documentsLimit, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording
+                    jobs, files, credits, documentsUsed, documentsLimit, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording, onStopRecording: handleStopRecording
                 } satisfies WorkspaceContextType} />
             </main>
          </div>
@@ -885,6 +893,24 @@ const Workspace: React.FC = () => {
                           <div>
                               <div className="font-medium text-[14px] text-[#0a0a0a]">Spreadsheet Action</div>
                               <div className="text-[12px] text-[#666]">Automate cleaning, sorting, formulas</div>
+                          </div>
+                      </button>
+                      
+                      <button 
+                          onClick={() => { 
+                              setCreateWorkflowTypeModal(false);
+                              setIsRecording(true);
+                              setSessionSteps([]);
+                              navigate('/extract/new');
+                          }}
+                          className="w-full p-3.5 border border-[#e5e5e5] rounded-xl flex items-center gap-3 hover:border-orange-300 hover:bg-orange-50/50 transition-all group text-left"
+                      >
+                          <div className="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                              <ScanText size={18} />
+                          </div>
+                          <div>
+                              <div className="font-medium text-[14px] text-[#0a0a0a]">PDF Extraction</div>
+                              <div className="text-[12px] text-[#666]">Automate data extraction from PDFs</div>
                           </div>
                       </button>
                   </div>
