@@ -1366,20 +1366,11 @@ const SpreadsheetView: React.FC = () => {
         {/* MAIN EDITOR AREA */}
         <div className="flex-1 flex flex-col h-full bg-white text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
       
-      {/* MINIMAL TOP BAR - Clean & Modern */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between h-auto md:h-12 px-2 md:px-4 py-2 md:py-0 border-b border-gray-100 bg-white gap-2 md:gap-0">
-        {/* Left: Cell Reference (if active) */}
-        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-          {activeCell && (
-            <div className="hidden sm:flex items-center px-2.5 py-1 bg-muted rounded-lg">
-              <span className="text-xs font-semibold text-foreground">{getColumnLabel(activeCell.c)}{activeCell.r + 1}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Undo/Redo + Export + Filter (when recording) + Sidebar Toggle (mobile) */}
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-          {/* Undo/Redo */}
+      {/* TOP BAR */}
+      {/* Desktop Toolbar - Original Layout */}
+      <div className="hidden md:flex items-center justify-between h-12 px-4 border-b border-gray-100 bg-white">
+        {/* Left: Undo/Redo + Cell Reference */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <div className="flex items-center gap-0.5">
             <Button 
               variant="ghost" 
@@ -1387,7 +1378,7 @@ const SpreadsheetView: React.FC = () => {
               onClick={onUndo} 
               disabled={file.currentHistoryIndex <= 0} 
               title="Undo (Ctrl+Z)"
-              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+              className="rounded-lg"
             >
               <Undo size={18} />
             </Button>
@@ -1397,7 +1388,169 @@ const SpreadsheetView: React.FC = () => {
               onClick={onRedo} 
               disabled={file.currentHistoryIndex >= file.history.length - 1} 
               title="Redo (Ctrl+Y)"
-              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+              className="rounded-lg"
+            >
+              <Redo size={18} />
+            </Button>
+          </div>
+          
+          {activeCell && (
+            <div className="flex items-center px-2.5 py-1 bg-muted rounded-lg">
+              <span className="text-xs font-semibold text-foreground">{getColumnLabel(activeCell.c)}{activeCell.r + 1}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Center: Formula Bar */}
+        <div className="flex-1 max-w-2xl mx-4 min-w-0">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg border border-transparent focus-within:border-ring focus-within:bg-background focus-within:shadow-sm transition-all">
+            <span className="text-muted-foreground text-sm font-medium">fx</span>
+            <input 
+              type="text" 
+              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
+              placeholder={activeCell ? "Enter value or formula..." : "Select a cell"}
+              value={editValue}
+              onChange={(e) => {
+                setEditValue(e.target.value);
+                if (activeCell) setIsEditing(true);
+              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
+            />
+          </div>
+        </div>
+
+        {/* Right: Filter (when recording) + Export + Zoom */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {isRecording && file && (
+            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50">
+              <Filter size={16} />
+              <span className="hidden sm:inline">Filter rows</span>
+            </Button>
+          )}
+          {/* Export with ERP Format inside */}
+          <div className="relative" ref={exportMenuRef}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isExporting}
+              className="rounded-xl"
+              onClick={() => setShowExportMenu(prev => !prev)}
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+            </Button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300]">
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  Template
+                </div>
+                <div className="space-y-0.5 mb-2">
+                  {ERP_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedERPFormat(template.id)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left",
+                        selectedERPFormat === template.id 
+                          ? "bg-blue-50 text-blue-700" 
+                          : "text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      {selectedERPFormat === template.id && <Check size={14} className="text-blue-600" />}
+                      {selectedERPFormat !== template.id && <span className="w-[14px]" />}
+                      {template.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="h-px bg-gray-100 my-2" />
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  Download as
+                </div>
+                <div className="space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => exportToExcel()}
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileText size={16} className="text-green-600" />
+                    Excel (.xlsx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV()}
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FileText size={16} className="text-blue-600" />
+                    CSV (.csv)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Zoom */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-xl px-1">
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={() => setZoomLevel(prev => Math.max(0.5, Math.round((prev - 0.1) * 100) / 100))}
+              title="Zoom out"
+              className="h-7 w-7 rounded-lg"
+            >
+              −
+            </Button>
+            <span className="w-10 text-center text-xs font-medium text-muted-foreground">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={() => setZoomLevel(prev => Math.min(2, Math.round((prev + 0.1) * 100) / 100))}
+              title="Zoom in"
+              className="h-7 w-7 rounded-lg"
+            >
+              +
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Toolbar - Clean Layout */}
+      <div className="md:hidden flex items-center justify-between h-auto px-2 py-2 border-b border-gray-100 bg-white gap-2">
+        {/* Left: Cell Reference (if active) */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {activeCell && (
+            <div className="flex items-center px-2.5 py-1 bg-muted rounded-lg">
+              <span className="text-xs font-semibold text-foreground">{getColumnLabel(activeCell.c)}{activeCell.r + 1}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Undo/Redo + Export + Filter (when recording) */}
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          {/* Undo/Redo */}
+          <div className="flex items-center gap-0.5">
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={onUndo} 
+              disabled={file.currentHistoryIndex <= 0} 
+              title="Undo (Ctrl+Z)"
+              className="min-h-[44px] min-w-[44px]"
+            >
+              <Undo size={18} />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon-sm"
+              onClick={onRedo} 
+              disabled={file.currentHistoryIndex >= file.history.length - 1} 
+              title="Redo (Ctrl+Y)"
+              className="min-h-[44px] min-w-[44px]"
             >
               <Redo size={18} />
             </Button>
@@ -1410,7 +1563,7 @@ const SpreadsheetView: React.FC = () => {
               variant="ghost"
               size="icon-sm"
               disabled={isExporting}
-              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+              className="min-h-[44px] min-w-[44px]"
               onClick={() => setShowExportMenu(prev => !prev)}
               title="Export"
             >
@@ -1468,48 +1621,11 @@ const SpreadsheetView: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile Sidebar Toggle */}
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setIsSidebarOpen(true)}
-              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
-            >
-              <Wand2 size={18} />
-            </Button>
-          )}
-
           {isRecording && file && (
-            <Button variant="ghost" size="icon-sm" onClick={() => setShowFilterModal(true)} className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0">
+            <Button variant="ghost" size="icon-sm" onClick={() => setShowFilterModal(true)} className="min-h-[44px] min-w-[44px]">
               <Filter size={18} />
             </Button>
           )}
-
-          {/* Zoom - Desktop only */}
-          <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded-xl px-1">
-            <Button 
-              variant="ghost" 
-              size="icon-sm"
-              onClick={() => setZoomLevel(prev => Math.max(0.5, Math.round((prev - 0.1) * 100) / 100))}
-              title="Zoom out"
-              className="h-7 w-7 rounded-lg"
-            >
-              −
-            </Button>
-            <span className="w-10 text-center text-xs font-medium text-muted-foreground">
-              {Math.round(zoomLevel * 100)}%
-            </span>
-            <Button 
-              variant="ghost" 
-              size="icon-sm"
-              onClick={() => setZoomLevel(prev => Math.min(2, Math.round((prev + 0.1) * 100) / 100))}
-              title="Zoom in"
-              className="h-7 w-7 rounded-lg"
-            >
-              +
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -1841,43 +1957,49 @@ const SpreadsheetView: React.FC = () => {
         </Sheet>
       )}
 
-      {/* AI Chat Button - Bottom Right */}
-      <button
-        onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center z-40 min-h-[56px] min-w-[56px]"
-        aria-label="Open AI Chat"
-      >
-        <MessageSquare size={24} />
-      </button>
-
-      {/* Full-Screen Chat Modal */}
-      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-        <DialogContent 
-          className="fixed inset-0 w-full h-full max-w-none max-h-none rounded-none p-0 z-[200] bg-white translate-x-0 translate-y-0"
-          showCloseButton={false}
+      {/* AI Chat Button - Bottom Right (Mobile Only) */}
+      {isMobile && (
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center z-40 min-h-[56px] min-w-[56px]"
+          aria-label="Open AI Chat"
         >
-          <div className="absolute top-4 left-4 z-50">
-            <button
-              onClick={() => setIsChatOpen(false)}
-              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Close chat"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <div className="w-full h-full pt-12">
-            <Sidebar 
-              activeFile={file}
-              files={allFiles} 
-              history={chatHistory}
-              onUpdateHistory={handleUpdateChatHistory}
-              onPinToDashboard={() => {}}
-              credits={credits}
-              onUseCredit={handleUseCredit} 
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+          <MessageSquare size={24} />
+        </button>
+      )}
+
+      {/* Full-Screen Chat Modal (Mobile Only) */}
+      {isMobile && (
+        <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+          <DialogContent 
+            className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none p-0 z-[200] bg-white translate-x-0 translate-y-0 m-0 !top-0 !left-0 !right-0 !bottom-0"
+            showCloseButton={false}
+          >
+            <div className="absolute top-4 left-4 z-50">
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Close chat"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="w-full flex flex-col" style={{ height: '100vh', maxHeight: '100vh', paddingTop: '3rem' }}>
+              <div className="flex-1 overflow-hidden">
+                <Sidebar 
+                  activeFile={file}
+                  files={allFiles} 
+                  history={chatHistory}
+                  onUpdateHistory={handleUpdateChatHistory}
+                  onPinToDashboard={() => {}}
+                  credits={credits}
+                  onUseCredit={handleUseCredit} 
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
