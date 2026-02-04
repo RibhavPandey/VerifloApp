@@ -5,7 +5,7 @@ import {
   Bold, Italic, Underline, Check, X, 
   Scissors, CaseUpper, CaseLower, CaseSensitive, CopyMinus, Undo, Redo,
   Globe, Loader2, ChevronLeft, ChevronRight, Download, ChevronDown, FileText,
-  Wand2, Sparkles, Filter
+  Wand2, Sparkles, Filter, MessageSquare
 } from 'lucide-react';
 import { ExcelFile, CellStyle, AutomationStep, Job, FileSnapshot, ChatMessage } from '../types';
 import { HyperFormula } from 'hyperformula';
@@ -21,6 +21,7 @@ import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 import { Sheet, SheetContent } from './ui/sheet';
 import { useIsMobile } from './ui/use-mobile';
+import { Dialog, DialogContent } from './ui/dialog';
 
 const ROW_HEIGHT = 24;
 const DEFAULT_COL_WIDTH = 100;
@@ -195,6 +196,7 @@ const SpreadsheetView: React.FC = () => {
   const [file, setFile] = useState<ExcelFile | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Debounced DB save (reduces frequent writes while keeping UI instant)
   const saveTimerRef = useRef<number | null>(null);
@@ -1366,8 +1368,18 @@ const SpreadsheetView: React.FC = () => {
       
       {/* MINIMAL TOP BAR - Clean & Modern */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between h-auto md:h-12 px-2 md:px-4 py-2 md:py-0 border-b border-gray-100 bg-white gap-2 md:gap-0">
-        {/* Left: Undo/Redo + Cell Reference */}
+        {/* Left: Cell Reference (if active) */}
         <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          {activeCell && (
+            <div className="hidden sm:flex items-center px-2.5 py-1 bg-muted rounded-lg">
+              <span className="text-xs font-semibold text-foreground">{getColumnLabel(activeCell.c)}{activeCell.r + 1}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Undo/Redo + Export + Filter (when recording) + Sidebar Toggle (mobile) */}
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+          {/* Undo/Redo */}
           <div className="flex items-center gap-0.5">
             <Button 
               variant="ghost" 
@@ -1375,7 +1387,7 @@ const SpreadsheetView: React.FC = () => {
               onClick={onUndo} 
               disabled={file.currentHistoryIndex <= 0} 
               title="Undo (Ctrl+Z)"
-              className="rounded-lg min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             >
               <Undo size={18} />
             </Button>
@@ -1385,68 +1397,24 @@ const SpreadsheetView: React.FC = () => {
               onClick={onRedo} 
               disabled={file.currentHistoryIndex >= file.history.length - 1} 
               title="Redo (Ctrl+Y)"
-              className="rounded-lg min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
             >
               <Redo size={18} />
             </Button>
           </div>
-          
-          {activeCell && (
-            <div className="hidden sm:flex items-center px-2.5 py-1 bg-muted rounded-lg">
-              <span className="text-xs font-semibold text-foreground">{getColumnLabel(activeCell.c)}{activeCell.r + 1}</span>
-            </div>
-          )}
-        </div>
 
-        {/* Center: Formula Bar */}
-        <div className="flex-1 max-w-2xl mx-0 md:mx-4 min-w-0">
-          <div className="flex items-center gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-muted/50 rounded-lg border border-transparent focus-within:border-ring focus-within:bg-background focus-within:shadow-sm transition-all">
-            <span className="text-muted-foreground text-sm font-medium hidden sm:inline">fx</span>
-            <input 
-              type="text" 
-              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground min-h-[40px] md:min-h-0"
-              placeholder={activeCell ? "Enter value or formula..." : "Select a cell"}
-              value={editValue}
-              onChange={(e) => {
-                setEditValue(e.target.value);
-                if (activeCell) setIsEditing(true);
-              }}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); }}
-            />
-          </div>
-        </div>
-
-        {/* Right: Filter (when recording) + Export + Sidebar Toggle (mobile) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Mobile Sidebar Toggle */}
-          {isMobile && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSidebarOpen(true)}
-              className="rounded-xl min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
-            >
-              <Wand2 size={16} />
-            </Button>
-          )}
-          {isRecording && file && (
-            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 min-h-[44px] md:min-h-0">
-              <Filter size={16} />
-              <span className="hidden sm:inline">Filter rows</span>
-            </Button>
-          )}
           {/* Export with ERP Format inside */}
           <div className="relative" ref={exportMenuRef}>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon-sm"
               disabled={isExporting}
-              className="rounded-xl min-h-[44px] md:min-h-0"
+              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
               onClick={() => setShowExportMenu(prev => !prev)}
+              title="Export"
             >
-              <Download size={16} />
-              <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
+              <Download size={18} />
             </Button>
             {showExportMenu && (
               <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300] max-w-[calc(100vw-2rem)]">
@@ -1499,6 +1467,24 @@ const SpreadsheetView: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Mobile Sidebar Toggle */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setIsSidebarOpen(true)}
+              className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+            >
+              <Wand2 size={18} />
+            </Button>
+          )}
+
+          {isRecording && file && (
+            <Button variant="ghost" size="icon-sm" onClick={() => setShowFilterModal(true)} className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0">
+              <Filter size={18} />
+            </Button>
+          )}
 
           {/* Zoom - Desktop only */}
           <div className="hidden md:flex items-center gap-0.5 bg-muted/50 rounded-xl px-1">
@@ -1854,6 +1840,44 @@ const SpreadsheetView: React.FC = () => {
           </SheetContent>
         </Sheet>
       )}
+
+      {/* AI Chat Button - Bottom Right */}
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center z-40 min-h-[56px] min-w-[56px]"
+        aria-label="Open AI Chat"
+      >
+        <MessageSquare size={24} />
+      </button>
+
+      {/* Full-Screen Chat Modal */}
+      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+        <DialogContent 
+          className="fixed inset-0 w-full h-full max-w-none max-h-none rounded-none p-0 z-[200] bg-white translate-x-0 translate-y-0"
+          showCloseButton={false}
+        >
+          <div className="absolute top-4 left-4 z-50">
+            <button
+              onClick={() => setIsChatOpen(false)}
+              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close chat"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="w-full h-full pt-12">
+            <Sidebar 
+              activeFile={file}
+              files={allFiles} 
+              history={chatHistory}
+              onUpdateHistory={handleUpdateChatHistory}
+              onPinToDashboard={() => {}}
+              credits={credits}
+              onUseCredit={handleUseCredit} 
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

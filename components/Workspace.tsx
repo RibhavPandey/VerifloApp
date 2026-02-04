@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Bell, Cloud, Coins, Download, Loader2, Plus, 
+  Cloud, Coins, Download, Loader2, Plus, 
   StopCircle, Zap, Workflow as WorkflowIcon, Play, CheckCircle2, X, Trash2, FileSpreadsheet, Menu
 } from 'lucide-react';
 import { ExcelFile, Job, Workflow, AutomationStep } from '../types';
@@ -539,7 +539,7 @@ const Workspace: React.FC = () => {
                        <button 
                             onClick={handleAutomateClick}
                             disabled={isWorkflowRunning}
-                            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-xs md:text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
+                            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs md:text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
                        >
                            {isWorkflowRunning ? (
                                <Loader2 size={16} className="animate-spin text-gray-500" />
@@ -610,16 +610,13 @@ const Workspace: React.FC = () => {
                    )}
                </div>
                
-               <div className="hidden sm:flex items-center gap-1.5 px-3 md:px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 text-xs md:text-sm font-semibold shadow-sm">
-                  <Coins size={16} className="text-blue-600" />
+               <div className="hidden sm:flex items-center gap-1.5 px-3 md:px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 text-xs md:text-sm font-medium">
+                  <Coins size={16} className="text-gray-600" />
                   <span className="whitespace-nowrap">{documentsUsed}/{documentsLimit} docs · {credits} credits</span>
                </div>
-               <div className="sm:hidden flex items-center px-2 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-lg border border-blue-200 shadow-sm min-h-[44px]">
-                  <Coins size={16} className="text-blue-600" />
+               <div className="sm:hidden flex items-center px-2 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 min-h-[44px]">
+                  <Coins size={16} className="text-gray-600" />
                </div>
-
-               <div className="h-6 w-px bg-gray-200 mx-1 hidden md:block"></div>
-               <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-0 md:min-w-0"><Bell size={20} /></button>
             </div>
          </header>
 
