@@ -15,24 +15,24 @@
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 0%;
 
-  --primary: 0 100% 60%;
+  --primary: 210 100% 70%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 60 100% 50%;
-  --secondary-foreground: 0 0% 0%;
+  --secondary: 210 100% 95%;
+  --secondary-foreground: 210 100% 50%;
 
-  --muted: 0 0% 94%;
-  --muted-foreground: 0 0% 20%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 210 10% 40%;
 
-  --accent: 217 100% 50%;
+  --accent: 210 100% 65%;
   --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 0% 0%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 0 0% 0%;
-  --input: 0 0% 0%;
-  --ring: 0 100% 60%;
+  --border: 210 20% 90%;
+  --input: 210 20% 90%;
+  --ring: 210 100% 70%;
 
   --chart-1: 0 100% 60%;
   --chart-2: 60 100% 50%;
@@ -40,7 +40,7 @@
   --chart-4: 120 60% 45%;
   --chart-5: 300 60% 45%;
 
-  --radius: 0rem;
+  --radius: 0.75rem;
 
   --sidebar: 0 0% 94%;
   --sidebar-foreground: 0 0% 0%;
@@ -51,12 +51,12 @@
   --sidebar-border: 0 0% 0%;
   --sidebar-ring: 0 100% 60%;
 
-  --shadow-x: 4px;
+  --shadow-x: 0px;
   --shadow-y: 4px;
-  --shadow-blur: 0px;
+  --shadow-blur: 12px;
   --shadow-spread: 0px;
-  --shadow-opacity: 1;
-  --shadow-color: 0 0% 0%;
+  --shadow-opacity: 0.1;
+  --shadow-color: 210 50% 20%;
 }
 
 /* =========================
@@ -177,6 +177,24 @@
     }
   }
 
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes gradient-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
   .animate-fade-in-up {
     animation: fade-in-up 0.8s ease-out;
   }
@@ -187,6 +205,15 @@
 
   .animate-spin-slow {
     animation: spin-slow 20s linear infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  .animate-gradient-pulse {
+    animation: gradient-pulse 4s ease-in-out infinite;
   }
 
   .animation-delay-100 {

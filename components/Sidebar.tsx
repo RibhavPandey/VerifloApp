@@ -454,7 +454,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-white relative">
+        <div className="flex flex-col h-full bg-white relative w-full" style={{ width: '100%', maxWidth: '100%' }}>
 
             {/* HEADER */}
             <div className="h-12 border-b border-slate-100 flex items-center justify-between px-4 bg-white z-10">

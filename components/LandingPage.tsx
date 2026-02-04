@@ -56,21 +56,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background landing-font">
-      <Navbar />
-      
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 md:py-32">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="mb-6 animate-fade-in-up text-balance font-mono text-4xl font-bold leading-tight text-foreground animation-delay-100 md:text-5xl">
+    <div className="min-h-screen bg-white">
+      <div className="bg-gradient-to-b from-[#7f9ddf] via-blue-500 to-blue-50">
+        <Navbar />
+        
+        {/* Hero Section */}
+        <section className="relative overflow-hidden py-16 md:py-24 lg:py-32">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="mx-auto max-w-5xl text-center">
+            <h1 className="mb-6 md:mb-8 animate-fade-in-up text-balance text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight text-white animation-delay-100">
               Hours of manual work.{" "}
-              <span className="relative inline-block border-2 border-black bg-primary px-4 py-2 text-primary-foreground shadow-lg">
+              <span className="text-white">
                 Done in seconds.
               </span>
             </h1>
 
-            <p className="mb-10 animate-fade-in-up text-pretty text-lg leading-relaxed text-muted-foreground animation-delay-200 md:text-xl">
+            <p className="mb-10 md:mb-12 animate-fade-in-up text-pretty text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 animation-delay-200 max-w-3xl mx-auto">
               Extract invoices, automate workflows, chat with your data—all in one workspace. Export to Tally, QuickBooks, Zoho.
             </p>
 
@@ -78,7 +79,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               <Button
                 onClick={onStart}
                 size="lg" 
-                className="group w-full bg-orange-500 text-black brutalist-border font-black text-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all sm:w-auto"
+                className="group w-full sm:w-auto bg-white text-[#7f9ddf] hover:bg-white/90 font-semibold text-base sm:text-lg rounded-xl px-8 py-6 shadow-lg hover:shadow-xl transition-all"
               >
                 Start Free Trial
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -86,59 +87,64 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full border-2 font-mono text-lg font-bold sm:w-auto bg-transparent"
+                className="w-full sm:w-auto border-2 border-white bg-transparent text-white hover:bg-white/10 font-semibold text-base sm:text-lg rounded-xl px-8 py-6 backdrop-blur-sm transition-all"
               >
                 <Play className="mr-2 h-5 w-5" />
-                Watch Demo
+                Schedule Demo
               </Button>
             </div>
 
-            <p className="mt-6 animate-fade-in-up text-sm text-muted-foreground animation-delay-400">
+            <p className="mt-6 md:mt-8 animate-fade-in-up text-sm sm:text-base text-white/80 animation-delay-400">
               No credit card • 14-day free trial • Cancel anytime
             </p>
           </div>
-        </div>
 
-        {/* Floating Elements */}
-        <div
-          className="pointer-events-none absolute left-10 top-20 hidden animate-float lg:block"
-          style={{ transform: `translateY(${scrollY * 0.1}px)` }}
-        >
-          <div className="h-20 w-20 border-2 border-black bg-accent shadow-lg" />
-        </div>
-        <div
-          className="pointer-events-none absolute right-10 top-40 hidden animate-float lg:block animation-delay-200"
-          style={{ transform: `translateY(${scrollY * 0.15}px)` }}
-        >
-          <div className="h-16 w-16 rotate-45 border-2 border-black bg-secondary shadow-lg" />
+          {/* App Interface Image */}
+          <div className="mt-16 md:mt-20 lg:mt-24 animate-fade-in-up animation-delay-400">
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-white">
+                <img 
+                  src="/hero-app-interface.png" 
+                  alt="Veriflo Workspace Interface" 
+                  className="w-full h-auto object-contain block"
+                  loading="eager"
+                  onError={(e) => {
+                    console.error('Failed to load hero image');
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+      </div>
 
       {/* Demo Video Section */}
       <section 
         data-section-id="demo-video"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`py-24 md:py-32 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
               See It In Action
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto">
               Watch: Invoice upload → extraction → review → export to Tally in under 2 minutes.
             </p>
           </div>
           
-          <div className="max-w-4xl mx-auto">
-            <div className="relative aspect-video border-2 border-black bg-muted shadow-2xl">
+          <div className="max-w-5xl mx-auto">
+            <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 shadow-2xl">
               {/* Video Placeholder - User will replace this */}
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
                 <div className="text-center">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full border-2 border-black bg-primary flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
-                    <Play className="h-10 w-10 text-primary-foreground ml-1" fill="currentColor" />
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-lg">
+                    <Play className="h-10 w-10 text-white ml-1" fill="currentColor" />
                   </div>
-                  <p className="font-mono font-bold text-lg">Demo Video</p>
-                  <p className="text-sm text-muted-foreground mt-2">Replace this placeholder with your demo video</p>
+                  <p className="font-semibold text-lg text-gray-900">Demo Video</p>
+                  <p className="text-sm text-gray-600 mt-2">Replace this placeholder with your demo video</p>
                 </div>
               </div>
             </div>
@@ -150,19 +156,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       <section 
         id="features" 
         data-section-id="features"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`py-24 md:py-32 transition-opacity duration-700 bg-white ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
+            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
               Why Veriflo Beats the Tools You Use Now
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg sm:text-xl text-gray-600">
               What you do now vs Veriflo
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3">
             {[
               {
                 icon: FileText,
@@ -180,21 +186,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
                 icon: MessageSquare,
                 title: "AI Chat",
                 description: "Copy-paste to ChatGPT. Data leaves. Context lost next session. Veriflo: Chat in your workspace. Data stays. Full context.",
-                color: "bg-secondary text-black",
+                color: "bg-primary",
               },
             ].map((feature, index) => (
               <Card
                 key={index}
-                className={`group cursor-pointer border-2 border-black p-6 shadow-md transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-2xs ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                className={`group cursor-pointer bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 style={{ transitionDelay: `${index * 100}ms`, transitionDuration: '700ms' }}
               >
                 <div
-                  className={`mb-4 inline-flex h-12 w-12 items-center justify-center border-2 border-black ${feature.color} shadow-xs`}
+                  className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-xl ${feature.color} shadow-sm`}
                 >
-                  <feature.icon className="h-6 w-6" />
+                  <feature.icon className="h-7 w-7 text-white" />
                 </div>
-                <h3 className="mb-2 font-mono text-xl font-bold">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="mb-3 text-2xl font-bold text-gray-900">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
               </Card>
             ))}
           </div>
@@ -205,14 +211,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       <section 
         id="how-it-works" 
         data-section-id="how-it-works"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`py-24 md:py-32 transition-opacity duration-700 bg-gray-50 ${visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
+            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
               How It Works
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg sm:text-xl text-gray-600">
               Save time and stay efficient—here's how
             </p>
           </div>
@@ -241,11 +247,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               },
             ].map((item, index) => (
               <div key={index} className="relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
-                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center border-2 border-black bg-primary font-mono text-2xl font-bold text-primary-foreground shadow-md">
+                <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-white shadow-sm">
                   {item.step}
                 </div>
-                <h3 className="mb-2 font-mono text-2xl font-bold">{item.title}</h3>
-                <p className="text-muted-foreground">{item.description}</p>
+                <h3 className="mb-3 text-2xl font-bold text-gray-900">{item.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
@@ -256,19 +262,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       <section 
         id="comparison" 
         data-section-id="comparison"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('comparison') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`py-24 md:py-32 transition-opacity duration-700 bg-white ${visibleSections.has('comparison') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
+            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
               The Veriflo Difference
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg sm:text-xl text-gray-600">
               20 invoices → spreadsheet → accounting in under 5 minutes.
             </p>
           </div>
 
-          <div className="mx-auto max-w-4xl space-y-10">
+          <div className="mx-auto max-w-5xl space-y-12">
             {[
               { 
                 feature: "Invoice → accounting", 
@@ -291,24 +297,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
                 veriflo: "One app. One subscription."
               },
             ].map((row, i) => (
-              <div key={i} className="pl-6 border-l-2 border-muted-foreground/20">
-                <p className="font-mono font-bold text-foreground mb-3">{row.feature}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">What they use</p>
-                    <ul className="text-sm text-muted-foreground space-y-1">
+              <div key={i} className="pl-8 border-l-4 border-primary/20">
+                <p className="text-xl font-bold text-gray-900 mb-4">{row.feature}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">What they use</p>
+                    <ul className="text-sm text-gray-600 space-y-2">
                       {row.otherCons.map((con, j) => (
                         <li key={j} className="flex gap-2">
-                          <span className="text-destructive/80">×</span>
+                          <span className="text-red-500 font-bold">×</span>
                           {con}
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div>
-                    <p className="text-xs font-medium text-primary uppercase tracking-wide mb-2">Veriflo</p>
-                    <p className="flex items-center gap-2 text-foreground font-medium">
-                      <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="bg-blue-50 rounded-xl p-6">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">Veriflo</p>
+                    <p className="flex items-center gap-2 text-gray-900 font-semibold">
+                      <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                       {row.veriflo}
                     </p>
                   </div>
@@ -323,14 +329,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       <section 
         id="use-cases" 
         data-section-id="use-cases"
-        className={`py-20 transition-opacity duration-700 ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`py-24 md:py-32 transition-opacity duration-700 bg-gray-50 ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
+            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
               Built for Finance Teams, E-commerce Teams, and Data Teams
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg sm:text-xl text-gray-600">
               One app. One workflow. One export.
             </p>
           </div>
@@ -355,16 +361,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             ].map((useCase, index) => (
               <Card
                 key={index}
-                className={`border-2 border-black p-6 shadow-md transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-2xs ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                className={`bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 style={{ transitionDelay: `${index * 150}ms`, transitionDuration: '700ms' }}
               >
-                <h3 className="mb-3 font-mono text-2xl font-bold">{useCase.title}</h3>
-                <p className="mb-4 text-muted-foreground">{useCase.description}</p>
-                <div className="space-y-2">
+                <h3 className="mb-4 text-2xl font-bold text-gray-900">{useCase.title}</h3>
+                <p className="mb-6 text-gray-600 leading-relaxed">{useCase.description}</p>
+                <div className="space-y-3">
                   {useCase.examples.map((example, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="h-2 w-2 border-2 border-black bg-primary" />
-                      <span className="text-sm font-medium">{example}</span>
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      <span className="text-sm font-medium text-gray-700">{example}</span>
                     </div>
                   ))}
                 </div>
@@ -377,41 +383,41 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       {/* CTA Section */}
       <section 
         data-section-id="cta"
-        className={`bg-primary py-20 text-primary-foreground transition-opacity duration-700 ${visibleSections.has('cta') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`bg-gradient-to-br from-blue-500 to-blue-600 py-24 md:py-32 text-white transition-opacity duration-700 ${visibleSections.has('cta') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="mb-4 font-mono text-4xl font-bold md:text-5xl">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="mb-6 text-4xl sm:text-5xl md:text-6xl font-bold">
             One App. One Subscription. Replace 3 Tools.
           </h2>
-          <p className="mb-8 text-xl text-primary-foreground/90">
+          <p className="mb-10 text-xl sm:text-2xl text-white/90 max-w-2xl mx-auto">
             14 days free. No credit card. Full access. Cancel anytime.
           </p>
           <Button
             onClick={onStart}
             size="lg"
-            className="group border-2 border-black bg-secondary font-mono text-lg font-bold text-secondary-foreground shadow-xl hover:bg-secondary/90"
+            className="group bg-white text-primary hover:bg-gray-50 font-semibold text-lg rounded-xl px-8 py-6 shadow-xl hover:shadow-2xl transition-all"
           >
             Start Your Free Trial
             <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
           </Button>
-          <p className="mt-4 text-sm text-primary-foreground/80">
+          <p className="mt-6 text-sm sm:text-base text-white/80">
             14 days free • No credit card • Full feature access • Cancel anytime
           </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-background py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid gap-8 md:grid-cols-4">
+      <footer className="bg-white py-16 border-t border-gray-200">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-12 md:grid-cols-4">
             <div>
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center border-2 border-black bg-primary">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                   <VerifloLogo size={20} />
                 </div>
-                <span className="font-mono text-lg font-bold">Veriflo</span>
+                <span className="text-lg font-bold text-gray-900">Veriflo</span>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600 leading-relaxed">
                 Invoice automation, workflow automation, and AI chat for ecommerce and finance.
               </p>
             </div>
@@ -422,11 +428,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
               { title: "Company", links: ["About", "Blog", "Careers", "Contact"] },
             ].map((column, index) => (
               <div key={index}>
-                <h3 className="mb-4 font-mono font-bold">{column.title}</h3>
-                <ul className="space-y-2">
+                <h3 className="mb-4 font-semibold text-gray-900">{column.title}</h3>
+                <ul className="space-y-3">
                   {column.links.map((link) => (
                     <li key={link}>
-                      <a href={link === "Contact" ? "/contact" : "#"} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                      <a href={link === "Contact" ? "/contact" : "#"} className="text-sm text-gray-600 transition-colors hover:text-primary">
                         {link}
                       </a>
                     </li>
@@ -436,15 +442,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             ))}
           </div>
 
-          <div className="mt-12 pt-8 border-t border-border">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+          <div className="mt-16 pt-8 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
               <div>
                 © 2025 Veriflo. All rights reserved.
               </div>
               <div className="flex gap-6">
-                <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
-                <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
-                <a href="/contact" className="hover:text-foreground transition-colors">Contact</a>
+                <a href="/terms" className="hover:text-primary transition-colors">Terms of Service</a>
+                <a href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</a>
+                <a href="/contact" className="hover:text-primary transition-colors">Contact</a>
               </div>
             </div>
           </div>

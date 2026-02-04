@@ -50,6 +50,13 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        sans: ['Inter', 'Geist Sans', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'soft': '0 4px 12px rgba(91, 159, 237, 0.1)',
+        'soft-lg': '0 10px 30px rgba(91, 159, 237, 0.15)',
+      },
     },
   },
   plugins: [],

@@ -195,7 +195,7 @@ const SpreadsheetView: React.FC = () => {
   const [job, setJob] = useState<Job | null>(null);
   const [file, setFile] = useState<ExcelFile | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Always start closed on mobile
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Debounced DB save (reduces frequent writes while keeping UI instant)
@@ -1940,10 +1940,10 @@ const SpreadsheetView: React.FC = () => {
         </div>
       )}
 
-      {/* MOBILE SIDEBAR */}
+      {/* MOBILE SIDEBAR - Only opens when explicitly triggered */}
       {isMobile && (
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-          <SheetContent side="right" className="w-[90vw] sm:w-[400px] p-0">
+          <SheetContent side="right" className="w-[90vw] sm:w-[400px] p-0 z-[150]">
             <Sidebar 
               activeFile={file}
               files={allFiles} 
@@ -1969,36 +1969,67 @@ const SpreadsheetView: React.FC = () => {
       )}
 
       {/* Full-Screen Chat Modal (Mobile Only) */}
-      {isMobile && (
-        <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-          <DialogContent 
-            className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none p-0 z-[200] bg-white translate-x-0 translate-y-0 m-0 !top-0 !left-0 !right-0 !bottom-0"
-            showCloseButton={false}
+      {isMobile && isChatOpen && (
+        <div 
+          className="fixed inset-0 z-[200] bg-white overflow-hidden"
+          style={{ 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            margin: 0,
+            padding: 0
+          }}
+        >
+          {/* Close Button */}
+          <div className="absolute top-4 left-4 z-50">
+            <button
+              onClick={() => setIsChatOpen(false)}
+              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close chat"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          {/* Sidebar Container */}
+          <div 
+            className="w-full h-full flex flex-col"
+            style={{ 
+              width: '100%',
+              height: '100%',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              paddingTop: '3rem',
+              overflow: 'hidden'
+            }}
           >
-            <div className="absolute top-4 left-4 z-50">
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Close chat"
-              >
-                <X size={20} />
-              </button>
+            <div 
+              className="flex-1 w-full overflow-hidden"
+              style={{ 
+                width: '100%',
+                maxWidth: '100%',
+                height: '100%',
+                overflow: 'hidden'
+              }}
+            >
+              <Sidebar 
+                activeFile={file}
+                files={allFiles} 
+                history={chatHistory}
+                onUpdateHistory={handleUpdateChatHistory}
+                onPinToDashboard={() => {}}
+                credits={credits}
+                onUseCredit={handleUseCredit} 
+              />
             </div>
-            <div className="w-full flex flex-col" style={{ height: '100vh', maxHeight: '100vh', paddingTop: '3rem' }}>
-              <div className="flex-1 overflow-hidden">
-                <Sidebar 
-                  activeFile={file}
-                  files={allFiles} 
-                  history={chatHistory}
-                  onUpdateHistory={handleUpdateChatHistory}
-                  onPinToDashboard={() => {}}
-                  credits={credits}
-                  onUseCredit={handleUseCredit} 
-                />
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       )}
     </div>
   );
