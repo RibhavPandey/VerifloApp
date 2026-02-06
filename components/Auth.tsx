@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { supabase } from "../lib/supabase"
 import { trackEvent } from "../lib/analytics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
+import VerifloLogo from "./VerifloLogo"
 
 interface AuthProps {
   onSuccess: () => void
@@ -195,6 +197,14 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">
+      {/* Logo top left */}
+      <Link to="/" className="absolute top-6 left-6 z-20 flex items-center gap-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 backdrop-blur-sm shadow-sm">
+          <VerifloLogo size={24} />
+        </div>
+        <span className="text-xl font-bold text-foreground">Veriflo</span>
+      </Link>
+
       {/* Blur background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 -left-20 w-72 h-72 bg-primary rounded-full opacity-20 blur-3xl animate-pulse" />
@@ -365,6 +375,13 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
             </div>
           </div>
         </Card>
+
+        {/* Links below modal */}
+        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-muted-foreground">
+          <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+          <span>·</span>
+          <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+        </div>
       </div>
     </div>
   )
