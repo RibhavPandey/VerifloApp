@@ -213,7 +213,7 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
         <Card className="w-full max-w-md p-8 border-4 border-border shadow-xl bg-card/95 backdrop-blur-sm">
           <div className="space-y-6">
             {/* Header */}
@@ -377,7 +377,7 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
         </Card>
 
         {/* Links below modal */}
-        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-muted-foreground">
+        <div className="mt-8 flex items-center justify-center gap-4 text-sm text-muted-foreground">
           <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
           <span>·</span>
           <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
