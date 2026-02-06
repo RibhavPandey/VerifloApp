@@ -137,45 +137,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
           
           <div className="max-w-5xl mx-auto">
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100 shadow-2xl">
-              {/* 
-                VIDEO OPTIONS:
-                1. For YouTube: Replace VIDEO_URL with your YouTube video ID (e.g., "dQw4w9WgXcQ")
-                2. For Vimeo: Replace VIDEO_URL with your Vimeo video ID
-                3. For local video: Use a video file in public folder and uncomment the <video> tag below
-                4. For direct video URL: Use the <video> tag with src pointing to your video URL
-              */}
-              
-              {/* Option 1: YouTube Embed (Recommended) */}
-              <iframe
-                className="w-full h-full"
-                src="https://www.youtube.com/embed/VIDEO_URL?rel=0&modestbranding=1"
-                title="Demo Video"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-
-              {/* Option 2: Local Video File (Uncomment to use) */}
-              {/* 
               <video
                 className="w-full h-full object-contain"
                 controls
-                poster="/video-poster.jpg" // Optional: Add a poster image
+                preload="metadata"
               >
                 <source src="/demo-video.mp4" type="video/mp4" />
+                <source src="/demo-video.webm" type="video/webm" />
                 Your browser does not support the video tag.
               </video>
-              */}
-
-              {/* Option 3: Direct Video URL (Uncomment to use) */}
-              {/* 
-              <video
-                className="w-full h-full object-contain"
-                controls
-              >
-                <source src="https://your-video-url.com/video.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              */}
             </div>
           </div>
         </div>
