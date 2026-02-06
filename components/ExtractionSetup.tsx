@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Upload, FileText, Tag, Plus, ArrowRight, X, AlertCircle, Check, Loader2, StopCircle } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { WorkspaceContextType } from './Workspace';
@@ -20,7 +20,7 @@ const STANDARD_FIELDS = [
 ];
 
 const ExtractionSetup: React.FC = () => {
-    const { onJobCreated, refreshData, isRecording, handleRecordAction, onStopRecording } = useOutletContext<WorkspaceContextType>();
+    const { onJobCreated, refreshData, isRecording, handleRecordAction, onStopRecording, documentsUsed, documentsLimit } = useOutletContext<WorkspaceContextType>();
     const navigate = useNavigate();
     const { addToast } = useToast();
     
@@ -38,6 +38,7 @@ const ExtractionSetup: React.FC = () => {
         failed: string[];
         processing: string[];
     } | null>(null);
+    const cancelRequestedRef = useRef(false);
 
     const allAvailableFields = useMemo(() => {
         const customObjs = customFields.map(f => ({
@@ -93,6 +94,19 @@ const ExtractionSetup: React.FC = () => {
 
     const runExtraction = async () => {
         if (pendingUploads.length === 0) return;
+
+        const limit = documentsLimit ?? 10;
+        const used = documentsUsed ?? 0;
+        if (limit === 0 || used >= limit) {
+            addToast(
+                'error',
+                'Document quota used',
+                limit === 0 ? 'You have no document quota. Upgrade your plan to extract.' : `You've used all ${limit} documents this period. Upgrade or wait for reset.`,
+                limit > 0 ? undefined : { label: 'View Pricing', onClick: () => navigate('/pricing') }
+            );
+            if (refreshData) refreshData();
+            return;
+        }
         
         // Record extraction step if recording workflow
         if (isRecording && handleRecordAction) {
@@ -105,6 +119,7 @@ const ExtractionSetup: React.FC = () => {
             });
         }
         
+        cancelRequestedRef.current = false;
         setIsProcessing(true);
         setExtractionProgress({
             current: 0,
@@ -165,12 +180,14 @@ const ExtractionSetup: React.FC = () => {
         };
 
         for (let i = 0; i < pendingUploads.length; i += BATCH_SIZE) {
+            if (cancelRequestedRef.current) break;
             const batch = pendingUploads.slice(i, i + BATCH_SIZE);
             setExtractionProgress(prev => ({
                 ...prev!,
                 processing: batch.map(f => f.name)
             }));
             const results = await Promise.allSettled(batch.map(processFile));
+            if (cancelRequestedRef.current) break;
             const batchCompleted: string[] = [];
             const batchFailed: string[] = [];
             for (let j = 0; j < results.length; j++) {
@@ -196,6 +213,13 @@ const ExtractionSetup: React.FC = () => {
             }));
         }
         
+        if (cancelRequestedRef.current) {
+            setIsProcessing(false);
+            setExtractionProgress(null);
+            addToast('info', 'Cancelled', 'Extraction was cancelled.');
+            return;
+        }
+        
         const failedNames = pendingUploads.filter(f => !newDocs.some(d => d.fileName === f.name)).map(f => f.name);
 
         if (newDocs.length === 0) {
@@ -209,6 +233,7 @@ const ExtractionSetup: React.FC = () => {
                 msg?.toLowerCase().includes('document quota')
             );
             if (isInsufficientQuota) {
+                if (refreshData) refreshData();
                 addToast(
                     'error',
                     'Quota Exceeded',
@@ -259,19 +284,32 @@ const ExtractionSetup: React.FC = () => {
         navigate(`/extract/${jobId}/review`);
     };
 
+    const handleCancelExtraction = () => {
+        cancelRequestedRef.current = true;
+    };
+
     if (isProcessing && extractionProgress) {
         const pct = extractionProgress.total > 0 ? Math.round((extractionProgress.current / extractionProgress.total) * 100) : 0;
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 bg-background" style={{ zoom: 0.85 }}>
                 <div className="bg-card border border-border p-8 rounded-2xl shadow-lg max-w-lg w-full">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    <div className="flex items-start justify-between gap-3 mb-6">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                            </div>
+                            <div className="min-w-0">
+                                <h2 className="text-xl font-bold text-foreground">AI is Analyzing Documents</h2>
+                                <p className="text-sm text-muted-foreground">{extractionProgress.current} of {extractionProgress.total} complete</p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-foreground">AI is Analyzing Documents</h2>
-                            <p className="text-sm text-muted-foreground">{extractionProgress.current} of {extractionProgress.total} complete</p>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={handleCancelExtraction}
+                            className="flex-shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                            Cancel
+                        </button>
                     </div>
                     <div className="w-full bg-muted h-2 rounded-full overflow-hidden mb-4">
                         <div 

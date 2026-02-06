@@ -116,17 +116,17 @@ const FilterStepModal: React.FC<{
   const needsValue = operator !== 'not_empty' && operator !== 'empty';
   return (
     <div className="fixed inset-0 z-[250] bg-black/40 flex items-center justify-center backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base md:text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+      <div className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base md:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
           <Filter className="text-purple-500" /> Filter Rows
         </h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Column</label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Column</label>
             <select
               value={colIndex}
               onChange={(e) => setColIndex(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-3 md:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
+              className="w-full border border-border rounded-lg px-3 py-3 md:py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
             >
               {columns.map((col, i) => (
                 <option key={i} value={i}>{col || `Column ${i + 1}`}</option>
@@ -134,11 +134,11 @@ const FilterStepModal: React.FC<{
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Condition</label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Condition</label>
             <select
               value={operator}
               onChange={(e) => setOperator(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-3 md:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
+              className="w-full border border-border rounded-lg px-3 py-3 md:py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
             >
               {FILTER_OPERATORS.map((op) => (
                 <option key={op.value} value={op.value}>{op.label}</option>
@@ -147,19 +147,19 @@ const FilterStepModal: React.FC<{
           </div>
           {needsValue && (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Value</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Value</label>
               <input
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="Enter value..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-3 md:py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
+                className="w-full border border-border rounded-lg px-3 py-3 md:py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[44px] md:min-h-0"
               />
             </div>
           )}
         </div>
         <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-3 md:py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg min-h-[44px] md:min-h-0">Cancel</button>
+          <button onClick={onClose} className="px-4 py-3 md:py-2 text-muted-foreground font-medium hover:bg-muted rounded-lg min-h-[44px] md:min-h-0">Cancel</button>
           <button
             onClick={() => onApply(colIndex, operator, value)}
             disabled={needsValue && !value.trim()}
@@ -1356,7 +1356,7 @@ const SpreadsheetView: React.FC = () => {
           <div className="absolute bottom-8 z-50" style={{ right: isSidebarOpen ? '400px' : '0px' }}>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="w-6 h-12 bg-white border border-gray-200 rounded-l-lg flex items-center justify-center shadow-md hover:bg-gray-50 text-gray-500 transition-all min-h-[44px]"
+              className="w-6 h-12 bg-card border border-border rounded-l-lg flex items-center justify-center shadow-md hover:bg-muted text-muted-foreground transition-all min-h-[44px]"
             >
               {isSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
             </button>
@@ -1364,11 +1364,11 @@ const SpreadsheetView: React.FC = () => {
         )}
 
         {/* MAIN EDITOR AREA */}
-        <div className="flex-1 flex flex-col h-full bg-white text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
+        <div className="flex-1 flex flex-col h-full bg-background text-sm min-w-0" onMouseUp={() => setIsDragging(false)}>
       
       {/* TOP BAR */}
       {/* Desktop Toolbar - Original Layout */}
-      <div className="hidden md:flex items-center justify-between h-12 px-4 border-b border-gray-100 bg-white">
+      <div className="hidden md:flex items-center justify-between h-12 px-4 border-b border-border bg-background">
         {/* Left: Undo/Redo + Cell Reference */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="flex items-center gap-0.5">
@@ -1441,8 +1441,8 @@ const SpreadsheetView: React.FC = () => {
               <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
             </Button>
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300]">
-                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl p-2 z-[300]">
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Template
                 </div>
                 <div className="space-y-0.5 mb-2">
@@ -1454,8 +1454,8 @@ const SpreadsheetView: React.FC = () => {
                       className={cn(
                         "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left",
                         selectedERPFormat === template.id 
-                          ? "bg-blue-50 text-blue-700" 
-                          : "text-gray-600 hover:bg-gray-50"
+                          ? "bg-primary/10 text-primary" 
+                          : "text-foreground hover:bg-muted"
                       )}
                     >
                       {selectedERPFormat === template.id && <Check size={14} className="text-blue-600" />}
@@ -1464,8 +1464,8 @@ const SpreadsheetView: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                <div className="h-px bg-gray-100 my-2" />
-                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <div className="h-px bg-border my-2" />
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Download as
                 </div>
                 <div className="space-y-0.5">
@@ -1473,7 +1473,7 @@ const SpreadsheetView: React.FC = () => {
                     type="button"
                     onClick={() => exportToExcel()}
                     disabled={isExporting}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FileText size={16} className="text-green-600" />
                     Excel (.xlsx)
@@ -1482,7 +1482,7 @@ const SpreadsheetView: React.FC = () => {
                     type="button"
                     onClick={() => exportToCSV()}
                     disabled={isExporting}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FileText size={16} className="text-blue-600" />
                     CSV (.csv)
@@ -1520,7 +1520,7 @@ const SpreadsheetView: React.FC = () => {
       </div>
 
       {/* Mobile Toolbar - Clean Layout */}
-      <div className="md:hidden flex items-center justify-between h-auto px-2 py-2 border-b border-gray-100 bg-white gap-2">
+      <div className="md:hidden flex items-center justify-between h-auto px-2 py-2 border-b border-border bg-background gap-2">
         {/* Left: Cell Reference (if active) */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {activeCell && (
@@ -1570,8 +1570,8 @@ const SpreadsheetView: React.FC = () => {
               <Download size={18} />
             </Button>
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover shadow-xl p-2 z-[300] max-w-[calc(100vw-2rem)]">
-                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl p-2 z-[300] max-w-[calc(100vw-2rem)]">
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Template
                 </div>
                 <div className="space-y-0.5 mb-2">
@@ -1583,8 +1583,8 @@ const SpreadsheetView: React.FC = () => {
                       className={cn(
                         "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left",
                         selectedERPFormat === template.id 
-                          ? "bg-blue-50 text-blue-700" 
-                          : "text-gray-600 hover:bg-gray-50"
+                          ? "bg-primary/10 text-primary" 
+                          : "text-foreground hover:bg-muted"
                       )}
                     >
                       {selectedERPFormat === template.id && <Check size={14} className="text-blue-600" />}
@@ -1593,8 +1593,8 @@ const SpreadsheetView: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                <div className="h-px bg-gray-100 my-2" />
-                <div className="px-2 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <div className="h-px bg-border my-2" />
+                <div className="px-2 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Download as
                 </div>
                 <div className="space-y-0.5">
@@ -1602,7 +1602,7 @@ const SpreadsheetView: React.FC = () => {
                     type="button"
                     onClick={() => exportToExcel()}
                     disabled={isExporting}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FileText size={16} className="text-green-600" />
                     Excel (.xlsx)
@@ -1611,7 +1611,7 @@ const SpreadsheetView: React.FC = () => {
                     type="button"
                     onClick={() => exportToCSV()}
                     disabled={isExporting}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors text-left text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FileText size={16} className="text-blue-600" />
                     CSV (.csv)
@@ -1632,7 +1632,7 @@ const SpreadsheetView: React.FC = () => {
       <div className="flex-1 relative overflow-hidden">
         <div
           ref={containerRef}
-          className="w-full h-full overflow-auto bg-gray-100 relative focus:outline-none touch-pan-x touch-pan-y"
+          className="w-full h-full overflow-auto bg-muted/30 relative focus:outline-none touch-pan-x touch-pan-y"
           tabIndex={0}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsGridFocused(true)}
@@ -1646,8 +1646,8 @@ const SpreadsheetView: React.FC = () => {
                 <div style={{ width: scaledHeaderColWidth + getScaledColLeft(colCount), height: scaledHeaderRowHeight + rowCount * scaledRowHeight, position: 'relative', transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)' }}>
                     
                     {/* Headers */}
-                    <div className="sticky top-0 z-40 flex bg-[#f8f9fa] shadow-[0_1px_0_#e2e8f0]" style={{ height: scaledHeaderRowHeight, width: scaledHeaderColWidth + getScaledColLeft(colCount) }}>
-                        <div onClick={handleSelectAll} className="sticky left-0 z-50 bg-[#f8f9fa] border-r border-gray-300 border-b flex-shrink-0 flex items-center justify-center font-bold text-blue-600 cursor-pointer" style={{ width: scaledHeaderColWidth, fontSize: 12 * zoomLevel }}>
+                    <div className="sticky top-0 z-40 flex bg-muted shadow-[0_1px_0_hsl(var(--border))]" style={{ height: scaledHeaderRowHeight, width: scaledHeaderColWidth + getScaledColLeft(colCount) }}>
+                        <div onClick={handleSelectAll} className="sticky left-0 z-50 bg-muted border-r border-border border-b flex-shrink-0 flex items-center justify-center font-bold text-primary cursor-pointer" style={{ width: scaledHeaderColWidth, fontSize: 12 * zoomLevel }}>
                             {activeCell ? `${getColumnLabel(activeCell.c)}${activeCell.r + 1}` : ''}
                         </div>
               <div className="relative flex-1">
@@ -1657,7 +1657,7 @@ const SpreadsheetView: React.FC = () => {
                     return (
                         <div 
                            key={c} 
-                           className="absolute top-0 border-r border-gray-300 border-b flex items-center justify-center font-semibold text-gray-500 bg-[#f8f9fa] group cursor-pointer hover:bg-gray-200"
+                           className="absolute top-0 border-r border-border border-b flex items-center justify-center font-semibold text-muted-foreground bg-muted group cursor-pointer hover:bg-muted/80"
                            style={{ left: getScaledColLeft(c), width: getScaledColWidth(c), height: scaledHeaderRowHeight, fontSize: 12 * zoomLevel }}
                            onClick={() => handleColumnHeaderClick(c)}
                         >
@@ -1674,14 +1674,14 @@ const SpreadsheetView: React.FC = () => {
 
             <div className="relative">
                  {/* Sticky Row Numbers */}
-                 <div className="sticky left-0 z-40 bg-[#f8f9fa] border-r border-gray-300" style={{ width: scaledHeaderColWidth, height: rowCount * scaledRowHeight }}>
+                 <div className="sticky left-0 z-40 bg-muted border-r border-border" style={{ width: scaledHeaderColWidth, height: rowCount * scaledRowHeight }}>
                     {Array.from({ length: endRow - startRow + 1 }).map((_, i) => {
                         const r = startRow + i;
                         if (r >= rowCount) return null;
                         return (
                             <div 
                                 key={r}
-                                className="absolute left-0 border-b border-gray-300 flex items-center justify-center font-semibold text-gray-500 bg-[#f8f9fa] cursor-pointer hover:bg-gray-200"
+                                className="absolute left-0 border-b border-border flex items-center justify-center font-semibold text-muted-foreground bg-muted cursor-pointer hover:bg-muted/80"
                                 style={{ top: r * scaledRowHeight, width: scaledHeaderColWidth, height: scaledRowHeight, fontSize: 12 * zoomLevel }}
                                 onClick={() => handleRowHeaderClick(r)}
                             >
@@ -1705,7 +1705,7 @@ const SpreadsheetView: React.FC = () => {
                     return (
                       <div
                           key={`${r}-${c}`}
-                          className="absolute border-r border-b border-gray-200 bg-white overflow-hidden whitespace-nowrap flex items-center cursor-cell select-none"
+                          className="absolute border-r border-b border-border bg-background overflow-hidden whitespace-nowrap flex items-center cursor-cell select-none"
                           style={{
                               top: r * scaledRowHeight,
                               left: getScaledColLeft(c),
@@ -1801,7 +1801,7 @@ const SpreadsheetView: React.FC = () => {
                               key={id}
                               type="button"
                               onClick={() => { handleDataAction(id); setShowTransformMenu(false); }}
-                              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-muted text-left"
                             >
                               <Icon size={14} className="text-muted-foreground" />
                               {label}
@@ -1866,27 +1866,27 @@ const SpreadsheetView: React.FC = () => {
         </div>
 
       {isProcessingAI && (
-        <div className="absolute inset-0 z-[60] bg-white/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center animate-in fade-in zoom-in duration-200">
-            <Loader2 className="animate-spin text-blue-600 mb-3" size={32} />
-            <h3 className="font-bold text-gray-800">Thinking...</h3>
-            <p className="text-sm text-gray-500">The AI is analyzing patterns & data.</p>
+        <div className="absolute inset-0 z-[60] bg-background/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-xl flex flex-col items-center animate-in fade-in zoom-in duration-200">
+            <Loader2 className="animate-spin text-primary mb-3" size={32} />
+            <h3 className="font-bold text-foreground">Thinking...</h3>
+            <p className="text-sm text-muted-foreground">The AI is analyzing patterns & data.</p>
           </div>
         </div>
       )}
 
       {enrichmentTargetCol !== null && enrichmentPrompt !== null && !isProcessingAI && (
         <div className="fixed inset-0 z-[250] bg-black/40 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <div className="bg-card border border-border p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
               <Globe className="text-blue-500" /> Enrich Data
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Cost: <span className="font-bold text-blue-600">20 Credits per 100 items</span>. 
+            <p className="text-sm text-muted-foreground mb-4">
+              Cost: <span className="font-bold text-primary">20 Credits per 100 items</span>. 
               What info do you want for <strong>{getColumnLabel(enrichmentTargetCol)}</strong>?
             </p>
             <textarea 
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              className="w-full border border-border rounded-lg p-3 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
               rows={3}
               placeholder="e.g. Find the CEO, Headquarters, and Website"
               autoFocus
@@ -1896,7 +1896,7 @@ const SpreadsheetView: React.FC = () => {
             <div className="flex justify-end gap-2">
               <button 
                 onClick={() => { setEnrichmentTargetCol(null); setEnrichmentPrompt(null); }}
-                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
+                className="px-4 py-2 text-muted-foreground font-medium hover:bg-muted rounded-lg"
               >
                 Cancel
               </button>
@@ -1923,7 +1923,7 @@ const SpreadsheetView: React.FC = () => {
       {/* DESKTOP SIDEBAR */}
       {!isMobile && (
         <div 
-          className="flex-shrink-0 h-full border-l border-gray-200 bg-white overflow-hidden transition-all duration-300 hidden md:block"
+          className="flex-shrink-0 h-full border-l border-border bg-background overflow-hidden transition-all duration-300 hidden md:block"
           style={{ width: isSidebarOpen ? '400px' : '0px', borderLeftWidth: isSidebarOpen ? '1px' : '0px' }}
         >
           <div className="w-[400px] h-full">
@@ -1971,7 +1971,7 @@ const SpreadsheetView: React.FC = () => {
       {/* Full-Screen Chat Modal (Mobile Only) */}
       {isMobile && isChatOpen && (
         <div 
-          className="fixed inset-0 z-[200] bg-white overflow-hidden"
+          className="fixed inset-0 z-[200] bg-background overflow-hidden"
           style={{ 
             position: 'fixed',
             top: 0,
@@ -1990,7 +1990,7 @@ const SpreadsheetView: React.FC = () => {
           <div className="absolute top-4 left-4 z-50">
             <button
               onClick={() => setIsChatOpen(false)}
-              className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:bg-muted rounded-lg transition-colors"
               aria-label="Close chat"
             >
               <X size={20} />

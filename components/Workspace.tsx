@@ -102,9 +102,13 @@ const Workspace: React.FC = () => {
           setWorkflows(fetchedWorkflows);
           if (profile) {
             setCredits(profile.credits ?? 0);
-            setDocumentsUsed(profile.documents_used ?? 0);
-            const limits = getPlanLimits(profile.subscription_plan || 'free');
-            setDocumentsLimit(limits.documents || 10);
+            setDocumentsUsed(typeof profile.documents_used === 'number' ? profile.documents_used : 0);
+            const plan = profile.subscription_plan || 'free';
+            const limits = getPlanLimits(plan);
+            setDocumentsLimit(limits.documents ?? 10);
+          } else {
+            const limits = getPlanLimits('free');
+            setDocumentsLimit(limits.documents ?? 10);
           }
           
           if (fetchedJobs.length > 0) {
@@ -591,7 +595,7 @@ const Workspace: React.FC = () => {
                    {isRecording ? (
                        <button 
                            onClick={handleStopRecording}
-                           className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg font-bold text-xs md:text-sm animate-pulse hover:bg-red-100 transition-colors min-h-[44px] md:min-h-0"
+                           className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50 rounded-lg font-bold text-xs md:text-sm animate-pulse hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors min-h-[44px] md:min-h-0"
                        >
                            <StopCircle size={16} fill="currentColor" />
                            <span className="hidden md:inline w-20 text-center">Stop</span>
@@ -682,7 +686,7 @@ const Workspace: React.FC = () => {
                {/* User Menu Dropdown */}
                <DropdownMenu>
                  <DropdownMenuTrigger asChild>
-                   <button className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] text-[#555] font-semibold text-xs md:text-sm hover:opacity-80 transition-opacity ring-1 ring-[#ddd] min-h-[44px] min-w-[44px]">
+                   <button className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-muted to-muted/80 text-foreground font-semibold text-xs md:text-sm hover:opacity-80 transition-opacity ring-1 ring-border min-h-[44px] min-w-[44px]">
                      {user ? getUserInitials() : <CircleUser size={20} />}
                    </button>
                  </DropdownMenuTrigger>

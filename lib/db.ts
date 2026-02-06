@@ -10,11 +10,11 @@ export const db = {
     if (!user) return null;
 
     try {
-      // 1. Try to fetch existing profile with retry
+      // 1. Try to fetch existing profile with retry (explicit columns so docs limit is correct)
       const { data, error } = await withRetry(async () => {
         const result = await supabase
           .from('profiles')
-          .select('*')
+          .select('credits, documents_used, subscription_plan, email, id')
           .eq('id', user.id)
           .single();
         if (result.error && !isTransientError(result.error)) {

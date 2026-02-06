@@ -27,6 +27,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack, onStart }) => {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const { addToast } = useToast()
 
+  // Pricing page always uses light mode
+  useEffect(() => {
+    document.documentElement.classList.remove('dark')
+  }, [])
+
   useEffect(() => {
     const dodoSuccess = searchParams.get('dodo_success')
     if (dodoSuccess === '1') {

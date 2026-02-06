@@ -26,6 +26,11 @@ const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
   const [nameError, setNameError] = useState<string | null>(null)
   const [showConfirmMessage, setShowConfirmMessage] = useState(false)
   
+  // Login page always uses light mode
+  useEffect(() => {
+    document.documentElement.classList.remove('dark')
+  }, [])
+  
   useEffect(() => {
     if (sessionStorage.getItem('pendingEmailConfirmation')) {
       sessionStorage.removeItem('pendingEmailConfirmation')
