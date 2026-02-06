@@ -57,7 +57,7 @@ const Workspace: React.FC = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [credits, setCredits] = useState(0);
   const [documentsUsed, setDocumentsUsed] = useState(0);
-  const [documentsLimit, setDocumentsLimit] = useState(10);
+  const [documentsLimit, setDocumentsLimit] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // --- UI STATE ---
@@ -101,14 +101,16 @@ const Workspace: React.FC = () => {
           setJobs(fetchedJobs);
           setWorkflows(fetchedWorkflows);
           if (profile) {
-            setCredits(profile.credits ?? 0);
+            const cred = typeof profile.credits === 'number' ? Math.max(0, profile.credits) : 0;
+            setCredits(cred);
             setDocumentsUsed(typeof profile.documents_used === 'number' ? profile.documents_used : 0);
             const plan = profile.subscription_plan || 'free';
             const limits = getPlanLimits(plan);
-            setDocumentsLimit(limits.documents ?? 10);
+            setDocumentsLimit(typeof limits.documents === 'number' ? limits.documents : 0);
           } else {
-            const limits = getPlanLimits('free');
-            setDocumentsLimit(limits.documents ?? 10);
+            setCredits(0);
+            setDocumentsUsed(0);
+            setDocumentsLimit(0);
           }
           
           if (fetchedJobs.length > 0) {
@@ -180,10 +182,11 @@ const Workspace: React.FC = () => {
       try {
           const profile = await db.getUserProfile();
           if (profile) {
-            setCredits(profile.credits ?? 0);
+            const cred = typeof profile.credits === 'number' ? Math.max(0, profile.credits) : 0;
+            setCredits(cred);
             setDocumentsUsed(profile.documents_used ?? 0);
             const limits = getPlanLimits(profile.subscription_plan || 'free');
-            setDocumentsLimit(limits.documents || 10);
+            setDocumentsLimit(typeof limits.documents === 'number' ? limits.documents : 0);
           }
       } catch (e) {
           console.error("Failed to refresh credits", e);
