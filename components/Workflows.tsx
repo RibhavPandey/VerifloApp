@@ -211,22 +211,19 @@ const Workflows: React.FC = () => {
     };
 
     return (
-        <div 
-            className="h-full overflow-y-auto"
-            style={{ background: 'linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%)' }}
-        >
+        <div className="h-full overflow-y-auto bg-background">
             <div className="max-w-5xl mx-auto px-4 py-6 md:px-8 md:py-10">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-start justify-between mb-6 md:mb-8 gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-[28px] font-semibold text-[#0a0a0a] tracking-[-0.02em] mb-1">
+                        <h1 className="text-2xl md:text-[28px] font-semibold text-foreground tracking-[-0.02em] mb-1">
                             Workflows
                         </h1>
-                        <p className="text-sm md:text-[15px] text-[#666]">Automate repetitive tasks and save time</p>
+                        <p className="text-sm md:text-[15px] text-muted-foreground">Automate repetitive tasks and save time</p>
                     </div>
                     <button 
                         onClick={onCreateWorkflow}
-                        className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-all shadow-sm min-h-[44px] md:min-h-0"
+                        className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-3 md:py-2.5 text-[13px] font-medium text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 transition-all shadow-sm min-h-[44px] md:min-h-0"
                     >
                         <Plus size={16} />
                         Create Workflow
@@ -235,57 +232,57 @@ const Workflows: React.FC = () => {
 
                 {/* Table */}
                 {workflows.length === 0 ? (
-                    <div className="text-center py-12 md:py-20 bg-white rounded-2xl border border-dashed border-[#e5e5e5] px-4">
-                        <div className="w-14 h-14 rounded-full bg-[#f5f5f5] flex items-center justify-center mx-auto mb-5">
-                            <WorkflowIcon size={28} className="text-[#999]" />
+                    <div className="text-center py-12 md:py-20 bg-card rounded-2xl border border-dashed border-border px-4">
+                        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-5">
+                            <WorkflowIcon size={28} className="text-muted-foreground" />
                         </div>
-                        <h3 className="text-base md:text-[17px] font-medium text-[#0a0a0a] mb-2">No workflows yet</h3>
-                        <p className="text-sm md:text-[14px] text-[#666] mb-6 max-w-sm mx-auto">
+                        <h3 className="text-base md:text-[17px] font-medium text-foreground mb-2">No workflows yet</h3>
+                        <p className="text-sm md:text-[14px] text-muted-foreground mb-6 max-w-sm mx-auto">
                             Record actions in a spreadsheet to create reusable workflows that automate your work.
                         </p>
                         <button 
                             onClick={onCreateWorkflow}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-colors min-h-[44px] md:min-h-0"
+                            className="inline-flex items-center justify-center gap-2 px-5 py-3 md:py-2.5 text-[13px] font-medium text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 transition-colors min-h-[44px] md:min-h-0"
                         >
                             <Zap size={14} />
                             Create Your First Workflow
                         </button>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl border border-[#e5e5e5] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                         {/* Desktop Table */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b border-[#f0f0f0]">
-                                        <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide">Workflow</th>
-                                        <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide">Type</th>
-                                        <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide">Last Run</th>
-                                        <th className="px-6 py-4 text-[11px] font-semibold text-[#999] uppercase tracking-wide text-right">Actions</th>
+                                    <tr className="border-b border-border">
+                                        <th className="px-6 py-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Workflow</th>
+                                        <th className="px-6 py-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Type</th>
+                                        <th className="px-6 py-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Last Run</th>
+                                        <th className="px-6 py-4 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {workflows.map((w, idx) => (
                                         <tr 
                                             key={w.id} 
-                                            className={`group hover:bg-[#fafafa] transition-colors ${idx !== workflows.length - 1 ? 'border-b border-[#f5f5f5]' : ''}`}
+                                            className={`group hover:bg-muted/50 transition-colors ${idx !== workflows.length - 1 ? 'border-b border-border' : ''}`}
                                         >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-lg bg-[#f5f5f5] flex items-center justify-center">
-                                                        <WorkflowIcon size={16} className="text-[#666]" />
+                                                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+                                                        <WorkflowIcon size={16} className="text-muted-foreground" />
                                                     </div>
                                                     <div>
-                                                        <div className="text-[14px] font-medium text-[#0a0a0a]">{w.name}</div>
-                                                        <div className="text-[12px] text-[#999]">{w.steps.length} step{w.steps.length !== 1 ? 's' : ''}</div>
+                                                        <div className="text-[14px] font-medium text-foreground">{w.name}</div>
+                                                        <div className="text-[12px] text-muted-foreground">{w.steps.length} step{w.steps.length !== 1 ? 's' : ''}</div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
                                                     w.sourceType === 'pdf' 
-                                                        ? 'bg-orange-50 text-orange-600 border border-orange-100' 
-                                                        : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                        ? 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30' 
+                                                        : 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                                                 }`}>
                                                     {w.sourceType === 'pdf' ? <ScanText size={11} /> : <FileSpreadsheet size={11} />}
                                                     {w.sourceType === 'pdf' ? 'PDF' : 'Spreadsheet'}
@@ -295,10 +292,10 @@ const Workflows: React.FC = () => {
                                                 {w.lastRun ? (
                                                     <div className="flex items-center gap-2">
                                                         <div className={`w-1.5 h-1.5 rounded-full ${w.lastRunStatus === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                                        <span className="text-[13px] text-[#666]">{getRelativeTime(w.lastRun)}</span>
+                                                        <span className="text-[13px] text-muted-foreground">{getRelativeTime(w.lastRun)}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-[13px] text-[#999]">Never run</span>
+                                                    <span className="text-[13px] text-muted-foreground">Never run</span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
@@ -308,7 +305,7 @@ const Workflows: React.FC = () => {
                                                     <button 
                                                         onClick={() => handleRun(w)}
                                                         disabled={runningWorkflowId !== null}
-                                                        className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                                        className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                                                         title="Run workflow"
                                                     >
                                                         {runningWorkflowId === w.id ? (
@@ -320,7 +317,7 @@ const Workflows: React.FC = () => {
                                                 <button
                                                     onClick={() => handleEdit(w)}
                                                     disabled={runningWorkflowId !== null}
-                                                    className="p-2 rounded-lg text-[#999] hover:text-purple-600 hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                                    className="p-2 rounded-lg text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                                                     title="Edit workflow"
                                                 >
                                                     <Pencil size={15} />
@@ -328,7 +325,7 @@ const Workflows: React.FC = () => {
                                                 <button
                                                     onClick={() => handleDelete(w.id)}
                                                     disabled={runningWorkflowId !== null}
-                                                    className="p-2 rounded-lg text-[#999] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                                    className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                                                     title="Delete workflow"
                                                 >
                                                     <Trash2 size={15} />
@@ -341,25 +338,25 @@ const Workflows: React.FC = () => {
                         </table>
                         </div>
                         {/* Mobile Cards */}
-                        <div className="md:hidden divide-y divide-[#f5f5f5]">
+                        <div className="md:hidden divide-y divide-border">
                             {workflows.map((w) => (
-                                <div key={w.id} className="p-4 hover:bg-[#fafafa] transition-colors">
+                                <div key={w.id} className="p-4 hover:bg-muted/50 transition-colors">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="w-9 h-9 rounded-lg bg-[#f5f5f5] flex items-center justify-center flex-shrink-0">
-                                                <WorkflowIcon size={16} className="text-[#666]" />
+                                            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                                                <WorkflowIcon size={16} className="text-muted-foreground" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-[14px] font-medium text-[#0a0a0a] truncate">{w.name}</div>
-                                                <div className="text-[12px] text-[#999]">{w.steps.length} step{w.steps.length !== 1 ? 's' : ''}</div>
+                                                <div className="text-[14px] font-medium text-foreground truncate">{w.name}</div>
+                                                <div className="text-[12px] text-muted-foreground">{w.steps.length} step{w.steps.length !== 1 ? 's' : ''}</div>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center justify-between gap-2 mb-3">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
                                             w.sourceType === 'pdf' 
-                                                ? 'bg-orange-50 text-orange-600 border border-orange-100' 
-                                                : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                ? 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30' 
+                                                : 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                                         }`}>
                                             {w.sourceType === 'pdf' ? <ScanText size={11} /> : <FileSpreadsheet size={11} />}
                                             {w.sourceType === 'pdf' ? 'PDF' : 'Spreadsheet'}
@@ -367,17 +364,17 @@ const Workflows: React.FC = () => {
                                         {w.lastRun ? (
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-1.5 h-1.5 rounded-full ${w.lastRunStatus === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                                <span className="text-[13px] text-[#666]">{getRelativeTime(w.lastRun)}</span>
+                                                <span className="text-[13px] text-muted-foreground">{getRelativeTime(w.lastRun)}</span>
                                             </div>
                                         ) : (
-                                            <span className="text-[13px] text-[#999]">Never run</span>
+                                            <span className="text-[13px] text-muted-foreground">Never run</span>
                                         )}
                                     </div>
                                     <div className="flex items-center justify-end gap-2">
                                         <button 
                                             onClick={() => handleRun(w)}
                                             disabled={runningWorkflowId !== null}
-                                            className="p-2.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                            className="p-2.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                                             title="Run workflow"
                                         >
                                             {runningWorkflowId === w.id ? (
@@ -389,7 +386,7 @@ const Workflows: React.FC = () => {
                                         <button
                                             onClick={() => handleEdit(w)}
                                             disabled={runningWorkflowId !== null}
-                                            className="p-2.5 rounded-lg text-[#999] hover:text-purple-600 hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                            className="p-2.5 rounded-lg text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                                             title="Edit workflow"
                                         >
                                             <Pencil size={18} />
@@ -397,7 +394,7 @@ const Workflows: React.FC = () => {
                                         <button
                                             onClick={() => handleDelete(w.id)}
                                             disabled={runningWorkflowId !== null}
-                                            className="p-2.5 rounded-lg text-[#999] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                            className="p-2.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
                                             title="Delete workflow"
                                         >
                                             <Trash2 size={18} />
@@ -413,30 +410,30 @@ const Workflows: React.FC = () => {
             {/* Delete Confirmation Modal */}
             {deleteWorkflowId && (
                 <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setDeleteWorkflowId(null)}>
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-card rounded-2xl shadow-2xl max-w-md w-full border border-border animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="p-4 md:p-6">
                             <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                                    <AlertTriangle size={24} className="text-red-600" />
+                                <div className="w-12 h-12 rounded-full bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle size={24} className="text-red-600 dark:text-red-400" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1">Delete Workflow</h3>
-                                    <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                                    <h3 className="text-base md:text-lg font-semibold text-foreground mb-1">Delete Workflow</h3>
+                                    <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
                                 </div>
                                 <button
                                     onClick={() => setDeleteWorkflowId(null)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                    className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
-                            <p className="text-sm text-gray-600 mb-6">
-                                Are you sure you want to delete <span className="font-semibold text-gray-900">{workflows.find(w => w.id === deleteWorkflowId)?.name}</span>? This will permanently remove the workflow and all its steps.
+                            <p className="text-sm text-muted-foreground mb-6">
+                                Are you sure you want to delete <span className="font-semibold text-foreground">{workflows.find(w => w.id === deleteWorkflowId)?.name}</span>? This will permanently remove the workflow and all its steps.
                             </p>
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
                                 <button
                                     onClick={() => setDeleteWorkflowId(null)}
-                                    className="px-4 py-3 md:py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors min-h-[44px] md:min-h-0"
+                                    className="px-4 py-3 md:py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg transition-colors min-h-[44px] md:min-h-0"
                                 >
                                     Cancel
                                 </button>
@@ -456,37 +453,37 @@ const Workflows: React.FC = () => {
             {/* Edit Workflow Modal */}
             {editWorkflow && (
                 <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setEditWorkflow(null)}>
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col border border-gray-200 animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
-                        <div className="p-4 md:p-6 border-b border-gray-100">
-                            <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1">Edit Workflow</h3>
-                            <p className="text-sm text-gray-500">Change name, reorder or remove steps.</p>
+                    <div className="bg-card rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col border border-border animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-4 md:p-6 border-b border-border">
+                            <h3 className="text-base md:text-lg font-semibold text-foreground mb-1">Edit Workflow</h3>
+                            <p className="text-sm text-muted-foreground">Change name, reorder or remove steps.</p>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 md:p-6">
                             <div className="mb-4">
-                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Name</label>
+                                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1.5">Name</label>
                                 <input
                                     type="text"
                                     value={editName}
                                     onChange={(e) => setEditName(e.target.value)}
-                                    className="w-full px-4 py-3 md:py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px] md:min-h-0"
+                                    className="w-full px-4 py-3 md:py-2.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[44px] md:min-h-0"
                                     placeholder="Workflow name"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Steps</label>
+                                <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">Steps</label>
                                 <div className="space-y-2">
                                     {editSteps.map((step, idx) => (
-                                        <div key={step.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                                        <div key={step.id} className="flex items-center gap-2 p-3 bg-muted/50 rounded-xl border border-border group">
                                             <div className="flex flex-col gap-0.5">
-                                                <button onClick={() => handleMoveStep(idx, 'up')} disabled={idx === 0} className="p-1 rounded text-gray-400 hover:text-purple-600 disabled:opacity-30 min-h-[32px] min-w-[32px] flex items-center justify-center"><ChevronUp size={14} /></button>
-                                                <button onClick={() => handleMoveStep(idx, 'down')} disabled={idx === editSteps.length - 1} className="p-1 rounded text-gray-400 hover:text-purple-600 disabled:opacity-30 min-h-[32px] min-w-[32px] flex items-center justify-center"><ChevronDown size={14} /></button>
+                                                <button onClick={() => handleMoveStep(idx, 'up')} disabled={idx === 0} className="p-1 rounded text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-30 min-h-[32px] min-w-[32px] flex items-center justify-center"><ChevronUp size={14} /></button>
+                                                <button onClick={() => handleMoveStep(idx, 'down')} disabled={idx === editSteps.length - 1} className="p-1 rounded text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-30 min-h-[32px] min-w-[32px] flex items-center justify-center"><ChevronDown size={14} /></button>
                                             </div>
-                                            <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs shrink-0">{idx + 1}</div>
+                                            <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">{idx + 1}</div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-medium text-gray-800 truncate">{step.description}</div>
-                                                <div className="text-[10px] text-gray-400 font-mono truncate">{JSON.stringify(step.params)}</div>
+                                                <div className="text-sm font-medium text-foreground truncate">{step.description}</div>
+                                                <div className="text-[10px] text-muted-foreground font-mono truncate">{JSON.stringify(step.params)}</div>
                                             </div>
-                                            <button onClick={() => handleDeleteStep(step.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center">
+                                            <button onClick={() => handleDeleteStep(step.id)} className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center">
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
@@ -494,8 +491,8 @@ const Workflows: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-4 md:p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
-                            <button onClick={() => setEditWorkflow(null)} className="px-4 py-3 md:py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg min-h-[44px] md:min-h-0">Cancel</button>
+                        <div className="p-4 md:p-6 border-t border-border flex flex-col sm:flex-row justify-end gap-3">
+                            <button onClick={() => setEditWorkflow(null)} className="px-4 py-3 md:py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg min-h-[44px] md:min-h-0">Cancel</button>
                             <button onClick={handleSaveEdit} disabled={!editName.trim() || editSteps.length === 0} className="px-4 py-3 md:py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] md:min-h-0">Save</button>
                         </div>
                     </div>
