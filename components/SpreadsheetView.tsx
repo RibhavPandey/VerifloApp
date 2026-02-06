@@ -1892,6 +1892,12 @@ const SpreadsheetView: React.FC = () => {
               autoFocus
               value={enrichmentPrompt || ''}
               onChange={(e) => setEnrichmentPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (enrichmentPrompt?.trim()) handleEnrichment();
+                }
+              }}
             />
             <div className="flex justify-end gap-2">
               <button 

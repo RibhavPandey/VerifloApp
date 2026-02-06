@@ -671,11 +671,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 )}
 
-                <div className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-slate-300/30 focus-within:bg-white transition-all shadow-sm">
+                <div className="relative flex items-center gap-2 bg-muted/50 border border-border rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-ring/30 focus-within:bg-background transition-all shadow-sm">
                     <div className="flex items-center pl-3 pr-2 py-2 flex-shrink-0">
-                        <Sparkles size={16} className="text-slate-400" />
+                        <Sparkles size={16} className="text-muted-foreground" />
                     </div>
-                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                    <div className="w-px h-6 bg-border mx-1"></div>
                     <div className="flex-1 relative">
                         <form onSubmit={handleAISubmit} className="w-full">
                             <textarea
@@ -702,7 +702,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     return files.length >= 2 ? "Type @ to mention a file" : base;
                                 })() : "Upload files to start chat"}
                                 disabled={isLoading}
-                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none overflow-hidden placeholder-slate-400 leading-relaxed"
+                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none overflow-hidden text-foreground placeholder:text-muted-foreground leading-relaxed"
                                 style={{ minHeight: '40px', maxHeight: '160px' }}
                             />
                         </form>
@@ -710,7 +710,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                         onClick={(e) => handleAISubmit(e as any)}
                         disabled={isLoading || !prompt.trim()}
-                        className="p-2 bg-slate-800 text-white rounded-full hover:bg-slate-900 disabled:opacity-50 disabled:bg-slate-300 transition-all shadow-sm"
+                        className="p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 disabled:opacity-50 disabled:bg-muted transition-all shadow-sm"
                     >
                         <Send size={16} />
                     </button>
