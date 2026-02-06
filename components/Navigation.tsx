@@ -70,14 +70,14 @@ const Navigation: React.FC<NavigationProps> = ({
   // Mobile: render as simple content (will be wrapped in Sheet)
   if (isMobile) {
     return (
-      <div className="flex flex-col h-full bg-[#f9f9f9]">
+      <div className="flex flex-col h-full bg-sidebar">
         {/* New Project Button */}
         <div className="px-2 pt-4 pb-2">
           <label 
-            className="flex items-center px-3 py-3 rounded-xl border border-[#e0e0e0] bg-white cursor-pointer hover:bg-[#f5f5f5] overflow-hidden w-full gap-3 min-h-[44px]"
+            className="flex items-center px-3 py-3 rounded-xl border border-border bg-background cursor-pointer hover:bg-muted overflow-hidden w-full gap-3 min-h-[44px]"
           >
-            <Plus size={18} className="text-[#666] flex-shrink-0" strokeWidth={2} />
-            <span className="text-[13px] font-medium text-[#333] whitespace-nowrap">
+            <Plus size={18} className="text-muted-foreground flex-shrink-0" strokeWidth={2} />
+            <span className="text-[13px] font-medium text-foreground whitespace-nowrap">
               New Project
             </span>
             <input type="file" multiple className="hidden" onChange={onFileUpload} accept=".xlsx, .xls, .csv" />
@@ -113,7 +113,7 @@ const Navigation: React.FC<NavigationProps> = ({
           {/* Recent Section */}
           <div className="mt-6 px-2">
             <div className="flex items-center mb-1.5 px-2.5 h-5">
-              <span className="text-[11px] font-semibold text-[#999] uppercase tracking-wide">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 Recent
               </span>
             </div>
@@ -126,7 +126,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 
                 if (recentJobs.length === 0) {
                   return (
-                    <div className="px-2.5 py-2 text-[12px] text-[#999]">
+                    <div className="px-2.5 py-2 text-[12px] text-muted-foreground">
                       No recent projects
                     </div>
                   );
@@ -148,14 +148,14 @@ const Navigation: React.FC<NavigationProps> = ({
         </div>
 
         {/* User Section */}
-        <div className="p-2 border-t border-[#e5e5e5] bg-[#f9f9f9]">
+        <div className="p-2 border-t border-sidebar-border bg-sidebar">
           <div className="flex items-center px-2.5 py-2 rounded-xl overflow-hidden w-full gap-2.5 min-h-[44px]">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center text-muted-foreground font-semibold text-[11px] flex-shrink-0 ring-1 ring-border">
               {getUserInitials()}
             </div>
             <div className="min-w-0 text-left flex-1">
-              <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
-              <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
+              <div className="text-[13px] font-medium text-sidebar-foreground truncate">{user?.name || 'User'}</div>
+              <div className="text-[11px] text-muted-foreground truncate">{user?.email || ''}</div>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@ const Navigation: React.FC<NavigationProps> = ({
   return (
     <div ref={navRef} className="relative w-[68px] h-full flex-shrink-0 z-[200] hidden md:block">
       <div 
-        className={`group absolute top-0 left-0 h-full bg-[#f9f9f9] border-r border-[#e5e5e5] transition-all duration-300 ease-out flex flex-col ${isExpanded ? 'w-[260px] shadow-[4px_0_24px_-2px_rgba(0,0,0,0.08)]' : 'w-[68px]'}`}
+        className={`group absolute top-0 left-0 h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-out flex flex-col ${isExpanded ? 'w-[260px] shadow-[4px_0_24px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_24px_-2px_rgba(0,0,0,0.3)]' : 'w-[68px]'}`}
         style={{ 
           minHeight: '100%'
         }}
@@ -184,12 +184,12 @@ const Navigation: React.FC<NavigationProps> = ({
         <div className="px-2 pt-4 pb-2">
           <label 
             style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-            className={`flex items-center px-3 py-3 rounded-xl border border-[#e0e0e0] bg-white cursor-pointer hover:bg-[#f5f5f5] overflow-hidden ${isExpanded ? 'w-full gap-3' : 'w-[44px] gap-0'}`}
+            className={`flex items-center px-3 py-3 rounded-xl border border-border bg-background cursor-pointer hover:bg-muted overflow-hidden ${isExpanded ? 'w-full gap-3' : 'w-[44px] gap-0'}`}
           >
-            <Plus size={18} className="text-[#666] flex-shrink-0" strokeWidth={2} />
+            <Plus size={18} className="text-muted-foreground flex-shrink-0" strokeWidth={2} />
             <span 
               style={{ transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-              className={`text-[13px] font-medium text-[#333] whitespace-nowrap ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
+              className={`text-[13px] font-medium text-foreground whitespace-nowrap ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
             >
               New Project
             </span>
@@ -226,7 +226,7 @@ const Navigation: React.FC<NavigationProps> = ({
           {/* Recent Section */}
           <div className="mt-6 px-2">
             <div className={`flex items-center mb-1.5 px-2.5 h-5 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
-              <span className="text-[11px] font-semibold text-[#999] uppercase tracking-wide">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 Recent
               </span>
             </div>
@@ -239,7 +239,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 
                 if (recentJobs.length === 0) {
                   return (
-                    <div className={`px-2.5 py-2 text-[12px] text-[#999] transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className={`px-2.5 py-2 text-[12px] text-muted-foreground transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
                       No recent projects
                     </div>
                   );
@@ -261,20 +261,20 @@ const Navigation: React.FC<NavigationProps> = ({
         </div>
 
         {/* User Section */}
-        <div className="p-2 border-t border-[#e5e5e5] bg-[#f9f9f9]">
+        <div className="p-2 border-t border-sidebar-border bg-sidebar">
           <div 
             style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
             className={`flex items-center px-2.5 py-2 rounded-xl overflow-hidden ${isExpanded ? 'w-full gap-2.5' : 'w-[48px] gap-0'}`}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#e8e8e8] to-[#d4d4d4] flex items-center justify-center text-[#555] font-semibold text-[11px] flex-shrink-0 ring-1 ring-[#ddd]">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-muted to-muted/80 flex items-center justify-center text-muted-foreground font-semibold text-[11px] flex-shrink-0 ring-1 ring-border">
               {getUserInitials()}
             </div>
             <div 
               style={{ transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
               className={`min-w-0 text-left flex-1 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
             >
-              <div className="text-[13px] font-medium text-[#333] truncate">{user?.name || 'User'}</div>
-              <div className="text-[11px] text-[#888] truncate">{user?.email || ''}</div>
+              <div className="text-[13px] font-medium text-sidebar-foreground truncate">{user?.name || 'User'}</div>
+              <div className="text-[11px] text-muted-foreground truncate">{user?.email || ''}</div>
             </div>
           </div>
         </div>
@@ -290,12 +290,12 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, isExp
     className={`flex items-center px-3 py-3 rounded-xl text-[13px] relative overflow-hidden min-h-[44px]
       ${isExpanded ? 'w-full gap-3' : 'w-[44px] gap-0'}
       ${isActive 
-        ? 'bg-[#ebebeb] text-[#1a1a1a] font-medium' 
-        : 'text-[#555] hover:bg-[#ebebeb] hover:text-[#1a1a1a]'
+        ? 'bg-muted text-sidebar-foreground font-medium' 
+        : 'text-sidebar-foreground/70 hover:bg-muted hover:text-sidebar-foreground'
       }`}
     title={label} 
   >
-    <div className={`flex-shrink-0 ${isActive ? 'text-[#1a1a1a]' : 'text-[#666]'}`}>
+    <div className={`flex-shrink-0 ${isActive ? 'text-sidebar-foreground' : 'text-sidebar-foreground/70'}`}>
       {icon}
     </div>
     <span 
@@ -305,7 +305,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, isActive, onClick, isExp
       {label}
     </span>
     {isActive && isExpanded && (
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[#1a1a1a] rounded-r-full" />
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-sidebar-primary rounded-r-full" />
     )}
   </button>
 );

@@ -195,14 +195,14 @@ const Dashboard: React.FC = () => {
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-2xl md:text-[28px] font-semibold text-[#0a0a0a] tracking-[-0.02em] mb-1">
+            <h1 className="text-2xl md:text-[28px] font-semibold text-foreground tracking-[-0.02em] mb-1">
               {getGreeting()}{userName ? `, ${userName}` : ''}
             </h1>
-            <p className="text-sm md:text-[15px] text-[#666]">What would you like to do today?</p>
+            <p className="text-sm md:text-[15px] text-muted-foreground">What would you like to do today?</p>
           </div>
           <button 
             onClick={handleLoadDemo}
-            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-all shadow-sm min-h-[44px] md:min-h-0"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-muted-foreground bg-background border border-border rounded-xl hover:border-border/80 hover:text-foreground transition-all shadow-sm min-h-[44px] md:min-h-0"
           >
             <Sparkles size={14} />
             Try Demo
@@ -211,7 +211,7 @@ const Dashboard: React.FC = () => {
 
         {/* ACTION CARDS */}
         <div className="mb-8 md:mb-10">
-          <h2 className="text-[13px] font-semibold text-[#999] uppercase tracking-wide mb-4">Quick Actions</h2>
+          <h2 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wide mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Extract Data Card */}
@@ -236,14 +236,14 @@ const Dashboard: React.FC = () => {
             {/* Upload File Card */}
             <button 
               onClick={() => document.getElementById('hidden-csv-upload')?.click()} 
-              className="group bg-white rounded-2xl p-5 md:p-6 text-left border border-[#e5e5e5] transition-all duration-300 hover:border-[#ccc] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
+              className="group bg-card rounded-2xl p-5 md:p-6 text-left border border-border transition-all duration-300 hover:border-border/80 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.4)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
             >
-              <div className="w-11 h-11 rounded-xl bg-[#f5f5f5] flex items-center justify-center mb-5 group-hover:bg-blue-50 transition-colors">
-                <FileSpreadsheet size={20} className="text-[#666] group-hover:text-blue-600 transition-colors" />
+              <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center mb-5 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/30 transition-colors">
+                <FileSpreadsheet size={20} className="text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
-              <h3 className="text-[17px] font-semibold text-[#0a0a0a] mb-1.5">Upload File</h3>
-              <p className="text-[13px] text-[#666] leading-relaxed">Import CSV or Excel files for analysis</p>
-              <div className="mt-4 flex items-center gap-1 text-[12px] font-medium text-[#999] group-hover:text-blue-600 transition-colors">
+              <h3 className="text-[17px] font-semibold text-foreground mb-1.5">Upload File</h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">Import CSV or Excel files for analysis</p>
+              <div className="mt-4 flex items-center gap-1 text-[12px] font-medium text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 <span>Browse files</span>
                 <ArrowUpRight size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </div>
@@ -252,14 +252,14 @@ const Dashboard: React.FC = () => {
             {/* New Sheet Card */}
             <button 
               onClick={handleCreateEmpty} 
-              className="group bg-white rounded-2xl p-5 md:p-6 text-left border border-[#e5e5e5] transition-all duration-300 hover:border-[#ccc] hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
+              className="group bg-card rounded-2xl p-5 md:p-6 text-left border border-border transition-all duration-300 hover:border-border/80 hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.4)] hover:-translate-y-0.5 min-h-[140px] md:min-h-0"
             >
-              <div className="w-11 h-11 rounded-xl bg-[#f5f5f5] flex items-center justify-center mb-5 group-hover:bg-green-50 transition-colors">
-                <Plus size={20} className="text-[#666] group-hover:text-green-600 transition-colors" />
+              <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center mb-5 group-hover:bg-green-50 dark:group-hover:bg-green-950/30 transition-colors">
+                <Plus size={20} className="text-muted-foreground group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
               </div>
-              <h3 className="text-[17px] font-semibold text-[#0a0a0a] mb-1.5">New Sheet</h3>
-              <p className="text-[13px] text-[#666] leading-relaxed">Start fresh with an empty spreadsheet</p>
-              <div className="mt-4 flex items-center gap-1 text-[12px] font-medium text-[#999] group-hover:text-green-600 transition-colors">
+              <h3 className="text-[17px] font-semibold text-foreground mb-1.5">New Sheet</h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">Start fresh with an empty spreadsheet</p>
+              <div className="mt-4 flex items-center gap-1 text-[12px] font-medium text-muted-foreground group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                 <span>Create new</span>
                 <ArrowUpRight size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </div>
@@ -272,28 +272,28 @@ const Dashboard: React.FC = () => {
           <div className="mb-8 md:mb-10">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-              <h2 className="text-[13px] font-semibold text-[#999] uppercase tracking-wide">Needs Review</h2>
-              <span className="text-[11px] font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{needsAttentionJobs.length}</span>
+              <h2 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wide">Needs Review</h2>
+              <span className="text-[11px] font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2 py-0.5 rounded-full">{needsAttentionJobs.length}</span>
             </div>
-            <div className="bg-white rounded-xl border border-orange-200 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-xl border border-orange-200 dark:border-orange-900/50 shadow-sm overflow-hidden">
               {needsAttentionJobs.map((job, idx) => (
                 <div 
                   key={job.id} 
                   onClick={() => navigate(`/extract/${job.id}/review`)} 
-                  className={`p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-orange-50/50 cursor-pointer group transition-colors min-h-[80px] sm:min-h-0 ${idx !== needsAttentionJobs.length - 1 ? 'border-b border-orange-100' : ''}`}
+                  className={`p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 cursor-pointer group transition-colors min-h-[80px] sm:min-h-0 ${idx !== needsAttentionJobs.length - 1 ? 'border-b border-orange-100 dark:border-orange-900/30' : ''}`}
                 >
                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center font-semibold text-sm flex-shrink-0">
                       {job.riskyCount || '!'}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-[14px] font-medium text-[#0a0a0a] truncate">{job.title}</h4>
-                      <p className="text-[12px] text-orange-600 font-medium flex items-center gap-1 mt-0.5">
+                      <h4 className="text-[14px] font-medium text-foreground truncate">{job.title}</h4>
+                      <p className="text-[12px] text-orange-600 dark:text-orange-400 font-medium flex items-center gap-1 mt-0.5">
                         <Clock size={11} /> Pending verification
                       </p>
                     </div>
                   </div>
-                  <button className="px-4 py-2.5 sm:py-2 text-[13px] font-medium text-orange-700 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors w-full sm:w-auto min-h-[44px] sm:min-h-0">
+                  <button className="px-4 py-2.5 sm:py-2 text-[13px] font-medium text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/30 rounded-lg group-hover:bg-orange-100 dark:group-hover:bg-orange-950/50 transition-colors w-full sm:w-auto min-h-[44px] sm:min-h-0">
                     Review
                   </button>
                 </div>
@@ -305,32 +305,32 @@ const Dashboard: React.FC = () => {
         {/* RECENT PROJECTS */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-semibold text-[#999] uppercase tracking-wide">Recent Projects</h2>
+            <h2 className="text-[13px] font-semibold text-muted-foreground uppercase tracking-wide">Recent Projects</h2>
             {recentJobs.length > 0 && (
-              <span className="text-[12px] text-[#999] hidden sm:inline">{recentJobs.length} projects</span>
+              <span className="text-[12px] text-muted-foreground hidden sm:inline">{recentJobs.length} projects</span>
             )}
           </div>
           
           {recentJobs.length === 0 ? (
-            <div className="text-center py-12 md:py-16 bg-white rounded-2xl border border-dashed border-[#e5e5e5] px-4">
-              <div className="w-12 h-12 rounded-full bg-[#f5f5f5] flex items-center justify-center mx-auto mb-4">
-                <FolderOpen size={24} className="text-[#999]" />
+            <div className="text-center py-12 md:py-16 bg-card rounded-2xl border border-dashed border-border px-4">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <FolderOpen size={24} className="text-muted-foreground" />
               </div>
-              <h3 className="text-[15px] font-medium text-[#0a0a0a] mb-1">No projects yet</h3>
-              <p className="text-[13px] text-[#666] mb-5 max-w-sm mx-auto leading-relaxed">
+              <h3 className="text-[15px] font-medium text-foreground mb-1">No projects yet</h3>
+              <p className="text-[13px] text-muted-foreground mb-5 max-w-sm mx-auto leading-relaxed">
                 Start by extracting PDFs, uploading a spreadsheet, or creating a new sheet.
               </p>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
                 <button 
                   onClick={() => navigate('/extract/new')}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-xl hover:bg-[#262626] transition-colors min-h-[44px] md:min-h-0"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-white bg-foreground rounded-xl hover:bg-foreground/90 transition-colors min-h-[44px] md:min-h-0"
                 >
                   <Plus size={14} />
                   New Project
                 </button>
                 <button 
                   onClick={handleLoadDemo}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] bg-white border border-[#e5e5e5] rounded-xl hover:border-[#ccc] hover:text-[#0a0a0a] transition-colors min-h-[44px] md:min-h-0"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 md:py-2.5 text-[13px] font-medium text-muted-foreground bg-background border border-border rounded-xl hover:border-border/80 hover:text-foreground transition-colors min-h-[44px] md:min-h-0"
                 >
                   <Sparkles size={14} />
                   Try Demo
@@ -343,30 +343,30 @@ const Dashboard: React.FC = () => {
                 <div 
                   key={job.id} 
                   onClick={() => navigate(`/sheet/${job.id}`)} 
-                  className={`relative bg-white rounded-xl border border-[#e5e5e5] p-5 cursor-pointer group transition-all duration-200 hover:border-[#ccc] hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,0.1)] ${openMenuJobId === job.id ? 'z-20 border-blue-300 shadow-md' : 'z-0'}`}
+                  className={`relative bg-card rounded-xl border border-border p-5 cursor-pointer group transition-all duration-200 hover:border-border/80 hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_4px_20px_-8px_rgba(0,0,0,0.3)] ${openMenuJobId === job.id ? 'z-20 border-blue-300 dark:border-blue-700 shadow-md' : 'z-0'}`}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${job.type === 'extraction' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${job.type === 'extraction' ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'}`}>
                       {job.type === 'extraction' ? <ScanText size={18} /> : <FileSpreadsheet size={18} />}
                     </div>
                     <div className="relative">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setOpenMenuJobId(openMenuJobId === job.id ? null : job.id); }} 
-                        className={`p-1.5 rounded-lg transition-colors ${openMenuJobId === job.id ? 'bg-[#f5f5f5] text-[#0a0a0a]' : 'text-[#ccc] hover:text-[#666] hover:bg-[#f5f5f5]'}`}
+                        className={`p-1.5 rounded-lg transition-colors ${openMenuJobId === job.id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
                       >
                         <MoreHorizontal size={16} />
                       </button>
                       {openMenuJobId === job.id && (
-                        <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-[#e5e5e5] rounded-xl shadow-lg overflow-hidden z-50">
+                        <div className="absolute right-0 top-full mt-1 w-40 bg-background border border-border rounded-xl shadow-lg overflow-hidden z-50">
                           <button 
                             onClick={(e) => { e.stopPropagation(); setRenameJobId(job.id); setRenameTitle(job.title); setOpenMenuJobId(null); }} 
-                            className="w-full text-left px-3 py-2.5 text-[13px] text-[#666] hover:bg-[#f5f5f5] hover:text-[#0a0a0a] flex items-center gap-2 transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground flex items-center gap-2 transition-colors"
                           >
                             <Pencil size={13} /> Rename
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); setDeleteJobId(job.id); setOpenMenuJobId(null); }} 
-                            className="w-full text-left px-3 py-2.5 text-[13px] text-[#666] hover:bg-red-50 hover:text-red-600 flex items-center gap-2 border-t border-[#f0f0f0] transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-[13px] text-muted-foreground hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2 border-t border-border transition-colors"
                           >
                             <Trash2 size={13} /> Delete
                           </button>
@@ -375,9 +375,9 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                   
-                  <h4 className="text-[14px] font-medium text-[#0a0a0a] mb-1 truncate group-hover:text-blue-600 transition-colors">{job.title}</h4>
+                  <h4 className="text-[14px] font-medium text-foreground mb-1 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{job.title}</h4>
                   
-                  <div className="flex items-center gap-3 text-[12px] text-[#999]">
+                  <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar size={11} />
                       {getRelativeTime(job.updatedAt)}
@@ -391,7 +391,7 @@ const Dashboard: React.FC = () => {
                   </div>
                   
                   {job.status === 'verified' && (
-                    <div className="absolute top-4 right-12 flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium">
+                    <div className="absolute top-4 right-12 flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium">
                       <CheckCircle2 size={10} />
                       Verified
                     </div>
@@ -405,19 +405,19 @@ const Dashboard: React.FC = () => {
 
       {/* RENAME MODAL */}
       {renameJobId && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setRenameJobId(null)}>
-          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#e5e5e5]" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base md:text-[17px] font-semibold text-[#0a0a0a] mb-4">Rename Project</h3>
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm p-4" onClick={() => setRenameJobId(null)}>
+          <div className="bg-background p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md border border-border" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base md:text-[17px] font-semibold text-foreground mb-4">Rename Project</h3>
             <input 
-              className="w-full px-4 py-3 md:py-3 border border-[#e5e5e5] rounded-xl text-[14px] mb-5 focus:outline-none focus:border-[#0a0a0a] focus:ring-1 focus:ring-[#0a0a0a] transition-all min-h-[44px]" 
+              className="w-full px-4 py-3 md:py-3 border border-border bg-background text-foreground rounded-xl text-[14px] mb-5 focus:outline-none focus:border-foreground focus:ring-1 focus:ring-foreground transition-all min-h-[44px]" 
               value={renameTitle} 
               onChange={(e) => setRenameTitle(e.target.value)} 
               autoFocus 
               onKeyDown={(e) => e.key === 'Enter' && (handleRenameJob(renameJobId, renameTitle), setRenameJobId(null))} 
             />
             <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <button onClick={() => setRenameJobId(null)} className="px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f5] rounded-lg transition-colors min-h-[44px] md:min-h-0">Cancel</button>
-              <button onClick={() => { handleRenameJob(renameJobId, renameTitle); setRenameJobId(null); }} className="px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-[#0a0a0a] rounded-lg hover:bg-[#262626] transition-colors min-h-[44px] md:min-h-0">Save</button>
+              <button onClick={() => setRenameJobId(null)} className="px-4 py-3 md:py-2.5 text-[13px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors min-h-[44px] md:min-h-0">Cancel</button>
+              <button onClick={() => { handleRenameJob(renameJobId, renameTitle); setRenameJobId(null); }} className="px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-foreground rounded-lg hover:bg-foreground/90 transition-colors min-h-[44px] md:min-h-0">Save</button>
             </div>
           </div>
         </div>
@@ -425,17 +425,17 @@ const Dashboard: React.FC = () => {
 
       {/* DELETE MODAL */}
       {deleteJobId && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setDeleteJobId(null)}>
-          <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md border border-[#e5e5e5]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm p-4" onClick={() => setDeleteJobId(null)}>
+          <div className="bg-background p-4 md:p-6 rounded-2xl shadow-2xl w-full max-w-md border border-border" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <AlertCircle size={20} className="text-red-600" />
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={20} className="text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-base md:text-[17px] font-semibold text-[#0a0a0a]">Delete Project?</h3>
+              <h3 className="text-base md:text-[17px] font-semibold text-foreground">Delete Project?</h3>
             </div>
-            <p className="text-sm md:text-[14px] text-[#666] leading-relaxed mb-6">This action cannot be undone. All associated files and data will be permanently removed.</p>
+            <p className="text-sm md:text-[14px] text-muted-foreground leading-relaxed mb-6">This action cannot be undone. All associated files and data will be permanently removed.</p>
             <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <button onClick={() => setDeleteJobId(null)} className="px-4 py-3 md:py-2.5 text-[13px] font-medium text-[#666] hover:bg-[#f5f5f5] rounded-lg transition-colors min-h-[44px] md:min-h-0">Cancel</button>
+              <button onClick={() => setDeleteJobId(null)} className="px-4 py-3 md:py-2.5 text-[13px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors min-h-[44px] md:min-h-0">Cancel</button>
               <button onClick={() => { handleDeleteJob(deleteJobId); setDeleteJobId(null); }} className="px-5 py-3 md:py-2.5 text-[13px] font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors min-h-[44px] md:min-h-0">Delete</button>
             </div>
           </div>

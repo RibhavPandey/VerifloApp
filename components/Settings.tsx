@@ -20,6 +20,7 @@ import {
 } from './ui/alert-dialog';
 import { User, Lock, Trash2, Mail, Download } from 'lucide-react';
 import { WorkspaceContextType } from './Workspace';
+import { ThemeToggle } from './ThemeToggle';
 
 const Settings: React.FC = () => {
   const { refreshData } = useOutletContext<WorkspaceContextType>();
@@ -254,6 +255,22 @@ const Settings: React.FC = () => {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Choose your preferred theme</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium">Dark Mode</div>
+                  <div className="text-xs text-muted-foreground">Toggle between light and dark theme</div>
+                </div>
+                <ThemeToggle />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>

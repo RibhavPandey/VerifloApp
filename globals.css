@@ -63,50 +63,50 @@
    DARK THEME (HSL ONLY)
    ========================= */
 .dark {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 100%;
+  --background: 220 15% 9%;
+  --foreground: 0 0% 98%;
 
-  --card: 0 0% 20%;
-  --card-foreground: 0 0% 100%;
+  --card: 220 13% 13%;
+  --card-foreground: 0 0% 98%;
 
-  --popover: 0 0% 20%;
-  --popover-foreground: 0 0% 100%;
+  --popover: 220 13% 13%;
+  --popover-foreground: 0 0% 98%;
 
-  --primary: 0 100% 70%;
-  --primary-foreground: 0 0% 0%;
+  --primary: 210 100% 65%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 60 100% 60%;
-  --secondary-foreground: 0 0% 0%;
+  --secondary: 210 20% 20%;
+  --secondary-foreground: 0 0% 98%;
 
-  --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 80%;
+  --muted: 220 10% 20%;
+  --muted-foreground: 0 0% 70%;
 
-  --accent: 217 100% 65%;
-  --accent-foreground: 0 0% 0%;
+  --accent: 210 100% 60%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 0% 100%;
-  --destructive-foreground: 0 0% 0%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 0 0% 100%;
-  --input: 0 0% 100%;
-  --ring: 0 100% 70%;
+  --border: 220 13% 25%;
+  --input: 220 13% 25%;
+  --ring: 210 100% 65%;
 
-  --chart-1: 0 100% 70%;
-  --chart-2: 60 100% 60%;
-  --chart-3: 217 100% 65%;
-  --chart-4: 120 60% 55%;
-  --chart-5: 300 60% 55%;
+  --chart-1: 0 100% 65%;
+  --chart-2: 60 100% 55%;
+  --chart-3: 217 100% 60%;
+  --chart-4: 120 60% 50%;
+  --chart-5: 300 60% 50%;
 
-  --sidebar: 0 0% 0%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 0 100% 70%;
-  --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 217 100% 65%;
-  --sidebar-accent-foreground: 0 0% 0%;
-  --sidebar-border: 0 0% 100%;
-  --sidebar-ring: 0 100% 70%;
+  --sidebar: 220 13% 11%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 210 100% 65%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 217 100% 60%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 220 13% 25%;
+  --sidebar-ring: 210 100% 65%;
 
-  --shadow-color: 0 0% 0%;
+  --shadow-color: 220 15% 5%;
 }
 
 /* =========================

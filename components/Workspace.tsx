@@ -519,10 +519,10 @@ const Workspace: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex bg-white overflow-hidden text-[#111827]">
+    <div className="h-screen flex bg-background overflow-hidden text-foreground">
       {/* Small bottom-right loading for file upload */}
       {fileUploadInProgress > 0 && (
-        <div className="fixed bottom-4 right-4 z-[90] flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg text-sm font-medium text-gray-700">
+        <div className="fixed bottom-4 right-4 z-[90] flex items-center gap-2 px-3 py-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-sm font-medium text-foreground">
           <Loader2 className="w-4 h-4 animate-spin text-primary" />
           Loading...
         </div>
@@ -563,26 +563,26 @@ const Workspace: React.FC = () => {
       </Sheet>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
-         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-3 md:px-6 flex-shrink-0 z-[100]">
+         <header className="h-14 bg-background border-b border-border flex items-center justify-between px-3 md:px-6 flex-shrink-0 z-[100]">
             <div className="flex items-center gap-2 min-w-0">
                 {/* Mobile Hamburger Menu */}
                 <button
                   onClick={() => setIsMobileNavOpen(true)}
-                  className="md:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="md:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   aria-label="Open menu"
                 >
                   <Menu size={20} />
                 </button>
                 <div className="hidden md:flex items-center gap-2">
-                  <div className="text-sm font-medium text-gray-500">Workspace /</div>
+                  <div className="text-sm font-medium text-muted-foreground">Workspace /</div>
                 </div>
-                <h1 className="font-bold text-gray-800 text-sm md:text-base truncate">
+                <h1 className="font-bold text-foreground text-sm md:text-base truncate">
                     {location.pathname.includes('dashboard') ? 'Overview' : 
                      location.pathname.includes('workflows') ? 'Workflows' :
                      location.pathname.includes('extract') ? 'Extraction' :
                      'Editor'}
                 </h1>
-                {isSyncing && <Cloud className="animate-pulse text-gray-400 ml-2 hidden md:block" size={14} />}
+                {isSyncing && <Cloud className="animate-pulse text-muted-foreground ml-2 hidden md:block" size={14} />}
             </div>
             
             <div className="flex items-center gap-2 md:gap-3">
@@ -599,20 +599,20 @@ const Workspace: React.FC = () => {
                        <button 
                             onClick={handleAutomateClick}
                             disabled={isWorkflowRunning}
-                            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs md:text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
+                            className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 md:py-1.5 bg-background border border-border text-foreground rounded-lg hover:bg-muted transition-colors text-xs md:text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px] md:min-h-0"
                        >
                            {isWorkflowRunning ? (
-                               <Loader2 size={16} className="animate-spin text-gray-500" />
+                               <Loader2 size={16} className="animate-spin text-muted-foreground" />
                            ) : (
-                           <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100" : "text-gray-400"} />
+                           <Zap size={16} className={showAutomateMenu ? "text-purple-600 fill-purple-100 dark:fill-purple-900/30" : "text-muted-foreground"} />
                            )}
                            <span className="hidden md:inline">{isWorkflowRunning ? "Running..." : "Automate"}</span>
                        </button>
                    )}
 
                    {showAutomateMenu && !isRecording && (
-                       <div className="absolute top-full right-0 mt-2 w-64 md:w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 max-w-[calc(100vw-2rem)]">
-                           <div className="p-2 border-b border-gray-100">
+                       <div className="absolute top-full right-0 mt-2 w-64 md:w-64 bg-background rounded-xl shadow-xl border border-border z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 max-w-[calc(100vw-2rem)]">
+                           <div className="p-2 border-b border-border">
                                <button 
                                    onClick={() => {
                                        setShowAutomateMenu(false);
@@ -626,38 +626,38 @@ const Workspace: React.FC = () => {
                                            setCreateWorkflowTypeModal(true);
                                        }
                                    }}
-                                   className="w-full text-left px-3 py-2 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg flex items-center gap-3 transition-colors group"
+                                   className="w-full text-left px-3 py-2 hover:bg-red-50 dark:hover:bg-red-950/30 text-foreground hover:text-red-600 dark:hover:text-red-400 rounded-lg flex items-center gap-3 transition-colors group"
                                >
-                                   <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                                   <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-950/70 transition-colors">
                                        <Plus size={16} />
                                    </div>
                                    <div>
                                        <div className="font-bold text-sm">Record New</div>
-                                       <div className="text-[10px] text-gray-400 group-hover:text-red-400">Start capturing steps</div>
+                                       <div className="text-[10px] text-muted-foreground group-hover:text-red-400">Start capturing steps</div>
                                    </div>
                                </button>
                            </div>
                            
                            <div className="p-2">
-                               <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Saved Workflows</div>
+                               <div className="px-3 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Saved Workflows</div>
                                {workflows.length === 0 ? (
-                                   <div className="px-3 py-2 text-xs text-gray-400 italic">No workflows yet.</div>
+                                   <div className="px-3 py-2 text-xs text-muted-foreground italic">No workflows yet.</div>
                                ) : (
                                    workflows.filter(w => w.sourceType === 'spreadsheet').map(w => (
                                        <button 
                                            key={w.id}
-                                           className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center justify-between group transition-colors"
+                                           className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg flex items-center justify-between group transition-colors"
                                            disabled={isWorkflowRunning}
                                            onClick={() => { setShowAutomateMenu(false); handleExecuteWorkflow(w); }}
                                        >
                                            <div className="flex items-center gap-2 overflow-hidden">
-                                               <WorkflowIcon size={14} className="text-gray-400 group-hover:text-purple-600 shrink-0" />
-                                               <span className="text-sm text-gray-700 truncate">{w.name}</span>
+                                               <WorkflowIcon size={14} className="text-muted-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 shrink-0" />
+                                               <span className="text-sm text-foreground truncate">{w.name}</span>
                                            </div>
                                            {isWorkflowRunning && runningWorkflowId === w.id ? (
-                                               <Loader2 size={12} className="animate-spin text-gray-500" />
+                                               <Loader2 size={12} className="animate-spin text-muted-foreground" />
                                            ) : (
-                                           <Play size={12} className="text-gray-300 group-hover:text-green-600 opacity-0 group-hover:opacity-100 transition-all" />
+                                           <Play size={12} className="text-muted-foreground group-hover:text-green-600 dark:group-hover:text-green-400 opacity-0 group-hover:opacity-100 transition-all" />
                                            )}
                                        </button>
                                    ))
@@ -670,12 +670,12 @@ const Workspace: React.FC = () => {
                    )}
                </div>
                
-               <div className="hidden sm:flex items-center gap-1.5 px-3 md:px-4 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 text-xs md:text-sm font-medium">
-                  <Coins size={16} className="text-gray-600" />
+               <div className="hidden sm:flex items-center gap-1.5 px-3 md:px-4 py-2 bg-background text-foreground rounded-lg border border-border text-xs md:text-sm font-medium">
+                  <Coins size={16} className="text-muted-foreground" />
                   <span className="whitespace-nowrap">{documentsUsed}/{documentsLimit} docs · {credits} credits</span>
                </div>
-               <div className="sm:hidden flex items-center px-2 py-2 bg-white text-gray-700 rounded-lg border border-gray-200 min-h-[44px]">
-                  <Coins size={16} className="text-gray-600" />
+               <div className="sm:hidden flex items-center px-2 py-2 bg-background text-foreground rounded-lg border border-border min-h-[44px]">
+                  <Coins size={16} className="text-muted-foreground" />
                </div>
 
                {/* User Menu Dropdown */}
@@ -685,64 +685,64 @@ const Workspace: React.FC = () => {
                      {user ? getUserInitials() : <CircleUser size={20} />}
                    </button>
                  </DropdownMenuTrigger>
-                 <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-lg border border-gray-200 p-2">
+                 <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-lg border border-border p-2">
                    {/* User Info Section */}
                    {user && (
-                     <div className="px-3 py-2.5 border-b border-gray-100 bg-gray-50 rounded-lg mb-1">
-                       <div className="text-sm font-medium text-gray-900">{user.name || 'User'}</div>
-                       <div className="text-xs text-gray-500 truncate">{user.email || ''}</div>
+                     <div className="px-3 py-2.5 border-b border-border bg-muted rounded-lg mb-1">
+                       <div className="text-sm font-medium text-foreground">{user.name || 'User'}</div>
+                       <div className="text-xs text-muted-foreground truncate">{user.email || ''}</div>
                      </div>
                    )}
                    
                    {/* Navigation Items */}
                    <DropdownMenuItem 
                      onClick={() => navigate('/')}
-                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-muted focus:bg-muted focus:text-foreground transition-colors"
                    >
-                     <Home size={16} className="mr-3 text-gray-600" />
-                     <span className="text-sm font-medium text-gray-700">Home</span>
+                     <Home size={16} className="mr-3 text-muted-foreground" />
+                     <span className="text-sm font-medium text-foreground">Home</span>
                    </DropdownMenuItem>
                    
                    <DropdownMenuItem 
                      onClick={() => navigate('/pricing')}
-                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-muted focus:bg-muted focus:text-foreground transition-colors"
                    >
-                     <DollarSign size={16} className="mr-3 text-gray-600" />
-                     <span className="text-sm font-medium text-gray-700">Pricing</span>
+                     <DollarSign size={16} className="mr-3 text-muted-foreground" />
+                     <span className="text-sm font-medium text-foreground">Pricing</span>
                    </DropdownMenuItem>
                    
                    <DropdownMenuItem 
                      onClick={() => window.open('https://help.veriflo.com', '_blank')}
-                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-muted focus:bg-muted focus:text-foreground transition-colors"
                    >
-                     <HelpCircle size={16} className="mr-3 text-gray-600" />
-                     <span className="text-sm font-medium text-gray-700">Help & Support</span>
+                     <HelpCircle size={16} className="mr-3 text-muted-foreground" />
+                     <span className="text-sm font-medium text-foreground">Help & Support</span>
                    </DropdownMenuItem>
                    
                    <DropdownMenuItem 
                      onClick={() => window.open('https://docs.veriflo.com', '_blank')}
-                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-muted focus:bg-muted focus:text-foreground transition-colors"
                    >
-                     <BookOpen size={16} className="mr-3 text-gray-600" />
-                     <span className="text-sm font-medium text-gray-700">Documentation</span>
+                     <BookOpen size={16} className="mr-3 text-muted-foreground" />
+                     <span className="text-sm font-medium text-foreground">Documentation</span>
                    </DropdownMenuItem>
                    
                    <DropdownMenuSeparator className="my-1" />
                    
                    <DropdownMenuItem 
                      onClick={() => navigate('/settings')}
-                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-gray-50 focus:bg-gray-50 focus:text-gray-700 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-muted focus:bg-muted focus:text-foreground transition-colors"
                    >
-                     <Settings size={16} className="mr-3 text-gray-600" />
-                     <span className="text-sm font-medium text-gray-700">Settings</span>
+                     <Settings size={16} className="mr-3 text-muted-foreground" />
+                     <span className="text-sm font-medium text-foreground">Settings</span>
                    </DropdownMenuItem>
                    
                    <DropdownMenuItem 
                      onClick={handleLogout}
-                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-red-50 focus:bg-red-50 focus:text-red-600 transition-colors"
+                     className="py-2 px-6 rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/30 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-600 dark:focus:text-red-400 transition-colors"
                    >
-                     <LogOut size={16} className="mr-3 text-red-600" />
-                     <span className="text-sm font-medium text-red-600">Logout</span>
+                     <LogOut size={16} className="mr-3 text-red-600 dark:text-red-400" />
+                     <span className="text-sm font-medium text-red-600 dark:text-red-400">Logout</span>
                    </DropdownMenuItem>
                  </DropdownMenuContent>
                </DropdownMenu>
@@ -750,7 +750,7 @@ const Workspace: React.FC = () => {
          </header>
 
          <div className="flex-1 flex overflow-hidden relative">
-            <main className="flex-1 relative overflow-y-auto bg-[#F9FAFB] flex flex-col min-h-0">
+            <main className="flex-1 relative overflow-y-auto bg-muted/30 dark:bg-background flex flex-col min-h-0">
                 <Outlet context={{ 
                     jobs, files, credits, documentsUsed, documentsLimit, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording, onStopRecording: handleStopRecording
                 } satisfies WorkspaceContextType} />
@@ -759,46 +759,46 @@ const Workspace: React.FC = () => {
 
          {/* Workflow Editor Modal */}
          {showWorkflowEditor && (
-             <div className="absolute inset-0 z-[60] flex justify-end bg-black/10 backdrop-blur-[1px]">
-                 <div className="w-full md:w-[45%] h-full bg-white shadow-2xl border-l border-gray-200 animate-in slide-in-from-right duration-300 flex flex-col">
-                     <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+             <div className="absolute inset-0 z-[60] flex justify-end bg-black/10 dark:bg-black/30 backdrop-blur-[1px]">
+                 <div className="w-full md:w-[45%] h-full bg-background shadow-2xl border-l border-border animate-in slide-in-from-right duration-300 flex flex-col">
+                     <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between bg-muted/50">
                          <div>
-                             <h2 className="text-base md:text-lg font-bold text-gray-900">Save Workflow</h2>
-                             <p className="text-xs text-gray-500 hidden md:block">Review recorded steps before saving.</p>
+                             <h2 className="text-base md:text-lg font-bold text-foreground">Save Workflow</h2>
+                             <p className="text-xs text-muted-foreground hidden md:block">Review recorded steps before saving.</p>
                          </div>
                          <button 
                              onClick={() => { setShowWorkflowEditor(false); setIsRecording(false); setSessionSteps([]); }} 
-                             className="p-2 hover:bg-gray-200 rounded-full text-gray-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                             className="p-2 hover:bg-muted rounded-full text-muted-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
                          >
                              <X size={20} />
                          </button>
                      </div>
                      <div className="flex-1 overflow-y-auto p-4 md:p-6">
                          <div className="mb-6">
-                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Workflow Name</label>
+                             <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Workflow Name</label>
                              <input 
                                  type="text" 
                                  placeholder="e.g., Weekly Sales Clean Up"
-                                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                 className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
                                  value={newWorkflowName}
                                  onChange={(e) => setNewWorkflowName(e.target.value)}
                                  autoFocus
                              />
                          </div>
                          <div className="space-y-3">
-                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Recorded Steps</label>
+                             <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">Recorded Steps</label>
                              {sessionSteps.map((step, idx) => (
-                                 <div key={step.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-purple-200 hover:shadow-sm transition-all group">
-                                     <div className="w-6 h-6 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs shrink-0 border border-purple-100">
+                                 <div key={step.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-purple-200 dark:hover:border-purple-800 hover:shadow-sm transition-all group">
+                                     <div className="w-6 h-6 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 border border-purple-100 dark:border-purple-900/50">
                                          {idx + 1}
                                      </div>
                                      <div className="flex-1 min-w-0">
-                                         <div className="text-sm font-medium text-gray-800">{step.description}</div>
-                                         <div className="text-[10px] text-gray-400 font-mono truncate">{JSON.stringify(step.params)}</div>
+                                         <div className="text-sm font-medium text-foreground">{step.description}</div>
+                                         <div className="text-[10px] text-muted-foreground font-mono truncate">{JSON.stringify(step.params)}</div>
                                      </div>
                                      <button 
                                          onClick={() => handleDeleteStep(step.id)}
-                                         className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                         className="p-2 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                                      >
                                          <Trash2 size={16} />
                                      </button>
@@ -806,10 +806,10 @@ const Workspace: React.FC = () => {
                              ))}
                          </div>
                      </div>
-                     <div className="p-4 md:p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3">
+                     <div className="p-4 md:p-6 border-t border-border bg-muted/50 flex flex-col sm:flex-row justify-end gap-3">
                          <button 
                              onClick={() => { setShowWorkflowEditor(false); setIsRecording(false); setSessionSteps([]); }}
-                             className="px-6 py-3 md:py-2.5 font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors text-sm min-h-[44px] md:min-h-0"
+                             className="px-6 py-3 md:py-2.5 font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors text-sm min-h-[44px] md:min-h-0"
                          >
                              Discard
                          </button>
@@ -828,26 +828,26 @@ const Workspace: React.FC = () => {
 
       {/* Recording Panel */}
       {isRecording && (
-          <div className="fixed md:absolute bottom-4 md:bottom-6 left-4 right-4 md:right-6 md:w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-bottom-4 overflow-hidden">
-              <div className="bg-red-50 px-4 py-2 border-b border-red-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-red-700 font-bold text-xs uppercase tracking-wider">
-                      <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+          <div className="fixed md:absolute bottom-4 md:bottom-6 left-4 right-4 md:right-6 md:w-72 bg-background rounded-xl shadow-2xl border border-border z-50 animate-in fade-in slide-in-from-bottom-4 overflow-hidden">
+              <div className="bg-red-50 dark:bg-red-950/30 px-4 py-2 border-b border-red-100 dark:border-red-900/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold text-xs uppercase tracking-wider">
+                      <span className="w-2 h-2 bg-red-600 dark:bg-red-500 rounded-full animate-pulse"></span>
                       Recording Actions
                   </div>
-                  <span className="text-[10px] text-red-500">{sessionSteps.length} steps</span>
+                  <span className="text-[10px] text-red-500 dark:text-red-400">{sessionSteps.length} steps</span>
               </div>
               <div className="max-h-48 overflow-y-auto p-2 space-y-2">
                   {sessionSteps.length === 0 ? (
-                      <div className="text-xs text-gray-400 text-center py-4 italic">
+                      <div className="text-xs text-muted-foreground text-center py-4 italic">
                           Perform actions on the sheet to record...
                       </div>
                   ) : (
                       sessionSteps.map((step, idx) => (
-                          <div key={step.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs">
-                              <div className="w-4 h-4 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-500 shrink-0">
+                          <div key={step.id} className="flex items-center gap-2 p-2 bg-muted rounded-lg border border-border text-xs">
+                              <div className="w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center font-bold text-muted-foreground shrink-0">
                                   {idx + 1}
                               </div>
-                              <span className="truncate text-gray-700">{step.description}</span>
+                              <span className="truncate text-foreground">{step.description}</span>
                           </div>
                       ))
                   )}
@@ -857,10 +857,10 @@ const Workspace: React.FC = () => {
 
       {/* Create Workflow Type Modal */}
       {createWorkflowTypeModal && (
-          <div className="fixed inset-0 z-[300] bg-[#0f172a]/40 flex items-center justify-center backdrop-blur-md p-4">
-              <div className="bg-white p-4 md:p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200 border border-white/20">
-                  <h2 className="text-[18px] font-semibold text-[#0a0a0a] mb-1.5 tracking-[-0.01em]">Create New Workflow</h2>
-                  <p className="text-[#666] mb-5 text-[13px]">What type of data process do you want to automate?</p>
+          <div className="fixed inset-0 z-[300] bg-black/40 dark:bg-black/60 flex items-center justify-center backdrop-blur-md p-4">
+              <div className="bg-background p-4 md:p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200 border border-border">
+                  <h2 className="text-[18px] font-semibold text-foreground mb-1.5 tracking-[-0.01em]">Create New Workflow</h2>
+                  <p className="text-muted-foreground mb-5 text-[13px]">What type of data process do you want to automate?</p>
                   
                   <div className="space-y-2.5">
                       <button 
@@ -885,14 +885,14 @@ const Workspace: React.FC = () => {
                                   input.click();
                               }
                           }}
-                          className="w-full p-3.5 border border-[#e5e5e5] rounded-xl flex items-center gap-3 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all group text-left"
+                          className="w-full p-3.5 border border-border rounded-xl flex items-center gap-3 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition-all group text-left"
                       >
-                          <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
                               <FileSpreadsheet size={18} />
                           </div>
                           <div>
-                              <div className="font-medium text-[14px] text-[#0a0a0a]">Spreadsheet Action</div>
-                              <div className="text-[12px] text-[#666]">Automate cleaning, sorting, formulas</div>
+                              <div className="font-medium text-[14px] text-foreground">Spreadsheet Action</div>
+                              <div className="text-[12px] text-muted-foreground">Automate cleaning, sorting, formulas</div>
                           </div>
                       </button>
                       
@@ -903,21 +903,21 @@ const Workspace: React.FC = () => {
                               setSessionSteps([]);
                               navigate('/extract/new');
                           }}
-                          className="w-full p-3.5 border border-[#e5e5e5] rounded-xl flex items-center gap-3 hover:border-orange-300 hover:bg-orange-50/50 transition-all group text-left"
+                          className="w-full p-3.5 border border-border rounded-xl flex items-center gap-3 hover:border-orange-300 dark:hover:border-orange-700 hover:bg-orange-50/50 dark:hover:bg-orange-950/30 transition-all group text-left"
                       >
-                          <div className="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-105 transition-transform">
                               <ScanText size={18} />
                           </div>
                           <div>
-                              <div className="font-medium text-[14px] text-[#0a0a0a]">PDF Extraction</div>
-                              <div className="text-[12px] text-[#666]">Automate data extraction from PDFs</div>
+                              <div className="font-medium text-[14px] text-foreground">PDF Extraction</div>
+                              <div className="text-[12px] text-muted-foreground">Automate data extraction from PDFs</div>
                           </div>
                       </button>
                   </div>
                   
                   <button 
                       onClick={() => setCreateWorkflowTypeModal(false)}
-                      className="mt-4 w-full py-2 text-[12px] text-[#999] font-medium hover:text-[#666] transition-colors"
+                      className="mt-4 w-full py-2 text-[12px] text-muted-foreground font-medium hover:text-foreground transition-colors"
                   >
                       Cancel
                   </button>

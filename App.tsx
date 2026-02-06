@@ -18,6 +18,7 @@ import ContactUs from './components/ContactUs';
 import AdminPanel from './components/AdminPanel';
 import { supabase } from './lib/supabase';
 import { ToastProvider } from './components/ui/toast';
+import { ThemeProvider } from './components/theme-provider';
 import "./globals.css";
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -127,7 +128,13 @@ const App: React.FC = () => {
           <Route path="/contact" element={<ContactUs />} />
 
           {/* Protected Routes (Workspace Layout) */}
-          <Route element={session ? <Workspace /> : <Navigate to="/auth" />}>
+          <Route element={
+            session ? (
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+                <Workspace />
+              </ThemeProvider>
+            ) : <Navigate to="/auth" />
+          }>
              <Route path="/dashboard" element={<DashboardWrapper />} />
              <Route path="/sheet/:id" element={<SpreadsheetView />} />
              <Route path="/workflows" element={<Workflows />} />
