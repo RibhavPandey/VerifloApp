@@ -55,67 +55,98 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
     };
   }, []);
 
+  // Auto-play video when section becomes visible
+  useEffect(() => {
+    const video = document.querySelector('[data-video-demo]') as HTMLVideoElement;
+    if (video && visibleSections.has('demo-video')) {
+      video.play().catch((error) => {
+        console.log('Video autoplay prevented:', error);
+      });
+    }
+  }, [visibleSections]);
+
   return (
     <div className="min-h-screen bg-white">
       <div className="bg-gradient-to-b from-[#7f9ddf] via-blue-500 to-blue-50">
         <Navbar />
         
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-16 md:py-24 lg:py-32">
+        <section className="relative overflow-hidden py-16 md:py-22 lg:py-14">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="mx-auto max-w-5xl text-center">
-            <h1 className="mb-6 md:mb-8 animate-fade-in-up text-balance text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight text-white animation-delay-100">
+            <h1 className="mb-5 md:mb-7 animate-fade-in-up text-balance text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal leading-tight text-white animation-delay-100">
               Hours of manual work.{" "}
               <span className="text-white">
                 Done in seconds.
               </span>
             </h1>
 
-            <p className="mb-10 md:mb-12 animate-fade-in-up text-pretty text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 animation-delay-200 max-w-3xl mx-auto">
+            <p className="mb-9 md:mb-11 animate-fade-in-up text-pretty text-base sm:text-lg md:text-xl leading-relaxed text-white/90 animation-delay-200 max-w-3xl mx-auto">
               Extract invoices, automate workflows, chat with your data—all in one workspace. Export to Tally, QuickBooks, Zoho.
             </p>
 
-            <div className="flex flex-col items-center justify-center gap-4 animate-fade-in-up animation-delay-300 sm:flex-row">
+            <div className="flex flex-col items-center justify-center gap-3.5 animate-fade-in-up animation-delay-300 sm:flex-row">
               <Button
                 onClick={onStart}
                 size="lg" 
-                className="group w-full sm:w-auto bg-white text-[#7f9ddf] hover:bg-white/90 font-semibold text-base sm:text-lg rounded-xl px-8 py-6 shadow-lg hover:shadow-xl transition-all"
+                className="group w-full sm:w-auto bg-white text-[#7f9ddf] hover:bg-white/90 font-semibold text-sm sm:text-base rounded-xl px-7 py-5 shadow-lg hover:shadow-xl transition-all"
               >
                 Start Free Trial
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full sm:w-auto border-2 border-white bg-transparent text-white hover:bg-white/10 font-semibold text-base sm:text-lg rounded-xl px-8 py-6 backdrop-blur-sm transition-all"
+                className="w-full sm:w-auto border-2 border-white bg-transparent text-white hover:bg-white/10 font-semibold text-sm sm:text-base rounded-xl px-7 py-5 backdrop-blur-sm transition-all"
               >
-                <Play className="mr-2 h-5 w-5" />
+                <Play className="mr-2 h-4 w-4" />
                 Schedule Demo
               </Button>
             </div>
 
-            <p className="mt-6 md:mt-8 animate-fade-in-up text-sm sm:text-base text-white/80 animation-delay-400">
-              No credit card • 14-day free trial • Cancel anytime
-            </p>
           </div>
 
           {/* App Interface Image */}
-          <div className="mt-16 md:mt-20 lg:mt-24 animate-fade-in-up animation-delay-400">
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-white">
-                <img 
-                  src="/hero-app-interface.png" 
-                  alt="Veriflo Workspace Interface" 
-                  className="w-full h-auto object-contain block"
-                  loading="eager"
-                  onError={(e) => {
-                    console.error('Failed to load hero image');
-                    (e.target as HTMLImageElement).style.display = 'none';
+          <section 
+            data-section-id="demo-video"
+            className={`py-12 md:py-16 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="max-w-7xl mx-auto">
+                {/* Outer container with gradient background */}
+                <div 
+                  className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl"
+                  style={{
+                    backgroundImage: 'url(/video-background.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundColor: '#1a1a1a'
                   }}
-                />
+                >
+                  {/* Inner container - smaller video with equal padding on all sides */}
+                  <div className="absolute inset-8 md:inset-12 lg:inset-16 xl:inset-20 rounded-2xl overflow-hidden bg-gray-900 shadow-xl">
+                    <video
+                      data-video-demo
+                      className="w-full h-full object-cover"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="auto"
+                      style={{ 
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <source src="/demo-video.mp4" type="video/mp4" />
+                      <source src="/demo-video.webm" type="video/webm" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </section>
       </div>
@@ -123,7 +154,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       {/* Demo Video Section */}
       <section 
         data-section-id="demo-video"
-        className={`py-24 md:py-32 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        className={`py-12 md:py-16 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
