@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { ThemeToggle } from './ThemeToggle';
 
 export interface WorkspaceContextType {
     jobs: Job[];
@@ -726,6 +727,21 @@ const Workspace: React.FC = () => {
                      <BookOpen size={16} className="mr-3 text-muted-foreground" />
                      <span className="text-sm font-medium text-foreground">Documentation</span>
                    </DropdownMenuItem>
+                   
+                   <DropdownMenuSeparator className="my-1" />
+                   
+                   {/* Theme Toggle */}
+                   <div className="px-6 py-2">
+                     <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                         <div className="w-4 h-4 flex items-center justify-center">
+                           <div className="w-3 h-3 rounded-full border-2 border-muted-foreground/30 dark:border-muted-foreground/50" />
+                         </div>
+                         <span className="text-sm font-medium text-foreground">Theme</span>
+                       </div>
+                       <ThemeToggle />
+                     </div>
+                   </div>
                    
                    <DropdownMenuSeparator className="my-1" />
                    
