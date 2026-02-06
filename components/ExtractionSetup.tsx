@@ -305,19 +305,19 @@ const ExtractionSetup: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col items-center justify-center p-8 bg-background overflow-y-auto" style={{ zoom: 0.85 }}>
-            <div className="bg-card border p-8 rounded-2xl shadow-lg max-w-4xl w-full" style={{ borderColor: 'hsl(0deg 19.71% 84.83%)' }}>
+            <div className="bg-card border border-border p-8 rounded-2xl shadow-lg max-w-4xl w-full">
                 {/* Recording Indicator */}
                 {isRecording && (
-                    <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-center justify-between">
+                    <div className="mb-4 p-3 bg-orange-50 border border-orange-100 rounded-xl flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                             <span className="text-sm font-medium text-orange-900">Recording workflow...</span>
-                            <span className="text-xs text-orange-700">Configure your extraction to save it as a workflow</span>
+                            <span className="text-xs text-orange-600">Configure your extraction to save it as a workflow</span>
                         </div>
                         {onStopRecording && (
                             <button
                                 onClick={onStopRecording}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg font-medium text-xs hover:bg-orange-200 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 text-orange-700 border border-orange-100 rounded-lg font-medium text-xs hover:bg-orange-200 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                             >
                                 <StopCircle size={14} />
                                 Stop Recording
@@ -333,7 +333,7 @@ const ExtractionSetup: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div className="md:col-span-1">
-                        <div className="border-2 border-dashed border-border rounded-xl p-6 h-full text-center hover:bg-accent/5 hover:border-accent/50 transition-colors cursor-pointer relative group flex flex-col items-center justify-center min-h-[250px]">
+                        <div className="border-2 border-dashed border-border rounded-xl p-6 h-full text-center hover:bg-muted/50 hover:border-muted-foreground/30 transition-colors cursor-pointer relative group flex flex-col items-center justify-center min-h-[250px]">
                             <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleUpload} />
                             <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"><Upload size={32} /></div>
                             <p className="font-bold text-foreground">Upload Files</p>
@@ -352,7 +352,7 @@ const ExtractionSetup: React.FC = () => {
                                                 </div>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); removeUpload(idx); }}
-                                                    className="ml-2 p-1 hover:bg-destructive/10 rounded text-destructive"
+                                                    className="ml-2 p-1 hover:bg-destructive/10 rounded text-destructive focus:outline-none focus:ring-2 focus:ring-primary/20"
                                                 >
                                                     <X size={14} />
                                                 </button>
@@ -372,7 +372,7 @@ const ExtractionSetup: React.FC = () => {
                                         <AlertCircle size={16} />
                                         {uploadErrors.length} file(s) rejected
                                     </div>
-                                    <button onClick={clearUploadErrors} className="text-destructive hover:opacity-80 text-xs">Dismiss</button>
+                                    <button onClick={clearUploadErrors} className="text-destructive hover:opacity-80 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 rounded">Dismiss</button>
                                 </div>
                                 <div className="text-xs text-destructive/90 space-y-1 max-h-20 overflow-y-auto">
                                     {uploadErrors.map((err, idx) => <div key={idx}>• {err.error}</div>)}
@@ -390,7 +390,7 @@ const ExtractionSetup: React.FC = () => {
                                     <div
                                         key={field.id}
                                         onClick={() => isSelected ? setSelectedFields(selectedFields.filter(sf => sf !== field.id)) : setSelectedFields([...selectedFields, field.id])}
-                                        className={`group relative p-3 md:p-3 border rounded-xl cursor-pointer transition-all flex items-start gap-3 select-none min-h-[64px] md:min-h-0 ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
+                                        className={`group relative p-3 md:p-3 border rounded-xl cursor-pointer transition-all flex items-start gap-3 select-none min-h-[64px] md:min-h-0 ${isSelected ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-muted-foreground/40 hover:bg-muted/50'}`}
                                     >
                                         <div className={`p-2 rounded-lg flex-shrink-0 ${isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}><Tag size={18} /></div>
                                         <div className="flex-1 min-w-0"><div className="font-bold text-sm text-foreground">{field.label}</div><div className="text-xs text-muted-foreground truncate">{field.desc}</div></div>
@@ -399,16 +399,16 @@ const ExtractionSetup: React.FC = () => {
                             })}
                         </div>
                         <label className="flex items-center gap-2 mb-4 cursor-pointer">
-                            <input type="checkbox" checked={includeLineItems} onChange={(e) => setIncludeLineItems(e.target.checked)} className="rounded border-border" />
+                            <input type="checkbox" checked={includeLineItems} onChange={(e) => setIncludeLineItems(e.target.checked)} className="rounded border-border focus:ring-0 focus:ring-offset-0 focus-visible:ring-2 focus-visible:ring-primary/20" />
                             <span className="text-sm font-medium text-foreground">Extract line items</span>
                             <span className="text-xs text-muted-foreground">(Description, Qty, Unit Price, Line Total)</span>
                         </label>
                         <div className="mt-auto pt-4 border-t border-border">
                             <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                                <input type="text" placeholder="Add custom field..." className="flex-1 px-4 py-3 md:py-2.5 border border-border rounded-xl text-sm bg-background min-h-[44px] md:min-h-0" value={customFieldInput} onChange={(e) => setCustomFieldInput(e.target.value)} />
-                                <button onClick={addCustomField} disabled={!customFieldInput.trim()} className="px-4 py-3 md:py-2.5 bg-foreground text-background rounded-xl font-medium hover:opacity-90 disabled:opacity-50 min-h-[44px] md:min-h-0 flex items-center justify-center"><Plus size={18} /></button>
+                                <input type="text" placeholder="Add custom field..." className="flex-1 px-4 py-3 md:py-2.5 border border-border rounded-xl text-sm bg-background min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50" value={customFieldInput} onChange={(e) => setCustomFieldInput(e.target.value)} />
+                                <button onClick={addCustomField} disabled={!customFieldInput.trim()} className="px-4 py-3 md:py-2.5 bg-muted text-muted-foreground rounded-xl font-medium hover:bg-muted/80 hover:text-foreground disabled:opacity-50 min-h-[44px] md:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/20"><Plus size={18} /></button>
                             </div>
-                            <button onClick={runExtraction} disabled={pendingUploads.length === 0 || selectedFields.length === 0} className="w-full py-3 md:py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors min-h-[44px] md:min-h-0">Start Extraction <ArrowRight size={18} /></button>
+                            <button onClick={runExtraction} disabled={pendingUploads.length === 0 || selectedFields.length === 0} className="w-full py-3 md:py-4 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20">Start Extraction <ArrowRight size={18} /></button>
                         </div>
                     </div>
                 </div>

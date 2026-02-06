@@ -283,7 +283,7 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
         return (
             <div className="h-full flex flex-col items-center justify-center bg-background p-8">
                 <div className="bg-card border border-border p-8 rounded-2xl shadow-lg max-w-md text-center">
-                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle2 size={32} />
                     </div>
                     <h2 className="text-2xl font-bold text-foreground mb-2">Review Complete</h2>
@@ -292,13 +292,13 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                         <button
                             onClick={handleDownloadXlsx}
                             disabled={isExporting}
-                            className="flex-1 py-3 px-4 border border-border rounded-xl font-bold text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 py-3 px-4 border border-border rounded-xl font-bold text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                             <FileDown size={18} /> Download .xlsx
                         </button>
                         <button
                             onClick={() => onCompleteReview(localDocs)}
-                            className="flex-1 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors"
+                            className="flex-1 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                             Approve & Export Data
                         </button>
@@ -313,16 +313,16 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
 
     return (
         <div className="flex h-full bg-background">
-            <div className="flex-1 bg-zinc-900 relative overflow-hidden flex flex-col">
-                <div className="h-12 bg-zinc-950 text-zinc-100 flex items-center justify-between px-4 text-xs font-bold border-b border-zinc-700">
+            <div className="flex-1 bg-muted relative overflow-hidden flex flex-col">
+                <div className="h-12 bg-white text-foreground flex items-center justify-between px-4 text-xs font-bold border-b border-border">
                     <span>{activeDoc?.fileName}</span>
-                    <span className="text-zinc-500">Zoom: Fit</span>
+                    <span className="text-muted-foreground">Zoom: Fit</span>
                 </div>
                 <div ref={containerRef} className="flex-1 overflow-y-auto p-8 flex justify-center items-center relative">
-                    <canvas ref={canvasRef} className="shadow-2xl rounded-lg" />
+                    <canvas ref={canvasRef} className="shadow-lg rounded-lg" />
                     {!imageLoaded && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80">
-                            <Loader2 className="w-10 h-10 text-white animate-spin" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
+                            <Loader2 className="w-10 h-10 text-primary animate-spin" />
                         </div>
                     )}
                 </div>
@@ -332,21 +332,21 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                 <div className="p-6 border-b border-border">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg"><AlertTriangle size={18}/></div>
+                            <div className="p-1.5 bg-primary/10 text-primary rounded-lg"><AlertTriangle size={18}/></div>
                             <h2 className="font-bold text-lg text-foreground">Review Items</h2>
                         </div>
                         <div className="flex items-center gap-1">
-                            <button onClick={handleDownloadXlsx} disabled={isExporting} className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-2.5 md:px-2.5 md:py-1.5 rounded-lg transition-colors flex items-center gap-1 min-h-[44px] md:min-h-0" title="Download as Excel">
+                            <button onClick={handleDownloadXlsx} disabled={isExporting} className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-2.5 md:px-2.5 md:py-1.5 rounded-lg transition-colors flex items-center gap-1 min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20" title="Download as Excel">
                                 <FileDown size={12} /> .xlsx
                             </button>
-                            <button onClick={() => onCompleteReview(localDocs)} className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-2.5 md:px-2.5 md:py-1.5 rounded-lg transition-colors flex items-center gap-1 min-h-[44px] md:min-h-0" title="Skip remaining review and export">
+                            <button onClick={() => onCompleteReview(localDocs)} className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-2.5 md:px-2.5 md:py-1.5 rounded-lg transition-colors flex items-center gap-1 min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20" title="Skip remaining review and export">
                                 Export All <Download size={12} />
                             </button>
                         </div>
                     </div>
                     <div className="flex gap-1 p-1 bg-muted rounded-lg mb-3">
-                        <button onClick={() => setReviewMode('risky')} className={`flex-1 py-2.5 md:py-1.5 text-xs font-medium rounded-md transition-colors min-h-[44px] md:min-h-0 ${reviewMode === 'risky' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Risky only</button>
-                        <button onClick={() => setReviewMode('all')} className={`flex-1 py-2.5 md:py-1.5 text-xs font-medium rounded-md transition-colors min-h-[44px] md:min-h-0 ${reviewMode === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>All fields</button>
+                        <button onClick={() => setReviewMode('risky')} className={`flex-1 py-2.5 md:py-1.5 text-xs font-medium rounded-md transition-colors min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20 ${reviewMode === 'risky' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Risky only</button>
+                        <button onClick={() => setReviewMode('all')} className={`flex-1 py-2.5 md:py-1.5 text-xs font-medium rounded-md transition-colors min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20 ${reviewMode === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>All fields</button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">
                         {reviewItems.length} item{reviewItems.length !== 1 ? 's' : ''} to review
@@ -364,10 +364,10 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
 
                 <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
                     {activeItem?.type === 'field' ? (
-                        <div className="bg-card p-4 rounded-xl border-2 border-orange-200 shadow-sm">
+                        <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Field</span>
-                                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-bold">
+                                <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded font-bold">
                                     {Math.round((activeItem.field.confidence || 0) * 100)}% Conf.
                                 </span>
                             </div>
@@ -375,7 +375,7 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                             <input 
                                 key={`${activeItem.docId}-${activeItem.fieldIndex}-${activeItem.field.key}`}
                                 autoFocus 
-                                className="w-full text-lg font-bold text-foreground bg-muted/50 border-b-2 border-border focus:border-primary outline-none py-1 transition-colors rounded" 
+                                className="w-full text-lg font-bold text-foreground bg-muted/50 border border-border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-colors" 
                                 value={activeItem.field.value || ''} 
                                 onChange={(e) => handleUpdateField(e.target.value)}
                                 onKeyDown={(e) => {
@@ -388,17 +388,17 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                             <p className="text-xs text-muted-foreground mt-2 italic">Check the highlighted box on the left.</p>
                         </div>
                     ) : activeItem?.type === 'lineItem' ? (
-                        <div className="bg-card p-4 rounded-xl border-2 border-orange-200 shadow-sm space-y-3">
+                        <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-3">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Line Item</span>
-                                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-bold">
+                                <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded font-bold">
                                     {Math.round((activeItem.lineItem.confidence ?? 0.9) * 100)}% Conf.
                                 </span>
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Description</label>
                                 <input 
-                                    className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                    className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50" 
                                     value={String(activeItem.lineItem.description ?? '')} 
                                     onChange={(e) => handleUpdateLineItem('description', e.target.value)}
                                     onKeyDown={(e) => {
@@ -413,7 +413,7 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                                 <div>
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Qty</label>
                                     <input 
-                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50" 
                                         value={String(activeItem.lineItem.quantity ?? '')} 
                                         onChange={(e) => handleUpdateLineItem('quantity', e.target.value)}
                                         onKeyDown={(e) => {
@@ -427,7 +427,7 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                                 <div>
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Unit Price</label>
                                     <input 
-                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50" 
                                         value={String(activeItem.lineItem.unitPrice ?? '')} 
                                         onChange={(e) => handleUpdateLineItem('unitPrice', e.target.value)}
                                         onKeyDown={(e) => {
@@ -441,7 +441,7 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                                 <div>
                                     <label className="text-[10px] font-bold text-muted-foreground uppercase block mb-1">Line Total</label>
                                     <input 
-                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5" 
+                                        className="w-full text-sm bg-muted/50 border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50" 
                                         value={String(activeItem.lineItem.lineTotal ?? '')} 
                                         onChange={(e) => handleUpdateLineItem('lineTotal', e.target.value)}
                                         onKeyDown={(e) => {
@@ -470,8 +470,8 @@ const VerificationView: React.FC<VerificationViewProps> = ({ docs, onCompleteRev
                 </div>
 
                 <div className="p-4 border-t border-border flex justify-between items-center gap-3">
-                    <button onClick={() => onSaveProgress(localDocs)} className="px-4 py-3 md:py-3 text-muted-foreground font-bold text-xs hover:bg-muted rounded-xl transition-colors min-h-[44px] md:min-h-0">Save & Exit</button>
-                    <button onClick={handleNext} className="flex-1 bg-primary text-primary-foreground px-6 py-3 md:py-3 rounded-xl font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-primary/90 min-h-[44px] md:min-h-0">
+                    <button onClick={() => onSaveProgress(localDocs)} className="px-4 py-3 md:py-3 text-muted-foreground font-bold text-xs hover:bg-muted rounded-xl transition-colors min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20">Save & Exit</button>
+                    <button onClick={handleNext} className="flex-1 bg-primary text-primary-foreground px-6 py-3 md:py-3 rounded-xl font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-primary/90 min-h-[44px] md:min-h-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
                         {currentReviewIndex === reviewItems.length - 1 ? 'Finish & Export' : 'Approve & Next'} <ArrowRight size={18} />
                     </button>
                 </div>

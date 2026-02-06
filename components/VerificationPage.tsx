@@ -138,8 +138,8 @@ const VerificationPage: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
-    if (!job || docs.length === 0) return <div className="p-8 text-center text-gray-500">Document data not found.</div>;
+    if (loading) return <div className="h-full flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" size={40} /></div>;
+    if (!job || docs.length === 0) return <div className="p-8 text-center text-muted-foreground bg-background">Document data not found.</div>;
 
     return <VerificationView docs={docs} onSaveProgress={handleSave} onCompleteReview={handleComplete} />;
 };
