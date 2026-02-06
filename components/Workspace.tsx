@@ -550,7 +550,7 @@ const Workspace: React.FC = () => {
 
       {/* Mobile Navigation Drawer */}
       <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
-        <SheetContent side="left" className="w-[280px] p-0 z-[150]">
+        <SheetContent side="left" className="w-[280px] p-0">
           <Navigation 
             activeView={location.pathname.includes('sheet') ? 'sheet' : location.pathname.includes('dashboard') ? 'dashboard' : location.pathname.includes('workflows') ? 'workflows' : 'extraction'}
             files={files}
