@@ -151,7 +151,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       </section>
       </div>
 
-      {/* Demo Video Section */}
+      {/* Demo Video Section
       <section 
         data-section-id="demo-video"
         className={`py-12 md:py-16 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
@@ -180,7 +180,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Features Section */}
       <section 
