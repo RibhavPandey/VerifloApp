@@ -766,7 +766,7 @@ const Workspace: React.FC = () => {
          </header>
 
          <div className="flex-1 flex overflow-hidden relative">
-            <main className="flex-1 relative overflow-y-auto bg-muted/30 dark:bg-background flex flex-col min-h-0">
+            <main className="flex-1 relative overflow-y-auto bg-muted/30 dark:bg-[hsl(220_15%_9%)] flex flex-col min-h-0">
                 <Outlet context={{ 
                     jobs, files, credits, documentsUsed, documentsLimit, handleUseCredit, refreshData: loadData, handleRecordAction, onJobCreated: handleJobCreated, handleCSVUpload, onCreateWorkflow: handleCreateWorkflow, isRecording, onStopRecording: handleStopRecording
                 } satisfies WorkspaceContextType} />

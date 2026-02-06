@@ -186,7 +186,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div 
-      className="h-full overflow-y-auto bg-muted/30 dark:bg-background" 
+      className="h-full min-h-full overflow-y-auto bg-muted/30 dark:bg-[hsl(220_15%_9%)]" 
       onClick={() => setOpenMenuJobId(null)}
     >
       <div className="max-w-6xl mx-auto px-4 py-6 md:px-8 md:py-10">

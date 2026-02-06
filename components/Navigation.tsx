@@ -163,22 +163,24 @@ const Navigation: React.FC<NavigationProps> = ({
     );
   }
 
-  // Desktop: render as sidebar
+  // Desktop: render as sidebar (width in layout so content is pushed, no overlap)
   return (
-    <div ref={navRef} className="relative w-[68px] h-full flex-shrink-0 z-[200] hidden md:block">
-      <div 
-        className={`group absolute top-0 left-0 h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-out flex flex-col ${isExpanded ? 'w-[260px] shadow-[4px_0_24px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_24px_-2px_rgba(0,0,0,0.3)]' : 'w-[68px]'}`}
-        style={{ 
-          minHeight: '100%'
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={(e) => {
-          const relatedTarget = e.relatedTarget as HTMLElement;
-          if (relatedTarget && relatedTarget.closest('[data-radix-portal]')) {
-            return;
-          }
-          setIsHovered(false);
-        }}
+    <div
+      ref={navRef}
+      className="relative h-full flex-shrink-0 hidden md:block transition-[width] duration-300 ease-out overflow-hidden"
+      style={{ width: isExpanded ? 260 : 68 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={(e) => {
+        const relatedTarget = e.relatedTarget as HTMLElement;
+        if (relatedTarget && relatedTarget.closest('[data-radix-portal]')) {
+          return;
+        }
+        setIsHovered(false);
+      }}
+    >
+      <div
+        className="group h-full min-w-[260px] w-[260px] bg-sidebar border-r border-sidebar-border flex flex-col shadow-[4px_0_24px_-2px_rgba(0,0,0,0.08)] dark:shadow-[4px_0_24px_-2px_rgba(0,0,0,0.3)]"
+        style={{ minHeight: '100%' }}
       >
         {/* New Project Button */}
         <div className="px-2 pt-4 pb-2">
