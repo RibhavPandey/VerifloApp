@@ -454,16 +454,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-white relative w-full" style={{ width: '100%', maxWidth: '100%' }}>
+        <div className="flex flex-col h-full bg-background relative w-full" style={{ width: '100%', maxWidth: '100%' }}>
 
             {/* HEADER */}
-            <div className="h-12 border-b border-slate-100 flex items-center justify-between px-4 bg-white z-10">
-                    <span className="text-sm font-medium text-slate-600">AI Assistant</span>
+            <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-background z-10">
+                    <span className="text-sm font-medium text-foreground">AI Assistant</span>
                     <div className="flex items-center gap-2">
                         {canUndo && (
                             <button
                                 onClick={handleUndo}
-                                className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                                className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
                                 title="Undo last message"
                             >
                                 <Undo2 size={16} />
@@ -471,17 +471,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                         <button
                             onClick={handleResetChat}
-                            className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                            className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
                             title="Reset Chat History"
                         >
                             <RotateCcw size={16} />
                         </button>
                         {showHistorySearch ? (
-                            <div className="flex items-center bg-slate-50 rounded-md px-2 py-1 animate-in slide-in-from-right-2">
-                                <Search size={14} className="text-slate-400 mr-2" />
+                            <div className="flex items-center bg-muted/50 rounded-md px-2 py-1 animate-in slide-in-from-right-2">
+                                <Search size={14} className="text-muted-foreground mr-2" />
                                 <input
                                     autoFocus
-                                    className="bg-transparent border-none outline-none text-xs w-28 text-slate-700"
+                                    className="bg-transparent border-none outline-none text-xs w-28 text-foreground placeholder:text-muted-foreground"
                                     placeholder="Search history..."
                                     value={historySearchQuery}
                                     onChange={(e) => setHistorySearchQuery(e.target.value)}
@@ -489,7 +489,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 />
                                 <button
                                     onMouseDown={(e) => { e.preventDefault(); setHistorySearchQuery(''); setShowHistorySearch(false); }}
-                                    className="ml-1 text-slate-400 hover:text-slate-600"
+                                    className="ml-1 text-muted-foreground hover:text-foreground"
                                 >
                                     <X size={12} />
                                 </button>
@@ -497,7 +497,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         ) : (
                             <button
                                 onClick={() => setShowHistorySearch(true)}
-                                className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                                className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
                                 title="Search History"
                             >
                                 <Search size={16} />
@@ -510,36 +510,36 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex-1 overflow-hidden relative flex flex-col">
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                         {displayedHistory.length === 0 && historySearchQuery && (
-                            <div className="text-center py-8 text-xs text-slate-500">
+                            <div className="text-center py-8 text-xs text-muted-foreground">
                                 No messages found matching "{historySearchQuery}"
                             </div>
                         )}
                         {displayedHistory.map((m) => (
                             <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-slate-500' : 'bg-slate-100 text-slate-500'}`}>
-                                    {m.role === 'user' ? <User size={14} className="text-white" /> : <Sparkles size={14} />}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                    {m.role === 'user' ? <User size={14} className="text-primary-foreground" /> : <Sparkles size={14} />}
                                 </div>
                                 <div className="flex flex-col max-w-[85%] group/msg">
                                     <div className={`p-3 rounded-xl text-[13px] leading-relaxed shadow-sm border relative ${m.role === 'assistant'
-                                            ? 'bg-white text-slate-700 border-slate-100'
-                                            : 'bg-slate-100 text-slate-800 border-slate-200 font-medium'
+                                            ? 'bg-card text-foreground border-border'
+                                            : 'bg-muted text-foreground border-border font-medium'
                                         }`}>
                                         {m.role === 'assistant' && (
                                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10">
-                                                <button onClick={() => handleCopyMessage(m)} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600" title="Copy"><Copy size={12} /></button>
-                                                <button onClick={() => handleRegenerate(m)} disabled={isLoading} className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 disabled:opacity-50" title={messageHadExecutionError(m) ? "Regenerate (free retry)" : "Regenerate"}><RefreshCw size={12} /></button>
+                                                <button onClick={() => handleCopyMessage(m)} className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Copy"><Copy size={12} /></button>
+                                                <button onClick={() => handleRegenerate(m)} disabled={isLoading} className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground disabled:opacity-50" title={messageHadExecutionError(m) ? "Regenerate (free retry)" : "Regenerate"}><RefreshCw size={12} /></button>
                                             </div>
                                         )}
                                         {m.role === 'assistant' ? (
-                                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-slate-900 [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-slate-800 [&>pre]:text-white [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto pr-12">
+                                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>strong]:text-foreground [&>h3]:font-bold [&>h3]:mb-1 [&>h3]:text-sm [&>pre]:bg-muted [&>pre]:text-foreground [&>pre]:p-2 [&>pre]:rounded-lg [&>pre]:text-xs [&>pre]:overflow-x-auto [&>pre]:border [&>pre]:border-border pr-12">
                                                 {m.content ? <ReactMarkdown>{m.followUps?.length ? stripFollowUpSection(m.content) : m.content}</ReactMarkdown> : null}
                                                 {isLoading && history.length > 0 && m.id === history[history.length - 1].id && (
-                                                    <span className="inline-flex items-center gap-1 text-slate-500 text-sm mt-1">
+                                                    <span className="inline-flex items-center gap-1 text-muted-foreground text-sm mt-1">
                                                         Analyzing
                                                         <span className="inline-flex gap-0.5">
-                                                            <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                                            <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                                            <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                                            <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                                            <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                                            <span className="w-1 h-1 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                                                         </span>
                                                     </span>
                                                 )}
@@ -549,9 +549,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         )}
 
                                         {m.parts?.map((part, idx) => (
-                                            <div key={idx} className="mt-4 p-3 bg-slate-50/50 border border-slate-100 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                            <div key={idx} className="mt-4 p-3 bg-muted/50 border border-border rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-500">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                                                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                                                         {part.type === 'chart' ? (part.chartType === 'pie' ? <PieChart size={12} /> : <ChartBar size={12} />) :
                                                             part.type === 'table' ? <Calculator size={12} /> :
                                                                 part.type === 'formula' ? <FunctionSquare size={12} /> :
@@ -563,12 +563,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         {part.type !== 'formula' && (
                                                             <>
                                                                 {part.type === 'analysis_card' && part.data?.[0] && (
-                                                                    <button onClick={() => handleDownloadImage((part.data[0] as AnalysisResult).id, (part.data[0] as AnalysisResult).title)} className="p-1 hover:bg-white rounded transition-colors text-slate-400 hover:text-slate-600" title="Download Image"><Download size={12} /></button>
+                                                                    <button onClick={() => handleDownloadImage((part.data[0] as AnalysisResult).id, (part.data[0] as AnalysisResult).title)} className="p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground" title="Download Image"><Download size={12} /></button>
                                                                 )}
                                                                 {part.type === 'table' && (
-                                                                    <button onClick={() => handleCopyTable(part.data || [])} className="p-1 hover:bg-white rounded transition-colors text-slate-400 hover:text-slate-600" title="Copy table"><Copy size={12} /></button>
+                                                                    <button onClick={() => handleCopyTable(part.data || [])} className="p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground" title="Copy table"><Copy size={12} /></button>
                                                                 )}
-                                                                <button onClick={() => onPinToDashboard({ title: part.title || 'Pinned Analysis', type: part.type, data: part.data || [], chartType: part.chartType })} className="p-1 hover:bg-white rounded transition-colors text-slate-400 hover:text-slate-600" title="Pin to Dashboard"><Pin size={12} /></button>
+                                                                <button onClick={() => onPinToDashboard({ title: part.title || 'Pinned Analysis', type: part.type, data: part.data || [], chartType: part.chartType })} className="p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground" title="Pin to Dashboard"><Pin size={12} /></button>
                                                             </>
                                                         )}
                                                     </div>
@@ -576,16 +576,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                                                 {/* FORMULA PART */}
                                                 {part.type === 'formula' && (
-                                                    <div className="bg-green-50 border border-green-100 rounded-lg p-3 group relative">
-                                                        <div className="text-xs font-medium text-green-700 mb-1 flex items-center gap-1">
+                                                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 group relative">
+                                                        <div className="text-xs font-medium text-green-700 dark:text-green-400 mb-1 flex items-center gap-1">
                                                             <FunctionSquare size={12} /> Excel Formula
                                                         </div>
-                                                        <code className="text-sm font-mono text-slate-800 break-all">{part.content}</code>
+                                                        <code className="text-sm font-mono text-foreground break-all">{part.content}</code>
                                                         <button
                                                             onClick={() => {
                                                                 if (part.content) navigator.clipboard.writeText(part.content);
                                                             }}
-                                                            className="absolute top-2 right-2 p-1.5 bg-white text-slate-500 rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-slate-600"
+                                                            className="absolute top-2 right-2 p-1.5 bg-background border border-border text-muted-foreground rounded-md shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
                                                             title="Copy Formula"
                                                         >
                                                             <Copy size={14} />
@@ -594,9 +594,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                 )}
 
                                                 {part.type === 'chart' && part.data && (
-                                                    <div id={`chart-${m.id}-${idx}`} className="relative h-64 w-full flex items-center justify-center bg-white rounded-lg border border-slate-100 p-2 overflow-hidden">
+                                                    <div id={`chart-${m.id}-${idx}`} className="relative h-64 w-full flex items-center justify-center bg-card rounded-lg border border-border p-2 overflow-hidden">
                                                         <ChartRenderer type={part.chartType || 'bar'} data={part.data} title={part.title || 'Chart'} isThumbnail={true} onExpand={() => setExpandedChart({ type: part.chartType || 'bar', data: part.data || [], title: part.title || 'Analysis Chart' })} />
-                                                        <button onClick={() => handleCopyChart(`chart-${m.id}-${idx}`)} className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded shadow-sm text-slate-500 hover:text-slate-700 transition-opacity opacity-0 group-hover/msg:opacity-100" title="Copy chart"><Copy size={12} /></button>
+                                                        <button onClick={() => handleCopyChart(`chart-${m.id}-${idx}`)} className="absolute top-2 right-2 p-1.5 bg-background/90 hover:bg-background border border-border rounded shadow-sm text-muted-foreground hover:text-foreground transition-opacity opacity-0 group-hover/msg:opacity-100" title="Copy chart"><Copy size={12} /></button>
                                                     </div>
                                                 )}
                                                 {part.type === 'table' && (
@@ -604,38 +604,38 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                         <table className="w-full text-xs">
                                                             <tbody>
                                                                 {part.data?.slice(0, 5).map((row: any, i: number) => (
-                                                                    <tr key={i} className="border-b border-slate-100 last:border-0">
+                                                                    <tr key={i} className="border-b border-border last:border-0">
                                                                         {typeof row === 'object' && row !== null ? (
                                                                             Object.entries(row).map(([k, val]: [string, any], j: number) => (
-                                                                                <td key={j} className="py-1 px-2 text-slate-600">
-                                                                                    <span className="font-semibold text-slate-400 mr-1">{k}:</span>
+                                                                                <td key={j} className="py-1 px-2 text-foreground">
+                                                                                    <span className="font-semibold text-muted-foreground mr-1">{k}:</span>
                                                                                     {typeof val === 'object' && val !== null ? JSON.stringify(val) : val}
                                                                                 </td>
                                                                             ))
                                                                         ) : (
-                                                                            <td className="py-1 px-2 text-slate-600">{row}</td>
+                                                                            <td className="py-1 px-2 text-foreground">{row}</td>
                                                                         )}
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
                                                         </table>
-                                                        {part.data && part.data.length > 5 && <div className="text-xs text-slate-500 mt-1 italic">... {part.data.length - 5} more rows</div>}
+                                                        {part.data && part.data.length > 5 && <div className="text-xs text-muted-foreground mt-1 italic">... {part.data.length - 5} more rows</div>}
                                                     </div>
                                                 )}
                                                 {part.type === 'analysis_card' && part.data?.[0] && (
-                                                    <div id={`analysis-card-${(part.data[0] as AnalysisResult).id}`} className="bg-white rounded-xl border border-slate-100 p-3">
+                                                    <div id={`analysis-card-${(part.data[0] as AnalysisResult).id}`} className="bg-card rounded-xl border border-border p-3">
                                                         <AnalysisContent result={part.data[0] as AnalysisResult} />
                                                     </div>
                                                 )}
                                             </div>
                                         ))}
                                         {m.role === 'assistant' && m.followUps && m.followUps.length > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+                                            <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-2">
                                                 {m.followUps.map((q, i) => (
                                                     <button
                                                         key={i}
                                                         onClick={(e) => handleAISubmit(e, q)}
-                                                        className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-200 transition-colors"
+                                                        className="px-3 py-1.5 bg-muted text-foreground text-xs font-medium rounded-lg hover:bg-muted/80 transition-colors"
                                                     >
                                                         {q}
                                                     </button>
@@ -650,10 +650,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Bottom Input Section */}
-            <div className="p-3 border-t border-slate-200 bg-slate-50/50 relative z-20">
+            <div className="p-3 border-t border-border bg-muted/30 relative z-20">
                 {showMentionList && filteredFiles.length > 0 && (
-                    <div className="absolute bottom-full left-12 mb-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-30 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 text-xs font-medium text-slate-500">
+                    <div className="absolute bottom-full left-12 mb-2 w-64 bg-popover rounded-xl shadow-xl border border-border overflow-hidden z-30 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="bg-muted/50 px-3 py-2 border-b border-border text-xs font-medium text-muted-foreground">
                             Mention File
                         </div>
                         <div className="max-h-48 overflow-y-auto">
@@ -661,9 +661,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <button
                                     key={f.id}
                                     onClick={() => insertMention(f.name)}
-                                    className="w-full text-left px-3 py-2 hover:bg-slate-100 text-sm text-slate-700 flex items-center gap-2 transition-colors"
+                                    className="w-full text-left px-3 py-2 hover:bg-muted text-sm text-foreground flex items-center gap-2 transition-colors"
                                 >
-                                    <FileText size={14} className="text-slate-500" />
+                                    <FileText size={14} className="text-muted-foreground" />
                                     <span className="truncate">{f.name}</span>
                                 </button>
                             ))}
@@ -723,13 +723,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <button
                                     key={q}
                                     onClick={(e) => handleAISubmit(e, q)}
-                                    className="whitespace-nowrap px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors"
+                                    className="whitespace-nowrap px-3 py-1.5 border border-border rounded-lg text-xs font-medium text-foreground hover:bg-muted hover:border-border transition-colors"
                                 >
                                     {q}
                                 </button>
                             ))
                         ) : (
-                            <span className="text-xs text-slate-500 px-2 py-1.5">Upload files to get started</span>
+                            <span className="text-xs text-muted-foreground px-2 py-1.5">Upload files to get started</span>
                         )}
                     </div>
                 )}
