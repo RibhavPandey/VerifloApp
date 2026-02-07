@@ -11,25 +11,27 @@ const isMetricSane = (percent: string): boolean => {
 export const SummaryCard = ({ metrics }: { metrics: AnalysisResult['metrics'] }) => {
   const showDelta = isMetricSane(metrics.percent ?? '');
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-card border border-border w-full">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium text-muted-foreground truncate">{metrics.oldLabel}</div>
-          <div className="text-lg font-semibold text-foreground truncate" title={metrics.oldValue}>{metrics.oldValue}</div>
+    <div className="rounded-xl border border-border bg-muted/30 dark:bg-muted/20 p-5 w-full shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="min-w-0 flex-1 rounded-lg bg-background/80 dark:bg-background/50 border border-border px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{metrics.oldLabel}</div>
+            <div className="text-xl font-bold text-foreground truncate mt-0.5" title={metrics.oldValue}>{metrics.oldValue}</div>
+          </div>
+          <ArrowRight className="flex-shrink-0 text-muted-foreground" size={18} strokeWidth={2} />
+          <div className="min-w-0 flex-1 rounded-lg bg-background/80 dark:bg-background/50 border border-border px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{metrics.newLabel}</div>
+            <div className="text-xl font-bold text-foreground truncate mt-0.5" title={metrics.newValue}>{metrics.newValue}</div>
+          </div>
         </div>
-        <ArrowRight className="flex-shrink-0 text-muted-foreground/60" size={16} />
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-medium text-muted-foreground truncate">{metrics.newLabel}</div>
-          <div className="text-lg font-semibold text-foreground truncate" title={metrics.newValue}>{metrics.newValue}</div>
-        </div>
+        {showDelta && (
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0 border ${metrics.isNegative ? 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400' : 'bg-green-500/15 border-green-500/30 text-green-600 dark:text-green-400'}`}>
+            {metrics.isNegative ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+            <span>{metrics.percent}</span>
+            <span className="text-xs font-medium opacity-90">{metrics.delta}</span>
+          </div>
+        )}
       </div>
-      {showDelta && (
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium flex-shrink-0 ${metrics.isNegative ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-green-500/10 text-green-600 dark:text-green-400'}`}>
-          {metrics.isNegative ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
-          <span>{metrics.percent}</span>
-          <span className="text-xs opacity-80">{metrics.delta}</span>
-        </div>
-      )}
     </div>
   );
 };
