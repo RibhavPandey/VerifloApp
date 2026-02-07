@@ -17,6 +17,7 @@ import { useToast } from './ui/toast';
 import { worker } from '../lib/worker';
 import ExcelJS from 'exceljs';
 import { validateFiles, formatFileSize } from '../lib/file-validation';
+import { getValidColumnsForPrompts } from '../lib/fileContext';
 import { Sheet, SheetContent } from './ui/sheet';
 import { useIsMobile } from './ui/use-mobile';
 import { supabase } from '../lib/supabase';
@@ -489,6 +490,13 @@ const Workspace: React.FC = () => {
                     id: fileId, name: file.name, data, columns, styles: {}, 
                     lastModified: Date.now(), history: [{data, styles: {}, columns}], currentHistoryIndex: 0
                 };
+                const { numericCol, categoryCol } = getValidColumnsForPrompts(newFile);
+                const tryParts = [];
+                if (numericCol) tryParts.push(`What's the total of ${numericCol}?`);
+                if (categoryCol) tryParts.push(`Chart by ${categoryCol}`);
+                const greeting = tryParts.length > 0
+                    ? `I see ${newFile.name}. Try: ${tryParts.join(' or ')}`
+                    : `I see ${newFile.name}. Ask for sums, charts, or comparisons.`;
                 const newJob: Job = {
                     id: crypto.randomUUID(),
                     title: file.name,
@@ -497,7 +505,7 @@ const Workspace: React.FC = () => {
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                     fileIds: [fileId],
-                    chatHistory: [{ id: '1', role: 'assistant', content: "Ask anything about your data—sums, charts, comparisons. Upload a file to get started, or try the suggestions below." }]
+                    chatHistory: [{ id: '1', role: 'assistant', content: greeting }]
                 };
 
                 await db.upsertJob(newJob);

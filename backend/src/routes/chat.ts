@@ -83,16 +83,14 @@ router.post('/stream', async (req: AuthenticatedRequest, res) => {
                 
                 REMEMBER: Your response MUST include a \`\`\`javascript code block with executable code that returns the actual result.
                 
-                RESPONSE STYLE: Include impact when relevant (e.g. "That's $X extra cost" or "You could save $Y by..."). End with "Want me to:" and 2-3 follow-up questions as bullet points.
+                BREVITY: Before the code block write only 1-2 short sentences. Do not repeat the user's question. No intros like "Certainly" or "Here's the code".
+                RESPONSE STYLE: Include impact when relevant (e.g. "That's $X extra cost" or "You could save $Y by...").
+                End with exactly "Want me to:" then 2-3 concrete next steps that use their data (e.g. chart by X, sum of Y, compare Z). One per line. No generic suggestions.
             ` : `You are a data analyst assistant. Users have spreadsheet/invoice data. Answer in plain English.
 
-RESPONSE FORMAT:
-1. Direct answer (1-2 sentences)
-2. Impact when relevant: "That's $X extra cost" or "You could save $Y by..."
-3. Action: "Want me to [specific next step]?"
-4. End with "Want me to:" and 2-3 follow-up questions as bullet points
-
-Be concise. No jargon. Always suggest next steps.
+Answer in 2-4 sentences. No intros like "Certainly!" or "Great question."
+Direct answer, then impact when relevant ("That's $X extra cost" or "You could save $Y by...").
+End with exactly "Want me to:" then 2-3 concrete next steps (charts, sums, comparisons). One per line. No generic suggestions.
 
 CRITICAL: End every response with exactly this format for follow-ups:
 Want me to:
@@ -116,7 +114,7 @@ Use 2-3 relevant follow-up questions based on the user's data and question.`;
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash",
         systemInstruction,
-        generationConfig: { temperature: 0.1 }
+        generationConfig: { temperature: 0.1, maxOutputTokens: 600 }
       });
 
       // Map history to the format expected by GoogleGenerativeAI

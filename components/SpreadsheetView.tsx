@@ -541,9 +541,16 @@ const SpreadsheetView: React.FC = () => {
                       if (sheetId !== undefined) {
                           const val = hfInstance.current.getCellValue({ sheet: sheetId, row: r, col: c });
                           if (val instanceof Error || (typeof val === 'object' && val !== null && val?.type === 'ERROR')) return '#ERROR';
-                          
+                          // Circular reference: show #CYCLE! instead of raw JSON
+                          if (typeof val === 'object' && val !== null && (val as { type?: string }).type === 'CYCLE') {
+                              return (val as { value?: string }).value ?? '#CYCLE!';
+                          }
                           // Convert objects to primitives - React cannot render objects directly
                           if (typeof val === 'object' && val !== null) {
+                              // If object has a 'value' property (e.g. error/cycle display), use it
+                              if ('value' in val && val.value !== undefined && typeof (val as { value: unknown }).value === 'string') {
+                                  return (val as { value: string }).value;
+                              }
                               // If object has a 'result' property, use that (common pattern)
                               if ('result' in val && val.result !== undefined) {
                                   return String(val.result);

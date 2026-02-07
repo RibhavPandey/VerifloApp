@@ -66,6 +66,12 @@ const stripFollowUpSection = (content: string): string => {
     return out;
 };
 
+// Trim and collapse excessive newlines for cleaner display
+const cleanDisplayContent = (content: string): string => {
+    if (!content || typeof content !== 'string') return '';
+    return content.trim().replace(/\n{3,}/g, '\n\n');
+};
+
 // Fallback follow-ups when parsing returns empty (uses validated columns)
 const getFallbackFollowUps = (content: string, file?: ExcelFile): string[] => {
     const hasChart = content.includes('chart') || content.includes('Chart');
@@ -79,6 +85,19 @@ const getFallbackFollowUps = (content: string, file?: ExcelFile): string[] => {
     return fallbacks.slice(0, 3);
 };
 
+// Skip showing the analysis metric card when metrics are meaningless (e.g. "Infinite (from 0)")
+const isAnalysisMetricsSane = (result: AnalysisResult): boolean => {
+    if (result.intent === 'SANITY_CHECK') return true; // uses sanity card, not metrics
+    const m = result.metrics;
+    if (!m || typeof m !== 'object') return false;
+    const percent = String(m.percent ?? '').toLowerCase();
+    if (percent.includes('infinite') || percent.includes('from 0')) return false;
+    const oldVal = String(m.oldValue ?? '').trim();
+    const newVal = String(m.newValue ?? '').trim();
+    if (oldVal === '0' && newVal !== '0') return false; // percent-from-zero is misleading
+    return true;
+};
+
 // Detect if assistant message had a code execution error (for free retry)
 const messageHadExecutionError = (m: ChatMessage): boolean => {
     const c = (m.content || '').toLowerCase();
@@ -86,11 +105,12 @@ const messageHadExecutionError = (m: ChatMessage): boolean => {
 };
 
 // Map code execution errors to user-friendly messages
-const mapExecutionError = (error: string, columns: string[]): string => {
+const mapExecutionError = (error: string, columns: string[], suggestedCol?: string | null): string => {
     const err = String(error).toLowerCase();
     if (err.includes('findcol') || err.includes('column') || err.includes('not found') || err.includes('-1')) {
         const colList = columns.length > 0 ? columns.join(', ') : 'none';
-        return `Column not found. Available columns: ${colList}. Try asking for a specific column, e.g. "What's the sum of [column name]?"`;
+        const base = `Column not found. Available columns: ${colList}.`;
+        return suggestedCol ? `${base} Try: What's the sum of ${suggestedCol}?` : `${base} Try asking for a specific column, e.g. "What's the sum of [column name]?"`;
     }
     if (err.includes('undefined') || err.includes('null') || err.includes('cannot read') || err.includes('of undefined') || err.includes('reduce')) {
         return `Could not calculate. Try asking more specifically, e.g. "What's the total of [column]?"`;
@@ -218,11 +238,20 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const handleResetChat = () => {
         if (window.confirm("Are you sure you want to clear the chat history?")) {
-            onUpdateHistoryRef.current([{
-                id: Date.now().toString(),
-                role: 'assistant',
-                content: "Conversation cleared. Ask anything about your data—sums, charts, comparisons. Try the suggestions below to get started."
-            }]);
+            const file = activeFile || files[0];
+            let content: string;
+            if (file) {
+                const { numericCol, categoryCol } = getValidColumnsForPrompts(file);
+                const tryParts = [];
+                if (numericCol) tryParts.push(`What's the total of ${numericCol}?`);
+                if (categoryCol) tryParts.push(`Chart by ${categoryCol}`);
+                content = tryParts.length > 0
+                    ? `I see ${file.name}. Try: ${tryParts.join(' or ')}`
+                    : `I see ${file.name}. Ask for sums, charts, or comparisons.`;
+            } else {
+                content = "Conversation cleared. Try the suggestions below.";
+            }
+            onUpdateHistoryRef.current([{ id: Date.now().toString(), role: 'assistant', content }]);
         }
     };
 
@@ -260,7 +289,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     const fileContext = buildFileContext(files);
                     const json = await api.analyze(textToSend, fileContext);
                     const result: AnalysisResult = { id: assistantId, query: textToSend, ...json };
-                    onUpdateHistoryRef.current(prev => prev.map(m => m.id === assistantId ? { ...m, content: result.explanation, parts: [{ type: 'analysis_card', data: [result], title: result.title }], followUps: result.followUps || [] } : m));
+                    const showCard = isAnalysisMetricsSane(result);
+                    onUpdateHistoryRef.current(prev => prev.map(m => m.id === assistantId ? { ...m, content: result.explanation, parts: showCard ? [{ type: 'analysis_card', data: [result], title: result.title }] : [], followUps: result.followUps || [] } : m));
                 } else {
                     const fileContext = refFiles.length > 0 ? buildFileContext(refFiles) : '';
                     const datasets: Record<string, any[][]> = {};
@@ -296,12 +326,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                             let visibleText = isDataMode && hasExecuted ? accumulatedText.replace(/```(?:javascript|js)?\s*([\s\S]*?)\s*```/i, '').trim() : accumulatedText;
                             onUpdateHistoryRef.current(prev => prev.map(m => {
                                 if (m.id !== assistantId) return m;
-                                const updated = { ...m, content: visibleText };
+                                const updated = { ...m, content: cleanDisplayContent(visibleText) };
                                 if (executionResult !== null && !updated.parts?.some(p => p.title === (executionResult?.title || 'Analysis Result'))) {
                                     if (!updated.parts) updated.parts = [];
                                     if (executionResult?.error) {
-                                        const friendly = mapExecutionError(executionResult.error, primaryFile?.columns || []);
+                                        const { numericCol } = primaryFile ? getValidColumnsForPrompts(primaryFile) : { numericCol: null };
+                                        const friendly = mapExecutionError(executionResult.error, primaryFile?.columns || [], numericCol);
                                         updated.content += `\n\n${friendly}`;
+                                        updated.content = cleanDisplayContent(updated.content);
                                         if (friendly.includes('Available columns') && !updated.followUps?.length) {
                                             const { numericCol } = primaryFile ? getValidColumnsForPrompts(primaryFile) : { numericCol: null };
                                             updated.followUps = numericCol ? [`Try: What's the sum of ${numericCol}?`] : ['Try rephrasing your question'];
@@ -310,7 +342,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     else if (executionResult?.chartType && Array.isArray(executionResult?.data)) updated.parts.push({ type: 'chart', title: executionResult.title || 'Chart', data: executionResult.data, chartType: executionResult.chartType });
                                     else if (executionResult?.suggestedFormula) updated.parts.push({ type: 'formula', title: 'Suggested Formula', content: executionResult.suggestedFormula });
                                     else if (executionResult?.data && !executionResult?.chartType) updated.parts.push({ type: 'table', title: executionResult.title || 'Analysis Result', data: Array.isArray(executionResult.data) ? executionResult.data : [executionResult.data] });
-                                    else if (typeof executionResult === 'number' || typeof executionResult === 'string') updated.content += `\n\n**Result:** ${executionResult}`;
+                                    else if (typeof executionResult === 'number' || typeof executionResult === 'string') {
+                                        updated.content += `\n\n**Result:** ${executionResult}`;
+                                        updated.content = cleanDisplayContent(updated.content);
+                                    }
                                 }
                                 return updated;
                             }));
@@ -458,7 +493,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* HEADER */}
             <div className="h-12 border-b border-border flex items-center justify-between px-4 bg-background z-10">
-                    <span className="text-sm font-medium text-foreground">AI Assistant</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-foreground flex-shrink-0">AI Assistant</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[140px]" title={files.length > 0 ? (activeFile || files[0])?.name : undefined}>
+                            {files.length > 0 ? `Chatting with: ${(activeFile || files[0])?.name ?? ''}` : 'No file selected'}
+                        </span>
+                    </div>
                     <div className="flex items-center gap-2">
                         {canUndo && (
                             <button
@@ -509,6 +549,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative flex flex-col">
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {displayedHistory.length === 0 && files.length === 0 && !historySearchQuery && (
+                            <div className="text-center py-8 text-xs text-muted-foreground">
+                                Upload a file, then ask in plain English: totals, charts, comparisons.
+                            </div>
+                        )}
                         {displayedHistory.length === 0 && historySearchQuery && (
                             <div className="text-center py-8 text-xs text-muted-foreground">
                                 No messages found matching "{historySearchQuery}"
@@ -700,7 +745,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     const col = numericCol || file?.columns?.[0];
                                     const base = col ? `e.g. What's the sum of ${col}?` : "e.g. What's the sum? Create a chart";
                                     return files.length >= 2 ? "Type @ to mention a file" : base;
-                                })() : "Upload files to start chat"}
+                                })() : "Upload a file to ask about your data"}
                                 disabled={isLoading}
                                 className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm py-2 px-1 resize-none overflow-hidden text-foreground placeholder:text-muted-foreground leading-relaxed"
                                 style={{ minHeight: '40px', maxHeight: '160px' }}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Job, ExcelFile } from '../types';
 import { db } from '../lib/db';
+import { getValidColumnsForPrompts } from '../lib/fileContext';
 import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
 import { supabase } from '../lib/supabase';
@@ -153,6 +154,13 @@ const Dashboard: React.FC = () => {
             currentHistoryIndex: 0
         };
 
+        const { numericCol, categoryCol } = getValidColumnsForPrompts(newFile);
+        const tryParts = [];
+        if (numericCol) tryParts.push(`What's the total of ${numericCol}?`);
+        if (categoryCol) tryParts.push(`Chart by ${categoryCol}`);
+        const greeting = tryParts.length > 0
+            ? `I see ${newFile.name}. Try: ${tryParts.join(' or ')}`
+            : `I see ${newFile.name}. Ask for sums, charts, or comparisons.`;
         const newJob: Job = {
             id: crypto.randomUUID(),
             title: "Demo Sales Analysis",
@@ -161,7 +169,7 @@ const Dashboard: React.FC = () => {
             createdAt: Date.now(),
             updatedAt: Date.now(),
             fileIds: [fileId],
-            chatHistory: [{ id: '1', role: 'assistant', content: "I've loaded the demo sales data. Try asking: 'Analyze sales by region' or 'What is the top selling product?'" }]
+            chatHistory: [{ id: '1', role: 'assistant', content: greeting }]
         };
 
         await db.upsertJob(newJob);
