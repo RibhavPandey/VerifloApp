@@ -1949,7 +1949,6 @@ const SpreadsheetView: React.FC = () => {
               files={allFiles} 
               history={chatHistory}
               onUpdateHistory={handleUpdateChatHistory}
-              onPinToDashboard={() => {}}
               credits={credits}
               onUseCredit={handleUseCredit} 
             />
@@ -1966,7 +1965,6 @@ const SpreadsheetView: React.FC = () => {
               files={allFiles} 
               history={chatHistory}
               onUpdateHistory={handleUpdateChatHistory}
-              onPinToDashboard={() => {}}
               credits={credits}
               onUseCredit={handleUseCredit} 
             />
@@ -2040,7 +2038,6 @@ const SpreadsheetView: React.FC = () => {
                 files={allFiles} 
                 history={chatHistory}
                 onUpdateHistory={handleUpdateChatHistory}
-                onPinToDashboard={() => {}}
                 credits={credits}
                 onUseCredit={handleUseCredit} 
               />

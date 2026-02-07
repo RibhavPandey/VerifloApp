@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Send, ChartBar, Pin, TrendingUp, User, Calculator, PieChart, Download, FileText, ShieldCheck, Layers, Copy, FunctionSquare, Search, X, RotateCcw, RefreshCw, Undo2 } from 'lucide-react';
-import { ExcelFile, ChatMessage, DashboardItem, AnalysisResult, Workflow, AutomationStep } from '../types';
+import { Sparkles, Send, ChartBar, TrendingUp, User, Calculator, PieChart, Download, FileText, ShieldCheck, Layers, Copy, FunctionSquare, Search, X, RotateCcw, RefreshCw, Undo2 } from 'lucide-react';
+import { ExcelFile, ChatMessage, AnalysisResult, Workflow, AutomationStep } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../lib/api';
 import { ChartRenderer, ChartModal } from './ChartRenderer';
@@ -16,7 +16,6 @@ interface SidebarProps {
     files: ExcelFile[];
     history: ChatMessage[];
     onUpdateHistory: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
-    onPinToDashboard: (item: Omit<DashboardItem, 'id' | 'w' | 'h'>) => void;
     credits: number;
     onUseCredit: (amount: number) => void;
 }
@@ -144,7 +143,7 @@ const getSuggestedPrompts = (files: ExcelFile[], activeFile?: ExcelFile): string
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
-    activeFile, files, history, onUpdateHistory, onPinToDashboard, credits, onUseCredit
+    activeFile, files, history, onUpdateHistory, credits, onUseCredit
 }) => {
     const { addToast } = useToast();
     const [showHistorySearch, setShowHistorySearch] = useState(false);
@@ -613,7 +612,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                                                 {part.type === 'table' && (
                                                                     <button onClick={() => handleCopyTable(part.data || [])} className="p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground" title="Copy table"><Copy size={12} /></button>
                                                                 )}
-                                                                <button onClick={() => onPinToDashboard({ title: part.title || 'Pinned Analysis', type: part.type, data: part.data || [], chartType: part.chartType })} className="p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground" title="Pin to Dashboard"><Pin size={12} /></button>
                                                             </>
                                                         )}
                                                     </div>
