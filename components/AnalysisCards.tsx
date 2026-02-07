@@ -3,125 +3,125 @@ import React from 'react';
 import { ArrowRight, ArrowDown, ArrowUp, ShieldCheck, AlertTriangle, Sparkles } from 'lucide-react';
 import { AnalysisResult, BucketItem, SanityData } from '../types';
 
-export const SummaryCard = ({ metrics }: { metrics: AnalysisResult['metrics'] }) => (
-  <div className="flex items-center justify-center gap-4 md:gap-8 mb-6 p-4 bg-white rounded-xl border border-slate-100 shadow-sm w-full">
-      <div className="text-center min-w-0 flex-1">
-          <div className="text-xs font-medium text-slate-500 mb-1 truncate">{metrics.oldLabel}</div>
-          <div className="text-xl font-bold text-slate-600 truncate" title={metrics.oldValue}>{metrics.oldValue}</div>
-      </div>
-      <div className="flex flex-col items-center flex-shrink-0">
-          <ArrowRight className="text-slate-300 mb-1" size={16} />
-      </div>
-      <div className="text-center min-w-0 flex-1">
-          <div className="text-xs font-medium text-slate-500 mb-1 truncate">{metrics.newLabel}</div>
-          <div className="text-2xl font-bold text-slate-800 truncate" title={metrics.newValue}>{metrics.newValue}</div>
-      </div>
-      <div className={`ml-2 md:ml-4 flex flex-col items-center justify-center px-3 py-1 rounded-lg text-sm font-bold flex-shrink-0 ${metrics.isNegative ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-          <span className="flex items-center gap-1 whitespace-nowrap">{metrics.isNegative ? <ArrowDown size={14} /> : <ArrowUp size={14} />} {metrics.percent}</span>
-          <span className="text-[10px] opacity-80 whitespace-nowrap">{metrics.delta}</span>
-      </div>
-  </div>
-);
+const isMetricSane = (percent: string): boolean => {
+  const p = String(percent || '').toLowerCase();
+  return !p.includes('infinite') && !p.includes('from 0');
+};
 
-export const BucketCard = ({ buckets }: { buckets: BucketItem[] }) => (
-  <div className="grid grid-cols-3 gap-3 mb-6">
-      {buckets.map((b, i) => {
-          const colors: Record<string, string> = {
-              red: 'bg-red-50 border-red-100 text-red-700',
-              yellow: 'bg-yellow-50 border-yellow-100 text-yellow-700',
-              green: 'bg-green-50 border-green-100 text-green-700'
-          };
-          return (
-              <div key={i} className={`p-3 rounded-xl border ${colors[b.color] || colors.yellow} flex flex-col items-center text-center min-w-0`}>
-                  <span className="text-xs font-medium opacity-70 mb-1 truncate w-full">{b.label}</span>
-                  <span className="text-lg font-bold mb-1 truncate w-full" title={b.impact}>{b.impact}</span>
-                  <span className="text-xs font-medium opacity-80 whitespace-nowrap">{b.count} rows</span>
-              </div>
-          )
-      })}
-  </div>
-);
+export const SummaryCard = ({ metrics }: { metrics: AnalysisResult['metrics'] }) => {
+  const showDelta = isMetricSane(metrics.percent ?? '');
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-card border border-border w-full">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-medium text-muted-foreground truncate">{metrics.oldLabel}</div>
+          <div className="text-lg font-semibold text-foreground truncate" title={metrics.oldValue}>{metrics.oldValue}</div>
+        </div>
+        <ArrowRight className="flex-shrink-0 text-muted-foreground/60" size={16} />
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-medium text-muted-foreground truncate">{metrics.newLabel}</div>
+          <div className="text-lg font-semibold text-foreground truncate" title={metrics.newValue}>{metrics.newValue}</div>
+        </div>
+      </div>
+      {showDelta && (
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium flex-shrink-0 ${metrics.isNegative ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-green-500/10 text-green-600 dark:text-green-400'}`}>
+          {metrics.isNegative ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+          <span>{metrics.percent}</span>
+          <span className="text-xs opacity-80">{metrics.delta}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const BucketCard = ({ buckets }: { buckets: BucketItem[] }) => {
+  const colorMap: Record<string, string> = {
+    red: 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400',
+    yellow: 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400',
+    green: 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400',
+  };
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+      {buckets.map((b, i) => (
+        <div key={i} className={`p-3 rounded-xl border ${colorMap[b.color] || colorMap.yellow} flex flex-col items-center text-center min-w-0`}>
+          <span className="text-xs font-medium opacity-80 truncate w-full">{b.label}</span>
+          <span className="text-base font-semibold mt-0.5 truncate w-full" title={b.impact}>{b.impact}</span>
+          <span className="text-xs text-muted-foreground mt-1">{b.count} rows</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const ContributionCard = ({ drivers }: { drivers: AnalysisResult['drivers'] }) => (
-  <div className="mb-6 w-full">
-      <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-medium text-slate-500">Top Drivers of Change</h4>
-      </div>
-      <div className="space-y-2">
-          {drivers.slice(0, 5).map((d, i) => (
-              <div key={i} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-lg hover:bg-white transition-colors w-full">
-                  <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                      <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-500">{i + 1}</span>
-                      <span className="text-sm font-medium text-slate-700 truncate block" title={d.name}>{d.name}</span>
-                  </div>
-                  <span className={`text-sm font-bold flex-shrink-0 ${d.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                      {d.value}
-                  </span>
-              </div>
-          ))}
-          {drivers.length > 5 && (
-              <div className="text-center pt-2">
-                  <button className="text-xs font-medium text-slate-600 hover:text-slate-700">View All {drivers.length} Drivers</button>
-              </div>
-          )}
-      </div>
+  <div className="w-full">
+    <h4 className="text-xs font-medium text-muted-foreground mb-2">Top drivers</h4>
+    <div className="space-y-1.5">
+      {drivers.slice(0, 5).map((d, i) => (
+        <div key={i} className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-muted/50 border border-border">
+          <span className="text-xs font-medium text-muted-foreground w-5 flex-shrink-0">{i + 1}</span>
+          <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1" title={d.name}>{d.name}</span>
+          <span className={`text-sm font-semibold flex-shrink-0 ${d.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            {d.value}
+          </span>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
 export const SanityCard = ({ sanity }: { sanity: SanityData }) => {
-   const scoreColor = sanity.score > 80 ? 'text-green-600' : sanity.score > 50 ? 'text-yellow-600' : 'text-red-600';
-   return (
-      <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4 w-full">
-          <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
-              <div className="flex items-center gap-2">
-                  <ShieldCheck className={scoreColor} size={20} />
-                  <span className="font-bold text-slate-700">Trust Score</span>
-              </div>
-              <div className="flex items-center gap-3">
-                  <span className={`text-2xl font-black ${scoreColor}`}>{sanity.score}</span>
-                  <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${sanity.riskLevel === 'Low' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {sanity.riskLevel} Risk
-                  </span>
-              </div>
-          </div>
-          
-          <ul className="space-y-2 mb-4">
-              {sanity.warnings.map((w, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 break-words">
-                      <AlertTriangle size={12} className="text-orange-500 mt-0.5 shrink-0" />
-                      <span className="break-words">{w}</span>
-                  </li>
-              ))}
-          </ul>
-
-          {sanity.suggestion && (
-              <div className="bg-slate-100 text-slate-700 p-2 rounded-lg text-xs font-medium flex gap-2">
-                  <Sparkles size={12} className="mt-0.5 shrink-0" />
-                  <span className="break-words">{sanity.suggestion}</span>
-              </div>
-          )}
-      </div>
-   )
-};
-
-export const AnalysisContent: React.FC<{ result: AnalysisResult }> = ({ result }) => {
-    return (
-        <div className="w-full">
-            {/* PRIMARY CARD RENDERING LOGIC */}
-            {result.intent === 'SUMMARY' && <SummaryCard metrics={result.metrics} />}
-            {result.intent === 'CHANGE_EXPLANATION' && (
-                <>
-                    <SummaryCard metrics={result.metrics} />
-                    {result.buckets && <BucketCard buckets={result.buckets} />}
-                </>
-            )}
-            {result.intent === 'DIMENSION_ANALYSIS' && (
-                <>
-                    <SummaryCard metrics={result.metrics} />
-                    {result.drivers && <ContributionCard drivers={result.drivers} />}
-                </>
-            )}
-            {result.intent === 'SANITY_CHECK' && result.sanity && <SanityCard sanity={result.sanity} />}
+  const scoreColor = sanity.score > 80 ? 'text-green-600 dark:text-green-400' : sanity.score > 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400';
+  const riskClass = sanity.riskLevel === 'Low' ? 'bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-red-500/10 text-red-700 dark:text-red-400';
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 w-full">
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className={scoreColor} size={18} />
+          <span className="text-sm font-semibold text-foreground">Trust score</span>
         </div>
-    );
+        <div className="flex items-center gap-2">
+          <span className={`text-xl font-bold ${scoreColor}`}>{sanity.score}</span>
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${riskClass}`}>
+            {sanity.riskLevel} risk
+          </span>
+        </div>
+      </div>
+      {sanity.warnings.length > 0 && (
+        <ul className="space-y-1.5 mt-3">
+          {sanity.warnings.map((w, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <AlertTriangle size={12} className="mt-0.5 shrink-0 text-amber-500" />
+              <span className="break-words">{w}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {sanity.suggestion && (
+        <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border flex gap-2">
+          <Sparkles size={12} className="shrink-0 text-muted-foreground mt-0.5" />
+          <span className="text-xs text-foreground">{sanity.suggestion}</span>
+        </div>
+      )}
+    </div>
+  );
 };
+
+export const AnalysisContent: React.FC<{ result: AnalysisResult }> = ({ result }) => (
+  <div className="w-full space-y-4">
+    {result.intent === 'SUMMARY' && <SummaryCard metrics={result.metrics} />}
+    {result.intent === 'CHANGE_EXPLANATION' && (
+      <>
+        <SummaryCard metrics={result.metrics} />
+        {result.buckets && result.buckets.length > 0 && <BucketCard buckets={result.buckets} />}
+      </>
+    )}
+    {result.intent === 'DIMENSION_ANALYSIS' && (
+      <>
+        <SummaryCard metrics={result.metrics} />
+        {result.drivers && result.drivers.length > 0 && <ContributionCard drivers={result.drivers} />}
+      </>
+    )}
+    {result.intent === 'SANITY_CHECK' && result.sanity && <SanityCard sanity={result.sanity} />}
+  </div>
+);
