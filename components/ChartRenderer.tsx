@@ -536,58 +536,58 @@ export const ChartModal: React.FC<{
 
   const maxValue = fullData.length > 0 ? Math.max(...fullData.map(d => d.value)) : 0;
 
-  // Render via Portal to break out of any z-index or overflow constraints
+  // Render via Portal to break out of any z-index or overflow constraints (theme-aware for dark mode)
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
-      <div className="bg-white w-full max-w-5xl h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+      <div className="bg-card w-full max-w-5xl h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 border border-border">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/50">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-            <p className="text-sm text-gray-500">Detailed Analysis View</p>
+            <h2 className="text-xl font-bold text-foreground">{title}</h2>
+            <p className="text-sm text-muted-foreground">Detailed Analysis View</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+            <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground border border-transparent rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
               <Download size={16} /> Export PNG
             </button>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
               <X size={20} />
             </button>
           </div>
         </div>
 
-        <div ref={chartRef} className="flex-1 p-8 bg-white overflow-hidden relative">
+        <div ref={chartRef} className="flex-1 p-8 bg-card overflow-hidden relative">
           <ChartRenderer type={type} data={chartData} title={title} isThumbnail={false} />
         </div>
 
         {/* Full data table when capped */}
         {wasCapped && fullData.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 overflow-hidden">
+          <div className="px-6 py-3 border-t border-border bg-muted/30 overflow-hidden">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Full data ({fullData.length} rows)</span>
+              <span className="text-sm font-medium text-foreground">Full data ({fullData.length} rows)</span>
               <button
                 onClick={() => {
                   const header = 'Name,Value\n';
                   const rows = fullData.map(d => `"${String(d.name).replace(/"/g, '""')}",${d.value}`).join('\n');
                   navigator.clipboard.writeText(header + rows);
                 }}
-                className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600"
+                className="text-xs px-2 py-1 bg-muted border border-border rounded hover:bg-muted/80 text-foreground"
               >
                 Copy CSV
               </button>
             </div>
-            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+            <div className="max-h-40 overflow-y-auto border border-border rounded-lg bg-background">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-gray-50 border-b border-gray-200">
+                <thead className="sticky top-0 bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="text-left py-2 px-3 font-medium text-gray-600">Name</th>
-                    <th className="text-right py-2 px-3 font-medium text-gray-600">Value</th>
+                    <th className="text-left py-2 px-3 font-medium text-foreground">Name</th>
+                    <th className="text-right py-2 px-3 font-medium text-foreground">Value</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fullData.map((d, i) => (
-                    <tr key={i} className="border-b border-gray-100 last:border-0">
-                      <td className="py-1.5 px-3 text-gray-700">{d.name}</td>
-                      <td className="py-1.5 px-3 text-right text-gray-700">{formatTooltipValue(d.value)}</td>
+                    <tr key={i} className="border-b border-border last:border-0">
+                      <td className="py-1.5 px-3 text-foreground">{d.name}</td>
+                      <td className="py-1.5 px-3 text-right text-foreground">{formatTooltipValue(d.value)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -597,15 +597,15 @@ export const ChartModal: React.FC<{
         )}
 
         {/* Footer Stats */}
-        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm">
+        <div className="px-6 py-3 border-t border-border bg-muted/30 flex items-center justify-between text-sm">
           <div className="flex gap-6">
             <div>
-              <span className="text-gray-500 mr-2">Data Points:</span>
-              <span className="font-bold text-gray-700">{fullData.length}</span>
+              <span className="text-muted-foreground mr-2">Data Points:</span>
+              <span className="font-bold text-foreground">{fullData.length}</span>
             </div>
             <div>
-              <span className="text-gray-500 mr-2">Max Value:</span>
-              <span className="font-bold text-gray-700">{formatAxisValue(maxValue, maxValue)}</span>
+              <span className="text-muted-foreground mr-2">Max Value:</span>
+              <span className="font-bold text-foreground">{formatAxisValue(maxValue, maxValue)}</span>
             </div>
           </div>
           <button
@@ -619,7 +619,7 @@ export const ChartModal: React.FC<{
               a.click();
               URL.revokeObjectURL(a.href);
             }}
-            className="text-xs px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600"
+            className="text-xs px-2 py-1 bg-muted border border-border rounded hover:bg-muted/80 text-foreground"
           >
             Export CSV
           </button>

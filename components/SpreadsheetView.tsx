@@ -404,6 +404,7 @@ const SpreadsheetView: React.FC = () => {
   const [isGridFocused, setIsGridFocused] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
+  const exportMenuRefMobile = useRef<HTMLDivElement | null>(null);
   const transformMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -411,7 +412,10 @@ const SpreadsheetView: React.FC = () => {
 
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (showExportMenu && exportMenuRef.current && !exportMenuRef.current.contains(target)) {
+      const insideExport =
+        (exportMenuRef.current && exportMenuRef.current.contains(target)) ||
+        (exportMenuRefMobile.current && exportMenuRefMobile.current.contains(target));
+      if (showExportMenu && !insideExport) {
         setShowExportMenu(false);
       }
       if (showTransformMenu && transformMenuRef.current && !transformMenuRef.current.contains(target)) {
@@ -1563,8 +1567,8 @@ const SpreadsheetView: React.FC = () => {
             </Button>
           </div>
 
-          {/* Export with ERP Format inside */}
-          <div className="relative" ref={exportMenuRef}>
+          {/* Export with ERP Format inside - mobile */}
+          <div className="relative" ref={exportMenuRefMobile}>
             <Button
               type="button"
               variant="ghost"
