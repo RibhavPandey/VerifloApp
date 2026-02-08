@@ -8,9 +8,12 @@ import {
   ArrowRight,
   FileText,
   CheckCircle2,
+  Check,
   Play,
   MessageSquare,
-  Workflow
+  Workflow,
+  X,
+  Minus
 } from "lucide-react";
 
 interface LandingPageProps {
@@ -294,63 +297,73 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
         data-section-id="comparison"
         className={`py-24 md:py-32 transition-opacity duration-700 bg-white ${visibleSections.has('comparison') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[90rem]">
           <div className="mb-16 text-center">
-            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
+            <h2 className="mb-4 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900">
               The Veriflo Difference
             </h2>
-            <p className="text-lg sm:text-xl text-gray-600">
+            <p className="text-xl sm:text-2xl text-gray-600">
               20 invoices → spreadsheet → accounting in under 5 minutes.
             </p>
           </div>
 
-          <div className="mx-auto max-w-5xl space-y-12">
-            {[
-              { 
-                feature: "Invoice → accounting", 
-                otherCons: ["Nanonets + Excel + manual export"], 
-                veriflo: "Extract → Review → One-click Tally/QuickBooks/Zoho"
-              },
-              { 
-                feature: "Repetitive spreadsheet tasks", 
-                otherCons: ["Zapier (complex) or Excel macros (code)"], 
-                veriflo: "Record once. Replay. No code."
-              },
-              { 
-                feature: "Chat with data", 
-                otherCons: ["ChatGPT (copy-paste, data leaves)"], 
-                veriflo: "Chat in workspace. Data never leaves."
-              },
-              { 
-                feature: "Tool sprawl", 
-                otherCons: ["3+ subscriptions, integration headaches"], 
-                veriflo: "One app. One subscription."
-              },
-            ].map((row, i) => (
-              <div key={i} className="pl-8 border-l-4 border-primary/20">
-                <p className="text-xl font-bold text-gray-900 mb-4">{row.feature}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">What they use</p>
-                    <ul className="text-sm text-gray-600 space-y-2">
-                      {row.otherCons.map((con, j) => (
-                        <li key={j} className="flex gap-2">
-                          <span className="text-red-500 font-bold">×</span>
-                          {con}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="bg-blue-50 rounded-xl p-6">
-                    <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">Veriflo</p>
-                    <p className="flex items-center gap-2 text-gray-900 font-semibold">
-                      <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                      {row.veriflo}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="mx-auto w-full max-w-7xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="py-7 px-8 lg:px-10 text-left text-base lg:text-lg font-semibold text-gray-900">Top Features</th>
+                  <th className="py-7 px-8 lg:px-10 text-center text-base lg:text-lg font-semibold text-gray-900">Veriflo</th>
+                  <th className="py-7 px-8 lg:px-10 text-center text-base lg:text-lg font-semibold text-gray-900">Other AI Tools</th>
+                  <th className="py-7 px-8 lg:px-10 text-center text-base lg:text-lg font-semibold text-gray-900">Spreadsheets / Manual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: "Extract invoices → review → one-click export to Tally, QuickBooks, Zoho", veriflo: "yes", other: "no", manual: "no" },
+                  { feature: "Record a workflow once, replay on new files—no code", veriflo: "yes", other: "maybe", manual: "no" },
+                  { feature: "Ask questions in plain English; data stays in your workspace", veriflo: "yes", other: "no", manual: "no" },
+                  { feature: "Bulk process 20+ invoices in minutes, not hours", veriflo: "yes", other: "maybe", manual: "no" },
+                  { feature: "One app for extraction, automation, and chat—one subscription", veriflo: "yes", other: "no", manual: "na" },
+                ].map((row, i) => (
+                  <tr key={i} className="border-t border-gray-100">
+                    <td className="py-7 px-8 lg:px-10 text-left text-base lg:text-lg text-gray-700">{row.feature}</td>
+                    <td className="py-7 px-8 lg:px-10 text-center">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary">
+                        <Check className="h-5 w-5 text-white" strokeWidth={2.5} />
+                      </span>
+                    </td>
+                    <td className="py-7 px-8 lg:px-10 text-center">
+                      {row.other === "yes" ? (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary">
+                          <Check className="h-5 w-5 text-white" strokeWidth={2.5} />
+                        </span>
+                      ) : row.other === "maybe" ? (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 text-base font-medium">?</span>
+                      ) : (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+                          <X className="h-5 w-5 text-gray-400" strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-7 px-8 lg:px-10 text-center">
+                      {row.manual === "yes" ? (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary">
+                          <Check className="h-5 w-5 text-white" strokeWidth={2.5} />
+                        </span>
+                      ) : row.manual === "na" ? (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+                          <Minus className="h-5 w-5 text-gray-400" strokeWidth={2.5} />
+                        </span>
+                      ) : (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+                          <X className="h-5 w-5 text-gray-400" strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
