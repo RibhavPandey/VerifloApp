@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, FileText, Plus, GitMerge,
-  ScanText, Workflow, DollarSign
+  ScanText, Workflow
 } from 'lucide-react';
 import { ExcelFile, Job } from '../types';
 import { supabase } from '../lib/supabase';
@@ -106,13 +106,6 @@ const Navigation: React.FC<NavigationProps> = ({
               label="Extraction" 
               isActive={activeView === 'extraction'} 
               onClick={() => handleNavClick(() => navigate('/extract/new'))}
-              isExpanded={true}
-            />
-            <NavItem 
-              icon={<DollarSign size={18} />} 
-              label="Upgrade" 
-              isActive={location.pathname === '/pricing'} 
-              onClick={() => handleNavClick(() => navigate('/pricing'))}
               isExpanded={true}
             />
           </div>
@@ -228,13 +221,6 @@ const Navigation: React.FC<NavigationProps> = ({
               label="Extraction" 
               isActive={activeView === 'extraction'} 
               onClick={() => navigate('/extract/new')}
-              isExpanded={isExpanded}
-            />
-            <NavItem 
-              icon={<DollarSign size={18} />} 
-              label="Upgrade" 
-              isActive={location.pathname === '/pricing'} 
-              onClick={() => navigate('/pricing')}
               isExpanded={isExpanded}
             />
           </div>

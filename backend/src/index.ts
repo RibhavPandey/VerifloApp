@@ -50,7 +50,7 @@ const { requestIdMiddleware } = await import('./middleware/requestId.js');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = process.env.FRONTEND_URL 
+const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
   : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'];
 
@@ -60,15 +60,15 @@ app.use(cors({
     if (!origin && process.env.NODE_ENV === 'development') {
       return callback(null, true);
     }
-    
+
     // In development, allow localhost on any port
     if (process.env.NODE_ENV === 'development' && origin && (
-      origin.startsWith('http://localhost:') || 
+      origin.startsWith('http://localhost:') ||
       origin.startsWith('http://127.0.0.1:')
     )) {
       return callback(null, true);
     }
-    
+
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -157,6 +157,41 @@ app.post('/api/auth/signup-welcome-email', rateLimit({ keyPrefix: 'signup-email'
     return res.status(500).json({ error: 'Failed to send welcome email' });
   } catch (err: any) {
     console.error('[signup-welcome-email] Error:', err);
+    return res.status(500).json({ error: err.message || 'Failed to send' });
+  }
+});
+
+// Public: trigger drip campaign emails (called from frontend)
+app.post('/api/emails/trigger-drip', rateLimit({ keyPrefix: 'drip-email', windowMs: 60_000, max: 10 }), async (req, res) => {
+  try {
+    const { email, name, template, data } = req.body || {};
+    if (!email || !template) {
+      return res.status(400).json({ error: 'Email and template required' });
+    }
+
+    const { emailTemplates } = await import('./utils/emailTemplates.js');
+    const { sendEmail } = await import('./utils/email.js');
+
+    const templateData = emailTemplates[template as keyof typeof emailTemplates];
+    if (!templateData) {
+      return res.status(400).json({ error: 'Invalid template' });
+    }
+
+    const displayName = (name && typeof name === 'string' ? name : 'User').trim() || 'User';
+    const htmlContent = typeof templateData.html === 'function'
+      ? templateData.html(displayName, data?.invoicesProcessed || 0)
+      : templateData.html;
+
+    const success = await sendEmail(email, templateData.subject, htmlContent);
+
+    if (success) {
+      console.log(`[drip-email] Sent ${template} to:`, email);
+      return res.json({ message: 'Email sent' });
+    }
+
+    return res.status(500).json({ error: 'Failed to send email' });
+  } catch (err: any) {
+    console.error('[drip-email] Error:', err);
     return res.status(500).json({ error: err.message || 'Failed to send' });
   }
 });
