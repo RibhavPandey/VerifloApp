@@ -2,25 +2,21 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import VerifloLogo from "./VerifloLogo";
 import { useState } from "react";
-import { Menu, X, ChevronDown } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Menu, X } from "lucide-react";
 
 const Navbar = () => {
     const { pathname } = useLocation();
     const isLanding = pathname === "/";
     const isPricing = pathname === "/pricing";
+    const isBlog = pathname === "/blog" || pathname.startsWith("/blog/");
+    const isPublicPage = isPricing || isBlog;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     
-    const textColor = isPricing ? "text-[#7f9ddf]" : "text-white";
-    const hoverColor = isPricing ? "hover:text-[#7f9ddf]/80" : "hover:text-white/80";
-    const containerBg = isPricing ? "bg-white backdrop-blur-md" : "bg-white/10 backdrop-blur-md";
-    const containerBorder = isPricing ? "border-gray-200" : "border-white/20";
-    const logoBg = isPricing ? "bg-[#7f9ddf]/10" : "bg-white/20";
+    const textColor = isPublicPage ? "text-[#7f9ddf]" : "text-white";
+    const hoverColor = isPublicPage ? "hover:text-[#7f9ddf]/80" : "hover:text-white/80";
+    const containerBg = isPublicPage ? "bg-white backdrop-blur-md" : "bg-white/10 backdrop-blur-md";
+    const containerBorder = isPublicPage ? "border-gray-200" : "border-white/20";
+    const logoBg = isPublicPage ? "bg-[#7f9ddf]/10" : "bg-white/20";
 
     return (
         <header className="sticky top-0 z-50 w-full">
@@ -38,26 +34,6 @@ const Navbar = () => {
                     <div className="hidden items-center gap-8 lg:flex">
                         {isLanding ? (
                             <>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger className={`flex items-center gap-1 text-sm font-medium ${textColor} ${hoverColor} transition-colors outline-none`}>
-                                        Features
-                                        <ChevronDown className="h-4 w-4" />
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start" className="w-48">
-                                        <DropdownMenuItem asChild>
-                                            <a href="#features" className="cursor-pointer">All Features</a>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <a href="#comparison" className="cursor-pointer">Why Veriflo</a>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <a href="#how-it-works" className="cursor-pointer">How It Works</a>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <a href="#use-cases" className="cursor-pointer">Use Cases</a>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
                                 <a href="#comparison" className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}>
                                     Why Veriflo
                                 </a>
@@ -70,38 +46,6 @@ const Navbar = () => {
                             </>
                         ) : (
                             <>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger className={`flex items-center gap-1 text-sm font-medium ${textColor} ${hoverColor} transition-colors outline-none`}>
-                                        Features
-                                        <ChevronDown className="h-4 w-4" />
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start" className="w-48">
-                                        <DropdownMenuItem 
-                                            onClick={() => window.location.href = '/#features'}
-                                            className="cursor-pointer"
-                                        >
-                                            All Features
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                            onClick={() => window.location.href = '/#comparison'}
-                                            className="cursor-pointer"
-                                        >
-                                            Why Veriflo
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                            onClick={() => window.location.href = '/#how-it-works'}
-                                            className="cursor-pointer"
-                                        >
-                                            How It Works
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                            onClick={() => window.location.href = '/#use-cases'}
-                                            className="cursor-pointer"
-                                        >
-                                            Use Cases
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
                                 <Link 
                                     to="/" 
                                     onClick={(e) => {
@@ -135,6 +79,9 @@ const Navbar = () => {
                             </>
                         )}
 
+                        <Link to="/blog" className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}>
+                            Blog
+                        </Link>
                         <Link to="/pricing" className={`text-sm font-medium ${textColor} ${hoverColor} transition-colors`}>
                             Pricing
                         </Link>
@@ -170,9 +117,6 @@ const Navbar = () => {
                         <div className="flex flex-col gap-4">
                             {isLanding ? (
                                 <>
-                                    <a href="#features" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                                        Features
-                                    </a>
                                     <a href="#comparison" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                                         Why Veriflo
                                     </a>
@@ -185,17 +129,6 @@ const Navbar = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Link 
-                                        to="/" 
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            setMobileMenuOpen(false);
-                                            window.location.href = '/#features';
-                                        }}
-                                        className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
-                                    >
-                                        Features
-                                    </Link>
                                     <Link 
                                         to="/" 
                                         onClick={(e) => {
@@ -231,6 +164,9 @@ const Navbar = () => {
                                     </Link>
                                 </>
                             )}
+                            <Link to="/blog" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
+                                Blog
+                            </Link>
                             <Link to="/pricing" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>
                                 Pricing
                             </Link>

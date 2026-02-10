@@ -232,3 +232,56 @@
     animation-delay: 400ms;
   }
 }
+
+/* =========================
+   BLOG PROSE (post body)
+   ========================= */
+.blog-prose h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: hsl(var(--foreground));
+}
+.blog-prose p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+.blog-prose ul {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+.blog-prose li {
+  margin-bottom: 0.25rem;
+}
+.blog-prose a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+.blog-prose a:hover {
+  opacity: 0.9;
+}
+.blog-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+.blog-prose th,
+.blog-prose td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.blog-prose th {
+  font-weight: 600;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+.blog-prose article {
+  display: contents;
+}
+.blog-prose article h2:first-child {
+  margin-top: 0;
+}
