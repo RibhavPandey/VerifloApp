@@ -182,7 +182,7 @@ app.post('/api/emails/trigger-drip', rateLimit({ keyPrefix: 'drip-email', window
       ? templateData.html(displayName, data?.invoicesProcessed || 0)
       : templateData.html;
 
-    const success = await sendEmail(email, templateData.subject, htmlContent);
+    const success = await sendEmail({ to: email, subject: templateData.subject, html: htmlContent });
 
     if (success) {
       console.log(`[drip-email] Sent ${template} to:`, email);
