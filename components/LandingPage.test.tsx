@@ -10,12 +10,12 @@ const renderWithRouter = (ui: React.ReactElement) =>
 describe('LandingPage', () => {
   it('renders main heading', () => {
     renderWithRouter(<LandingPage onStart={() => {}} onPricing={() => {}} />);
-    expect(screen.getByText(/Done in seconds/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stop copy-pasting invoices/i)).toBeInTheDocument();
   });
 
-  it('renders Start Free Trial button', () => {
+  it('renders Try Demo button', () => {
     renderWithRouter(<LandingPage onStart={() => {}} onPricing={() => {}} />);
-    const startBtns = screen.getAllByRole('button', { name: /Start Free Trial/i });
-    expect(startBtns.length).toBeGreaterThan(0);
+    const demoBtns = screen.getAllByRole('button', { name: /Try Demo/i });
+    expect(demoBtns.length).toBeGreaterThan(0);
   });
 });

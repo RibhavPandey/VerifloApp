@@ -579,6 +579,24 @@ const Workspace: React.FC = () => {
       </Sheet>
 
       <div className="flex-1 flex flex-col min-w-0 relative">
+         {/* Upgrade banner when near limits */}
+         {(documentsLimit > 0 && (documentsUsed >= documentsLimit * 0.8 || credits < 30)) && (
+           <div className="flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/50 px-3 md:px-6 py-2 flex items-center justify-between gap-2">
+             <p className="text-sm text-amber-900 dark:text-amber-100">
+               {documentsUsed >= documentsLimit * 0.8
+                 ? `You've used ${documentsUsed}/${documentsLimit} documents this period.`
+                 : `Low credits: ${credits} remaining.`}
+               <span className="font-medium ml-1">Upgrade for more.</span>
+             </p>
+             <button
+               onClick={() => navigate('/pricing')}
+               className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-amber-900 dark:text-amber-100 bg-amber-100 dark:bg-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900/70 rounded-lg transition-colors"
+             >
+               View Pricing
+             </button>
+           </div>
+         )}
+
          <header className="h-14 bg-background border-b border-border flex items-center justify-between px-3 md:px-6 flex-shrink-0 z-[100]">
             <div className="flex items-center gap-2 min-w-0">
                 {/* Mobile Hamburger Menu */}

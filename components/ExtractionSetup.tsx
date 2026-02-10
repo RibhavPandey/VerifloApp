@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Upload, FileText, Tag, Plus, ArrowRight, X, AlertCircle, Check, Loader2, StopCircle } from 'lucide-react';
+import { Upload, FileText, Tag, Plus, ArrowRight, X, AlertCircle, Check, Loader2, StopCircle, Sparkles } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { WorkspaceContextType } from './Workspace';
 import { Job, VerificationDocument, ExtractedField, LineItem } from '../types';
@@ -92,11 +92,25 @@ const ExtractionSetup: React.FC = () => {
         }
     };
 
+    const handleTrySampleInvoice = async () => {
+        try {
+            const res = await fetch('https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.pdf');
+            if (!res.ok) throw new Error('Could not load sample');
+            const blob = await res.blob();
+            const file = new File([blob], 'sample-invoice.pdf', { type: 'application/pdf' });
+            setPendingUploads(prev => [...prev, file]);
+            addToast('success', 'Sample Loaded', 'Try extracting data from the sample invoice.');
+        } catch {
+            addToast('error', 'Sample Failed', 'Could not load sample invoice. Please upload your own file.');
+        }
+    };
+
     const runExtraction = async () => {
         if (pendingUploads.length === 0) return;
 
         const limit = documentsLimit ?? 10;
         const used = documentsUsed ?? 0;
+        const wasFirstExtraction = used === 0;
         if (limit === 0 || used >= limit) {
             addToast(
                 'error',
@@ -274,8 +288,10 @@ const ExtractionSetup: React.FC = () => {
         } else {
             addToast(
                 'success',
-                'Extraction Complete',
-                `${newDocs.length} document(s) extracted successfully`
+                wasFirstExtraction ? 'First extraction complete!' : 'Extraction Complete',
+                wasFirstExtraction
+                    ? 'Review your data below and verify any flagged fields.'
+                    : `${newDocs.length} document(s) extracted successfully`
             );
         }
         
@@ -376,6 +392,16 @@ const ExtractionSetup: React.FC = () => {
                             <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"><Upload size={32} /></div>
                             <p className="font-bold text-foreground">Upload Files</p>
                             <p className="text-xs text-muted-foreground mt-1 mb-4">PDF, PNG, JPG, WebP (max 10MB)</p>
+                            {(documentsUsed ?? 0) === 0 && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleTrySampleInvoice(); }}
+                                    className="relative z-20 flex items-center gap-2 px-3 py-2 text-xs font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
+                                >
+                                    <Sparkles size={14} />
+                                    Try sample invoice
+                                </button>
+                            )}
                             {pendingUploads.length > 0 && (
                                 <div className="w-full space-y-2">
                                     <div className="bg-primary/10 text-primary py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2">

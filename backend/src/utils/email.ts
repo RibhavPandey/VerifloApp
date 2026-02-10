@@ -119,6 +119,62 @@ export async function sendCreditLowWarning(email: string, name: string, credits:
   });
 }
 
+export async function sendInactiveUserEmail(email: string, name: string, stage: 'day2' | 'day5'): Promise<boolean> {
+  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://verifloapp.com'}/dashboard`;
+  const extractUrl = `${process.env.FRONTEND_URL || 'https://verifloapp.com'}/extract/new`;
+  const subject = stage === 'day2'
+    ? "You haven't extracted yet — try Veriflo in 2 minutes"
+    : "Here's a quick way to try Veriflo extraction";
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #111;">
+        <div style="max-width: 520px; margin: 48px auto; padding: 40px;">
+          <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Hi ${name || 'there'},</p>
+          <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600;">
+            ${stage === 'day2' ? "You haven't extracted yet" : "Still waiting to try extraction?"}
+          </h1>
+          <p style="margin: 0 0 24px; font-size: 16px; color: #444; line-height: 1.6;">
+            ${stage === 'day2'
+              ? "Upload a PDF invoice and let AI extract the data in seconds. No setup required."
+              : "One click: upload a sample invoice and see structured data. Takes under 2 minutes."}
+          </p>
+          <a href="${extractUrl}" style="display: inline-block; padding: 14px 30px; background: #111; color: #fff; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600;">${stage === 'day2' ? 'Extract your first invoice →' : 'Try extraction now →'}</a>
+          <p style="margin-top: 32px; font-size: 13px; color: #888;">If you didn't create a Veriflo account, you can ignore this email.</p>
+        </div>
+      </body>
+    </html>
+  `;
+  return sendEmail({ to: email, subject, html });
+}
+
+export async function sendFirstWeekSummaryEmail(email: string, name: string, hasExtracted: boolean): Promise<boolean> {
+  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://verifloapp.com'}/dashboard`;
+  const pricingUrl = `${process.env.FRONTEND_URL || 'https://verifloapp.com'}/pricing`;
+  const subject = hasExtracted ? "Your first week with Veriflo — here's what's next" : "Your first week with Veriflo";
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #111;">
+        <div style="max-width: 520px; margin: 48px auto; padding: 40px;">
+          <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Hi ${name || 'there'},</p>
+          <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600;">Your first week with Veriflo</h1>
+          <p style="margin: 0 0 24px; font-size: 16px; color: #444; line-height: 1.6;">
+            ${hasExtracted
+              ? "You've tried extraction. Need more documents or credits? Upgrade for 150 docs/month and more."
+              : "You're on the free plan — 10 docs and 100 credits per month. Ready for more? Check our plans."}
+          </p>
+          <a href="${pricingUrl}" style="display: inline-block; padding: 14px 30px; background: #111; color: #fff; border-radius: 10px; text-decoration: none; font-size: 15px; font-weight: 600;">View pricing →</a>
+          <p style="margin-top: 32px; font-size: 13px; color: #888;">Questions? Reply to this email.</p>
+        </div>
+      </body>
+    </html>
+  `;
+  return sendEmail({ to: email, subject, html });
+}
+
 export async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<boolean> {
   const html = `
     <!DOCTYPE html>

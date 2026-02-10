@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   FileSpreadsheet, ScanText, Clock, AlertTriangle, CheckCircle2, 
   MoreHorizontal, Plus, Trash2, Pencil, AlertCircle,
@@ -13,11 +13,14 @@ import { useToast } from './ui/toast';
 import { WorkspaceContextType } from './Workspace';
 import { supabase } from '../lib/supabase';
 import WelcomeModal from './WelcomeModal';
+import OnboardingProgress from './OnboardingProgress';
+import type { OnboardingStep } from './OnboardingProgress';
 import { trackEvent } from '../lib/analytics';
 
 const Dashboard: React.FC = () => {
   const { jobs, onJobCreated, refreshData } = useOutletContext<WorkspaceContextType>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
   const [userName, setUserName] = useState<string>('');
   
@@ -53,21 +56,25 @@ const Dashboard: React.FC = () => {
     trackEvent('page_view', { page: 'dashboard' });
   }, []);
 
-  // Check if this is first visit
+  // Auto-run demo when coming from Try Demo flow (?demo=1)
+  useEffect(() => {
+    if (searchParams.get('demo') === '1') {
+      setSearchParams({}, { replace: true });
+      handleLoadDemo();
+      localStorage.setItem('hasSeenWelcome', 'true'); // Skip welcome modal when coming from Try Demo
+      return;
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Check if this is first visit (show welcome modal)
   useEffect(() => {
     const checkFirstVisit = () => {
       const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-      // Show modal if user hasn't seen it AND has no projects (truly new user)
       if (!hasSeenWelcome) {
-        // Small delay for smooth appearance after component mounts
-        const timer = setTimeout(() => {
-          setShowWelcomeModal(true);
-        }, 600);
+        const timer = setTimeout(() => setShowWelcomeModal(true), 600);
         return () => clearTimeout(timer);
       }
     };
-    
-    // Check after component is fully mounted
     const timer = setTimeout(checkFirstVisit, 200);
     return () => clearTimeout(timer);
   }, []);
@@ -229,6 +236,41 @@ const Dashboard: React.FC = () => {
             Try Demo
           </button>
         </div>
+
+        {/* ONBOARDING CHECKLIST - shown after welcome modal dismissed */}
+        {localStorage.getItem('hasSeenWelcome') && (
+          <OnboardingProgress
+            steps={[
+              { id: 'signup', label: 'Create your account', done: true },
+              {
+                id: 'upload',
+                label: 'Upload your first file',
+                done: jobs.length > 0,
+                action: jobs.length === 0 ? () => (document.getElementById('hidden-csv-upload')?.click()) : undefined,
+              },
+              {
+                id: 'extraction',
+                label: 'Run your first extraction',
+                done: jobs.some((j) => j.type === 'extraction'),
+                action: !jobs.some((j) => j.type === 'extraction')
+                  ? () => navigate('/extract/new')
+                  : undefined,
+              },
+              {
+                id: 'export',
+                label: 'Complete & export data',
+                done: jobs.some((j) => j.status === 'verified'),
+                action:
+                  needsAttentionJobs.length > 0
+                    ? () => navigate(`/extract/${needsAttentionJobs[0].id}/review`)
+                    : !jobs.some((j) => j.status === 'verified') && jobs.some((j) => j.type === 'extraction')
+                    ? () => navigate('/extract/new')
+                    : undefined,
+              },
+            ] as OnboardingStep[]}
+            onStepClick={(step) => step.action?.()}
+          />
+        )}
 
         {/* ACTION CARDS */}
         <div className="mb-8 md:mb-10">

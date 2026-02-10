@@ -11,7 +11,7 @@ import { useToast } from './ui/toast';
 const VerificationPage: React.FC = () => {
     const { id } = useParams<{ id: string }>(); // Job ID
     const navigate = useNavigate();
-    const { refreshData } = useOutletContext<WorkspaceContextType>();
+    const { refreshData, documentsUsed, documentsLimit } = useOutletContext<WorkspaceContextType>();
     const { addToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [job, setJob] = useState<Job | null>(null);
@@ -129,7 +129,13 @@ const VerificationPage: React.FC = () => {
             await db.upsertJob(completedJob);
 
             if (refreshData) refreshData();
-            addToast('success', 'Extraction Complete', 'Redirecting to spreadsheet editor...');
+            const showUpgradeCta = documentsLimit <= 20 || (documentsLimit > 0 && (documentsUsed ?? 0) >= documentsLimit * 0.5);
+            addToast(
+                'success',
+                'Extraction Complete',
+                'Redirecting to spreadsheet editor...',
+                showUpgradeCta ? { label: 'Upgrade for more docs', onClick: () => navigate('/pricing') } : undefined
+            );
             navigate(`/sheet/${job.id}`);
         } catch (e) {
             console.error(e);

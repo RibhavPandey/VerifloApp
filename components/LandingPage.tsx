@@ -9,7 +9,6 @@ import {
   FileText,
   CheckCircle2,
   Check,
-  Play,
   MessageSquare,
   Workflow,
   X,
@@ -72,86 +71,78 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
     <div className="min-h-screen bg-white">
       <div className="bg-gradient-to-b from-[#7f9ddf] via-blue-500 to-blue-50">
         <Navbar />
-        
+
         {/* Hero Section */}
         <section className="relative overflow-hidden py-16 md:py-22 lg:py-14">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-5xl text-center">
-            <h1 className="mb-5 md:mb-7 animate-fade-in-up text-balance text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal leading-tight text-white animation-delay-100">
-              Hours of manual work.{" "}
-              <span className="text-white">
-                Done in seconds.
-              </span>
-            </h1>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="mx-auto max-w-5xl text-center">
+              <h1 className="mb-5 md:mb-7 animate-fade-in-up text-balance text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal leading-tight text-white animation-delay-100">
+                Stop copy-pasting invoices{" "}
+                <span className="text-white">
+                  20 invoices → Tally in 5 minutes
+                </span>
+              </h1>
 
-            <p className="mb-9 md:mb-11 animate-fade-in-up text-pretty text-base sm:text-lg md:text-xl leading-relaxed text-white/90 animation-delay-200 max-w-3xl mx-auto">
-              Extract invoices, automate workflows, chat with your data—all in one workspace. Export to Tally, QuickBooks, Zoho.
-            </p>
+              <p className="mb-9 md:mb-11 animate-fade-in-up text-pretty text-base sm:text-lg md:text-xl leading-relaxed text-white/90 animation-delay-200 max-w-3xl mx-auto">
+                Extract invoices, automate workflows, chat with your data—all in one workspace. Export to Tally, QuickBooks, Zoho.
+              </p>
 
-            <div className="flex flex-col items-center justify-center gap-3.5 animate-fade-in-up animation-delay-300 sm:flex-row">
-              <Button
-                onClick={onStart}
-                size="lg" 
-                className="group w-full sm:w-auto bg-white text-[#7f9ddf] hover:bg-white/90 font-semibold text-sm sm:text-base rounded-xl px-7 py-5 shadow-lg hover:shadow-xl transition-all"
-              >
-                Start Free Trial
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full sm:w-auto border-2 border-white bg-transparent text-white hover:bg-white/10 font-semibold text-sm sm:text-base rounded-xl px-7 py-5 backdrop-blur-sm transition-all"
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Schedule Demo
-              </Button>
+              <div className="flex flex-col items-center justify-center gap-3.5 animate-fade-in-up animation-delay-300 sm:flex-row">
+                <Button
+                  onClick={() => window.location.href = '/auth?demo=1'}
+                  size="lg"
+                  className="group w-full sm:w-auto bg-white text-[#7f9ddf] hover:bg-white/90 font-semibold text-sm sm:text-base rounded-xl px-7 py-5 shadow-lg hover:shadow-xl transition-all"
+                >
+                  Try Demo
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </div>
+
             </div>
 
-          </div>
-
-          {/* App Interface Image */}
-          <section 
-            data-section-id="demo-video"
-            className={`py-12 md:py-16 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-          >
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="max-w-7xl mx-auto">
-                {/* Outer container with gradient background */}
-                <div 
-                  className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl"
-                  style={{
-                    backgroundImage: 'url(/video-background.png)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundColor: '#1a1a1a'
-                  }}
-                >
-                  {/* Inner container - smaller video with equal padding on all sides */}
-                  <div className="absolute inset-8 md:inset-12 lg:inset-16 xl:inset-20 rounded-2xl overflow-hidden bg-gray-900 shadow-xl">
-                    <video
-                      data-video-demo
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      preload="auto"
-                      style={{ 
-                        pointerEvents: 'none'
-                      }}
-                    >
-                      <source src="/demo-video.mp4" type="video/mp4" />
-                      <source src="/demo-video.webm" type="video/webm" />
-                      Your browser does not support the video tag.
-                    </video>
+            {/* App Interface Image */}
+            <section
+              data-section-id="demo-video"
+              className={`py-12 md:py-16 transition-opacity duration-700 ${visibleSections.has('demo-video') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+            >
+              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto">
+                  {/* Outer container with gradient background */}
+                  <div
+                    className="relative aspect-video rounded-3xl overflow-hidden shadow-2xl"
+                    style={{
+                      backgroundImage: 'url(/video-background.png)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundColor: '#1a1a1a'
+                    }}
+                  >
+                    {/* Inner container - smaller video with equal padding on all sides */}
+                    <div className="absolute inset-8 md:inset-12 lg:inset-16 xl:inset-20 rounded-2xl overflow-hidden bg-gray-900 shadow-xl">
+                      <video
+                        data-video-demo
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="auto"
+                        style={{
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        <source src="/demo-video.mp4" type="video/mp4" />
+                        <source src="/demo-video.webm" type="video/webm" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
-        </div>
-      </section>
+            </section>
+          </div>
+        </section>
       </div>
 
       {/* Demo Video Section
@@ -186,8 +177,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       </section> */}
 
       {/* Features Section */}
-      <section 
-        id="features" 
+      <section
+        id="features"
         data-section-id="features"
         className={`py-24 md:py-32 transition-opacity duration-700 bg-white ${visibleSections.has('features') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
@@ -241,8 +232,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       </section>
 
       {/* How It Works Section */}
-      <section 
-        id="how-it-works" 
+      <section
+        id="how-it-works"
         data-section-id="how-it-works"
         className={`py-24 md:py-32 transition-opacity duration-700 bg-gray-50 ${visibleSections.has('how-it-works') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
@@ -292,8 +283,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       </section>
 
       {/* Comparison Section */}
-      <section 
-        id="comparison" 
+      <section
+        id="comparison"
         data-section-id="comparison"
         className={`py-24 md:py-32 transition-opacity duration-700 bg-white ${visibleSections.has('comparison') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
@@ -369,8 +360,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       </section>
 
       {/* Use Cases Section */}
-      <section 
-        id="use-cases" 
+      <section
+        id="use-cases"
         data-section-id="use-cases"
         className={`py-24 md:py-32 transition-opacity duration-700 bg-gray-50 ${visibleSections.has('use-cases') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
@@ -424,7 +415,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
       </section>
 
       {/* CTA Section */}
-      <section 
+      <section
         data-section-id="cta"
         className={`bg-gradient-to-br from-blue-500 to-blue-600 py-24 md:py-32 text-white transition-opacity duration-700 ${visibleSections.has('cta') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       >
@@ -436,11 +427,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, onPricing }) => {
             14 days free. No credit card. Full access. Cancel anytime.
           </p>
           <Button
-            onClick={onStart}
+            onClick={() => window.location.href = '/auth?demo=1'}
             size="lg"
             className="group bg-white text-primary hover:bg-gray-50 font-semibold text-lg rounded-xl px-8 py-6 shadow-xl hover:shadow-2xl transition-all"
           >
-            Start Your Free Trial
+            Try Demo
             <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
           </Button>
           <p className="mt-6 text-sm sm:text-base text-white/80">

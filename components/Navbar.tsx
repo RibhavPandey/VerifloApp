@@ -95,9 +95,9 @@ const Navbar = () => {
                         <Button 
                             size="lg" 
                             className="bg-white text-[#7f9ddf] hover:bg-white/90 font-semibold rounded-xl px-6 shadow-lg transition-all"
-                            onClick={() => window.location.href = '/auth'}
+                            onClick={() => window.location.href = '/auth?demo=1'}
                         >
-                            Start Free Trial
+                            Try Demo
                         </Button>
                     </div>
 
@@ -179,10 +179,10 @@ const Navbar = () => {
                                     className="w-full bg-primary text-white hover:bg-primary/90 font-semibold rounded-xl shadow-sm"
                                     onClick={() => {
                                         setMobileMenuOpen(false);
-                                        window.location.href = '/auth';
+                                        window.location.href = '/auth?demo=1';
                                     }}
                                 >
-                                    Start Free Trial
+                                    Try Demo
                                 </Button>
                             </div>
                         </div>

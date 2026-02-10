@@ -123,7 +123,11 @@ const App: React.FC = () => {
           {/* Public Routes */}
           <Route path="/" element={<LandingPage onStart={() => window.location.href = '/auth'} onPricing={() => window.location.href = '/pricing'} />} />
           <Route path="/pricing" element={<PricingPage onBack={() => window.location.href = '/'} onStart={() => window.location.href = '/auth'} />} />
-          <Route path="/auth" element={!session ? <Auth onSuccess={() => window.location.href = '/dashboard'} /> : <Navigate to="/dashboard" />} />
+          <Route path="/auth" element={
+            !session
+              ? <Auth onSuccess={() => { const d = new URLSearchParams(window.location.search).get('demo'); window.location.href = d ? '/dashboard?demo=1' : '/dashboard'; }} />
+              : <Navigate to={window.location.search.includes('demo=1') ? '/dashboard?demo=1' : '/dashboard'} />
+          } />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />

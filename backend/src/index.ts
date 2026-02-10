@@ -166,6 +166,12 @@ app.post('/api/payment/webhook', rateLimit({ keyPrefix: 'payment-webhook', windo
   res.status(200).send('OK');
 });
 
+// Cron: follow-up emails (protected by CRON_SECRET header)
+app.post('/api/cron/followup-emails', rateLimit({ keyPrefix: 'cron-followup', windowMs: 60_000, max: 10 }), async (req, res) => {
+  const { runFollowupEmails } = await import('./routes/cron.js');
+  return runFollowupEmails(req, res);
+});
+
 // Routes (all protected with authentication)
 app.use('/api/extract', authenticate, rateLimit({ keyPrefix: 'extract', windowMs: 60_000, max: 10 }), extractRoutes);
 app.use('/api/analyze', authenticate, rateLimit({ keyPrefix: 'analyze', windowMs: 60_000, max: 20 }), analyzeRoutes);
